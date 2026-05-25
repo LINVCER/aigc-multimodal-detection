@@ -88,6 +88,8 @@ yarn-error.log*
 # ======== 前端构建 ========
 frontend/dist/
 frontend/.vite/
+frontend/auto-imports.d.ts
+frontend/components.d.ts
 
 # ======== 模型文件 ========
 models/
