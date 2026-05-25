@@ -176,7 +176,7 @@ def _generate_pdf_formatted(elements, title='document'):
     pdf.ln(6)
     pdf.set_font(cn, '', 8)
     pdf.set_text_color(160, 160, 160)
-    pdf.cell(page_w, 8, f'由 ImageNious 转换 - {title}', align='C')
+    pdf.cell(page_w, 8, f'由 AIGC--多模态检测 转换 - {title}', align='C')
     return bytes(pdf.output())
 
 

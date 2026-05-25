@@ -71,7 +71,7 @@ thresholds = ThresholdConfig()
 
 class Settings(BaseSettings):
     # 应用
-    app_name: str = "ImageNious AIGC Detection Platform"
+    app_name: str = "AIGC--多模态检测"
     debug: bool = False
     log_level: str = "INFO"
 

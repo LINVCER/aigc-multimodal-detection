@@ -1,5 +1,5 @@
 /**
- * ImageNious Content Script
+ * AIGC--多模态检测 Content Script
  * 功能: 抓取网页文本 → 发送 API → 高亮标注疑似 AI 片段
  */
 

@@ -1,10 +1,10 @@
 /**
- * ImageNious Background Service Worker
+ * AIGC--多模态检测 Background Service Worker
  * 处理跨域 API 请求和缓存管理
  */
 
 chrome.runtime.onInstalled.addListener(() => {
-  console.log("ImageNious 浏览器插件已安装");
+  console.log("AIGC--多模态检测 浏览器插件已安装");
 });
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {

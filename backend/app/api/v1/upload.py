@@ -636,7 +636,7 @@ async def detect_thesis(
         "report_meta": {
             "filename": file.filename,
             "detection_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "algorithm_version": "ImageNious v4.0 — 学科自适应 + 全局优化",
+            "algorithm_version": "AIGC--多模态检测 v4.0 — 学科自适应 + 全局优化",
             "adaptive_threshold": adpt_threshold,
             "threshold_method": f"学科自适应 ({discipline})",
         },

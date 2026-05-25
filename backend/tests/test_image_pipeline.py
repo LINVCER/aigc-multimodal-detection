@@ -8,7 +8,7 @@ import numpy as np
 
 async def main():
     print("=" * 60)
-    print("ImageNious Image Detection Pipeline Test")
+    print("AIGC--多模态检测 Image Detection Pipeline Test")
     print("=" * 60)
 
     # 生成测试图像 (真实照片模拟 vs 纯色/AI风格模拟)

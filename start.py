@@ -1,5 +1,5 @@
 """
-ImageNious 启动脚本 — 支持修改配置、检查依赖、启动全栈服务
+AIGC--多模态检测 启动脚本 — 支持修改配置、检查依赖、启动全栈服务
 
 用法:
   python start.py                        # 默认配置启动
@@ -169,7 +169,7 @@ def start_frontend(config: dict) -> subprocess.Popen | None:
 
 def write_env(config: dict):
     ENV_FILE.parent.mkdir(parents=True, exist_ok=True)
-    content = f"""# ImageNious 环境配置
+    content = f"""# AIGC--多模态检测 环境配置
 DB_HOST={config['db_host']}
 DB_PORT={config['db_port']}
 DB_NAME={config['db_name']}
@@ -218,7 +218,7 @@ DEFAULT_CONFIG = {
 
 
 def main():
-    parser = argparse.ArgumentParser(description="ImageNious 启动脚本")
+    parser = argparse.ArgumentParser(description="AIGC--多模态检测 启动脚本")
     parser.add_argument("--port", type=int, help="后端端口")
     parser.add_argument("--kill", action="store_true", help="关闭所有服务")
     parser.add_argument("--no-frontend", action="store_true")
@@ -242,7 +242,7 @@ def main():
     write_env(config)
 
     print("\n" + "=" * 50)
-    print("  ImageNious AIGC 多模态内容鉴伪平台")
+    print("  AIGC--多模态检测")
     print("=" * 50)
 
     # 健康检查

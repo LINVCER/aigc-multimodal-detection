@@ -81,7 +81,7 @@ async def main():
 
     # 1. 生成 AI 文本
     print("=" * 60)
-    print("C-ReD 风格基准测试 — ImageNious 检测器评估")
+    print("C-ReD 风格基准测试 — AIGC--多模态检测器评估")
     print("=" * 60)
 
     ai_samples = []

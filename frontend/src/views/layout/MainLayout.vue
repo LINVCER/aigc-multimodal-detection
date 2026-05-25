@@ -4,7 +4,7 @@
     <header class="top-header">
       <div class="header-left">
         <div class="logo">
-          <span class="logo-text">ImageNious</span>
+          <span class="logo-text">AIGC--多模态检测</span>
         </div>
         <nav class="main-nav">
           <router-link

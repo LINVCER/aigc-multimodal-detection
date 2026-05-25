@@ -1,7 +1,7 @@
 """
 CUDRT 基准测试 — 中文 AIGC 检测器评估
 
-在 CUDRT Chinese 验证集上评估 ImageNious 检测器性能
+在 CUDRT Chinese 验证集上评估 AIGC--多模态检测器性能
 指标: 准确率 / 精确率 / 召回率 / F1 / ECE
 """
 

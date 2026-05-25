@@ -1,7 +1,7 @@
 <template>
   <div class="standards-page">
     <h1>国家标准合规</h1>
-    <p style="color:#718096;margin-top:0">ImageNious AIGC 检测平台对标国家标准情况</p>
+    <p style="color:#718096;margin-top:0">AIGC--多模态检测平台对标国家标准情况</p>
 
     <!-- 核心标准 -->
     <h2 style="margin-top:28px">核心对标标准</h2>
@@ -63,7 +63,7 @@
     <div style="margin-top:36px;padding:20px;background:#f0f9ff;border-radius:12px;border-left:4px solid #409eff">
       <div style="font-weight:600;margin-bottom:8px;color:#1e40af">合规声明</div>
       <div style="font-size:14px;color:#4a5568;line-height:1.8">
-        ImageNious AIGC 检测平台严格对标 GB 45438—2025《人工智能 生成内容标识方法》和
+        AIGC--多模态检测平台严格对标 GB 45438—2025《人工智能 生成内容标识方法》和
         TC260-003《生成式人工智能服务安全基本要求》设计实现。<br/>
         平台提供显式标识检测、隐式标识(元数据)验证、生成模型溯源和风险等级评定等核心功能，
         适用于教育、出版、传媒等领域的 AIGC 内容合规检测场景。

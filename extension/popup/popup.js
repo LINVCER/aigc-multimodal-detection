@@ -1,5 +1,5 @@
 /**
- * ImageNious Popup — 弹出窗交互逻辑
+ * AIGC--多模态检测 Popup — 弹出窗交互逻辑
  */
 
 const statusEl = document.getElementById("status");

@@ -12,7 +12,7 @@
         <div class="brand-content">
           <div class="logo-wrapper">
             <div class="logo-icon">IN</div>
-            <h1 class="brand-title">ImageNious</h1>
+            <h1 class="brand-title">AIGC--多模态检测</h1>
           </div>
           <p class="brand-subtitle">AI 生成内容检测平台</p>
           <div class="brand-features">

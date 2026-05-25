@@ -1,8 +1,8 @@
 <template>
   <view class="container">
     <view class="header">
-      <text class="title">ImageNious</text>
-      <text class="subtitle">AIGC 内容鉴伪平台</text>
+      <text class="title">AIGC--多模态检测</text>
+      <text class="subtitle">多模态内容鉴伪平台</text>
     </view>
 
     <view class="grid">

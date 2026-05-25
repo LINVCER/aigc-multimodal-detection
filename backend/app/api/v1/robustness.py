@@ -569,11 +569,11 @@ def _build_report_document(
 
     lines = []
     lines.append("=" * 60)
-    lines.append("ImageNious 论文 AIGC 优化报告")
+    lines.append("AIGC--多模态检测 论文 AIGC 优化报告")
     lines.append("=" * 60)
     lines.append("")
     lines.append(f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    lines.append(f"算法版本: ImageNious v3.0 — 智能论文降AIGC")
+    lines.append(f"算法版本: AIGC--多模态检测 v3.0 — 智能论文降AIGC")
     lines.append("")
     lines.append("-" * 60)
     lines.append("检测结果对比")
@@ -616,7 +616,7 @@ def _build_report_document(
     lines.append(original_text)
     lines.append("")
     lines.append("=" * 60)
-    lines.append("报告结束 — ImageNious AIGC 检测平台")
+    lines.append("报告结束 — AIGC--多模态检测平台")
 
     return "\n".join(lines)
 
@@ -783,7 +783,7 @@ def _generate_pdf(
 
     # 标题
     pdf.set_font(cn_font, "B", 20)
-    pdf.cell(0, 15, "ImageNious 论文 AIGC 优化报告", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 15, "AIGC--多模态检测 论文 AIGC 优化报告", align="C", new_x="LMARGIN", new_y="NEXT")
     pdf.set_font(cn_font, "", 9)
     pdf.set_text_color(113, 128, 150)
     pdf.cell(0, 8, f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", align="C", new_x="LMARGIN", new_y="NEXT")
@@ -880,7 +880,7 @@ def _generate_pdf(
     # 页脚
     pdf.set_font(cn_font, "", 9)
     pdf.set_text_color(160, 174, 192)
-    pdf.cell(0, 8, "报告结束 - ImageNious AIGC 检测平台", align="C", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 8, "报告结束 - AIGC--多模态检测平台", align="C", new_x="LMARGIN", new_y="NEXT")
 
     return bytes(pdf.output())
 
@@ -906,7 +906,7 @@ def _generate_docx(
     section.right_margin = Cm(2.5)
 
     # 标题
-    title = doc.add_heading("ImageNious 论文 AIGC 优化报告", level=0)
+    title = doc.add_heading("AIGC--多模态检测 论文 AIGC 优化报告", level=0)
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
     p = doc.add_paragraph()
@@ -1001,7 +1001,7 @@ def _generate_docx(
     # 页脚
     doc.add_paragraph()
     doc.add_paragraph("— 报告结束 —").alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p = doc.add_paragraph("ImageNious AIGC 检测平台")
+    p = doc.add_paragraph("AIGC--多模态检测平台")
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
     from io import BytesIO

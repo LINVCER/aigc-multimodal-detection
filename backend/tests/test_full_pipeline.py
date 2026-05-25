@@ -11,7 +11,7 @@ import asyncio
 
 async def main():
     print("=" * 60)
-    print("ImageNious 文本检测管线测试")
+    print("AIGC--多模态检测 文本检测管线测试")
     print("=" * 60)
 
     # ---------- Step 1: 测试数据集 ----------
