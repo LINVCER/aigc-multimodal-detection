@@ -1,0 +1,45 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "ImageNious 内容鉴伪"
+      }
+    },
+    {
+      "path": "pages/text-detect/text-detect",
+      "style": {
+        "navigationBarTitleText": "文本检测"
+      }
+    },
+    {
+      "path": "pages/image-detect/image-detect",
+      "style": {
+        "navigationBarTitleText": "图像检测"
+      }
+    },
+    {
+      "path": "pages/audio-detect/audio-detect",
+      "style": {
+        "navigationBarTitleText": "音频检测"
+      }
+    },
+    {
+      "path": "pages/result/result",
+      "style": {
+        "navigationBarTitleText": "检测结果"
+      }
+    },
+    {
+      "path": "pages/history/history",
+      "style": {
+        "navigationBarTitleText": "检测历史"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarBackgroundColor": "#1a1a2e",
+    "backgroundColor": "#f7fafc"
+  }
+}

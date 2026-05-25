@@ -1,0 +1,38 @@
+.imagenious-highlight {
+  cursor: pointer;
+  border-radius: 2px;
+  padding: 1px 0;
+  transition: background-color 0.2s;
+}
+
+.imagenious-highlight:hover {
+  background-color: rgba(239, 68, 68, 0.5) !important;
+}
+
+.imagenious-badge {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 99999;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: slide-up 0.3s ease;
+}
+
+.imagenious-badge.ai {
+  background: #ef4444;
+  color: white;
+}
+
+.imagenious-badge.human {
+  background: #10b981;
+  color: white;
+}
+
+@keyframes slide-up {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}

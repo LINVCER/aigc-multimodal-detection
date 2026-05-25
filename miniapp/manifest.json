@@ -1,0 +1,23 @@
+{
+  "name": "ImageNious-AIGC鉴伪",
+  "appid": "wx5dede2e8d33e3f15",
+  "description": "面向教育考试与新闻传媒场景的多模态内容鉴伪平台",
+  "versionName": "0.1.0",
+  "versionCode": 1,
+  "uni-app": {
+    "compilerVersion": "3.x"
+  },
+  "mp-weixin": {
+    "appid": "wx5dede2e8d33e3f15",
+    "setting": {
+      "urlCheck": false,
+      "es6": true,
+      "postcss": true,
+      "minified": true
+    },
+    "permission": {
+      "scope.camera": { "desc": "用于拍摄需要检测的图像" },
+      "scope.record": { "desc": "用于录制需要检测的音频" }
+    }
+  }
+}

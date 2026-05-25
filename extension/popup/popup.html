@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ImageNious 检测</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { width: 320px; font-family: "PingFang SC", "Microsoft YaHei", sans-serif; font-size: 14px; color: #1a202c; }
+    .header { background: linear-gradient(135deg, #1a1a2e, #16213e); color: white; padding: 16px; text-align: center; }
+    .header h2 { font-size: 16px; }
+    .header small { font-size: 11px; color: #a0aec0; }
+    .content { padding: 16px; }
+    .btn { width: 100%; padding: 10px; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; margin-bottom: 8px; }
+    .btn-primary { background: #409EFF; color: white; }
+    .btn-primary:hover { background: #3182ce; }
+    .btn-secondary { background: #e2e8f0; color: #4a5568; }
+    .btn-secondary:hover { background: #cbd5e0; }
+    .status { margin-top: 12px; padding: 8px; border-radius: 6px; font-size: 13px; text-align: center; }
+    .status.loading { background: #bee3f8; color: #2b6cb0; }
+    .status.ai { background: #fed7d7; color: #c53030; }
+    .status.human { background: #c6f6d5; color: #276749; }
+    .status.error { background: #feebc8; color: #c05621; }
+    .confidence { font-size: 24px; font-weight: bold; margin: 8px 0; text-align: center; }
+    .footer { padding: 8px 16px; border-top: 1px solid #e2e8f0; text-align: center; }
+    .footer a { color: #409EFF; text-decoration: none; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h2>ImageNious 内容鉴伪</h2>
+    <small>AIGC 检测 | 浏览器插件</small>
+  </div>
+  <div class="content">
+    <button id="detectBtn" class="btn btn-primary">检测当前页面内容</button>
+    <button id="clearBtn" class="btn btn-secondary">清除高亮标注</button>
+    <div id="status" style="display:none"></div>
+    <button id="openWebBtn" class="btn btn-secondary" style="margin-top:12px">打开 Web 管理端</button>
+  </div>
+  <div class="footer">
+    <a href="http://localhost:5173" target="_blank">ImageNious v0.1.0</a>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

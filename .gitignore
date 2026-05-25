@@ -1,0 +1,175 @@
+# ======== Claude Code ========
+.claude/
+
+# ======== Playwright CLI ========
+.playwright-cli/
+backend/.playwright-cli/
+
+# ======== 环境变量和敏感文件 ========
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+*.p12
+project.private.config.json
+
+# ======== Python ========
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+*.log
+
+# ======== Virtual Environment ========
+venv/
+.venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# ======== IDE ========
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# ======== Node.js ========
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp
+.pnp.js
+.npm
+.eslintcache
+*.tsbuildinfo
+
+# ======== 前端构建 ========
+frontend/dist/
+frontend/.vite/
+
+# ======== 模型文件 ========
+models/
+*.pth
+*.pt
+*.bin
+*.onnx
+*.pkl
+*.h5
+*.ckpt
+*.safetensors
+*.msc
+*.mv
+
+# ======== 数据集 ========
+data/
+
+# ======== 测试文件 ========
+test_audio.wav
+test_token.txt
+
+# ======== 截图 ========
+dashboard.png
+
+# ======== MinIO数据 ========
+minio_data/
+
+# ======== Redis数据 ========
+dump.rdb
+*.rdb
+
+# ======== MySQL数据 ========
+mysql_data/
+
+# ======== 日志 ========
+logs/
+*.log
+*.log.*
+
+# ======== 上传文件 ========
+uploads/
+tmp/
+temp/
+
+# ======== 系统文件 ========
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.stackdump
+
+# ======== 测试和覆盖率 ========
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# ======== 文档构建 ========
+docs/_build/
+docs/build/
+
+# ======== Celery ========
+celerybeat-schedule
+celerybeat.pid
+
+# ======== Jupyter ========
+.ipynb_checkpoints/
+
+# ======== 其他 ========
+*.bak
+*.tmp
+*.orig
+*~
+\#*\#
+.#*
