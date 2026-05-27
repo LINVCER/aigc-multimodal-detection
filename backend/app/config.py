@@ -145,7 +145,7 @@ class Settings(BaseSettings):
     # LLM API — MiMo (Anthropic 兼容)
     llm_api_key: str = ""
     llm_api_base: str = "https://token-plan-cn.xiaomimimo.com/anthropic"
-    llm_model: str = "mimo-v2.5-pro"
+    llm_model: str = "mimo-v2.5"
 
     # DeepSeek API (OpenAI 兼容)
     deepseek_api_key: str = ""
@@ -159,7 +159,7 @@ class Settings(BaseSettings):
     # MiMo-VL (Anthropic-compatible API)
     mimo_api_key: str = ""
     mimo_api_base: str = "https://token-plan-cn.xiaomimimo.com/anthropic"
-    mimo_model: str = "mimo-v2.5-pro"
+    mimo_model: str = "mimo-v2.5"
 
     # 模型路径 (HuggingFace model ID, 首次使用自动下载缓存)
     model_dir: str = "../models"
