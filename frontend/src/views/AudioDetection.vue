@@ -1,7 +1,7 @@
 <template>
   <div class="audio-detect">
     <h1>音频检测</h1>
-    <p style="color:#718096;margin-top:0">检测语音是否为 AI 合成 — 三路融合: Wav2Vec2 + Resemble + RawNet2</p>
+    <p style="color:#718096;margin-top:0">检测语音是否为 AI 合成 — 三路融合: Wav2Vec2 + AI模型 + RawNet2</p>
 
     <el-card>
       <div class="upload-zone" :class="{ 'has-file': file }" @click="triggerUpload" @dragover.prevent @drop.prevent="handleDrop">
@@ -132,8 +132,8 @@ watch(file, (f) => {
 
 function branchLabel(name: string): string {
   const m: Record<string,string> = {
-    wav2vec2_xlsr: "Wav2Vec2 XLS-R",
-    resemble_api: "Resemble AI",
+    wav2vec2_xlsr_aigc: "Wav2Vec2 XLS-R",
+    mimo_audio_analysis: "AI模型",
     rawnet2: "RawNet2",
   }
   return m[name] || name
