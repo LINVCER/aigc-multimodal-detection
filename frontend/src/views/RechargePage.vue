@@ -5,7 +5,7 @@
     <el-card style="max-width:500px;margin:0 auto">
       <!-- 收款码 -->
       <div style="text-align:center;margin-bottom:20px">
-        <img src="/qrcode_pay.jpg" alt="收款码" style="width:280px;border-radius:8px;border:1px solid #e2e8f0" />
+        <img src="/qrcode_pay.png" alt="收款码" style="width:280px;border-radius:8px;border:1px solid #e2e8f0" />
         <p style="font-size:12px;color:#a0aec0;margin-top:8px">请使用微信扫一扫付款</p>
       </div>
 
