@@ -234,6 +234,25 @@ async def detect_tampering_endpoint(
         raise HTTPException(status_code=500, detail=f"检测处理异常: {str(e)}")
 
     from app.config import thresholds
+    import json as _json
+    import numpy as _np
+
+    def _json_safe(obj):
+        """递归转换 numpy 类型为原生 Python"""
+        if isinstance(obj, (_np.integer,)):
+            return int(obj)
+        if isinstance(obj, (_np.floating,)):
+            return float(obj)
+        if isinstance(obj, _np.ndarray):
+            return _json_safe(obj.tolist())
+        if isinstance(obj, (_np.bool_,)):
+            return bool(obj)
+        if isinstance(obj, dict):
+            return {k: _json_safe(v) for k, v in obj.items()}
+        if isinstance(obj, (list, tuple)):
+            return [_json_safe(v) for v in obj]
+        return obj
+
     risk = (
         "high" if result.tampering_score > thresholds.TAMPERING_RISK_HIGH else
         "medium" if result.tampering_score > thresholds.TAMPERING_RISK_MEDIUM else
@@ -241,7 +260,7 @@ async def detect_tampering_endpoint(
     )
     await deduct_quota("tampering", db, current_user)
     # 存储篡改检测完整数据到 raw_scores JSON 字段
-    tampering_raw_scores = {
+    tampering_raw_scores = _json_safe({
         "tampering_type": result.tampering_type,
         "tampering_score": result.tampering_score,
         "is_tampered": result.is_tampered,
@@ -251,7 +270,7 @@ async def detect_tampering_endpoint(
             for b in result.branch_results
         ],
         "explanation": result.explanation_data,
-    }
+    })
     await save_detection_result(
         db=db, task_id=str(task.id), modality="tampering",
         is_ai_generated=result.is_tampered,
