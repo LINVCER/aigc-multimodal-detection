@@ -217,7 +217,7 @@
                 {{ t.input_content || t.task_id?.slice(0, 8) + '...' || '论文检测' }}
               </span>
               <el-tag :type="t.status === 'completed' ? 'success' : t.status === 'failed' ? 'danger' : 'warning'" size="small">
-                {{ {completed:'已完成',failed:'失败',processing:'处理中',pending:'排队中'}[t.status] || t.status }}
+                {{ ({completed:'已完成',failed:'失败',processing:'处理中',pending:'排队中'} as Record<string,string>)[t.status] || t.status }}
               </el-tag>
             </div>
             <span style="font-size:12px;color:#a0aec0">{{ t.created_at?.slice(0, 19) }}</span>
