@@ -4,7 +4,7 @@ import socket
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, get_current_user
+from app.api.deps import get_db, get_current_user, check_quota, deduct_quota
 from app.models.user import User
 from app.schemas.detection import (
     TextDetectionRequest,
@@ -42,7 +42,7 @@ def _redis_available() -> bool:
 async def detect_text(
     req: TextDetectionRequest,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(check_quota),
 ):
     task = await create_task(
         db=db,
@@ -65,6 +65,7 @@ async def detect_text(
         raise HTTPException(status_code=500, detail=f"检测处理异常: {str(e)}")
 
     risk = "high" if result.confidence > 0.7 else "medium" if result.confidence > 0.25 else "low"
+    await deduct_quota("text", db, current_user)
     await save_detection_result(
         db=db, task_id=str(task.id), modality="text",
         is_ai_generated=result.is_ai_generated,
@@ -103,7 +104,7 @@ async def detect_image(
     file: UploadFile = File(...),
     options: str = Form(default="{}"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(check_quota),
 ):
     image_data = await file.read()
     task = await create_task(
@@ -125,6 +126,7 @@ async def detect_image(
 
     from app.config import thresholds
     risk = thresholds.get_risk_level(result.confidence)
+    await deduct_quota("image", db, current_user)
     await save_detection_result(
         db=db, task_id=str(task.id), modality="image",
         is_ai_generated=result.is_ai_generated,
@@ -156,7 +158,7 @@ async def detect_audio(
     file: UploadFile = File(...),
     options: str = Form(default="{}"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(check_quota),
 ):
     task = await create_task(
         db=db, user_id=str(current_user.id),
@@ -180,6 +182,7 @@ async def detect_audio(
         raise HTTPException(status_code=500, detail=f"检测处理异常: {str(e)}")
 
     risk = "high" if result.confidence > 0.7 else "medium" if result.confidence > 0.25 else "low"
+    await deduct_quota("audio", db, current_user)
     await save_detection_result(
         db=db, task_id=str(task.id), modality="audio",
         is_ai_generated=result.is_ai_generated,
@@ -208,7 +211,7 @@ async def detect_tampering_endpoint(
     file: UploadFile = File(...),
     options: str = Form(default="{}"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(check_quota),
 ):
     """篡改检测 — Mask R-CNN + FFT + 噪声 三路融合"""
     import json
@@ -236,6 +239,7 @@ async def detect_tampering_endpoint(
         "medium" if result.tampering_score > thresholds.TAMPERING_RISK_MEDIUM else
         "low"
     )
+    await deduct_quota("tampering", db, current_user)
     # 存储篡改检测完整数据到 raw_scores JSON 字段
     tampering_raw_scores = {
         "tampering_type": result.tampering_type,

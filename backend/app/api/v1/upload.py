@@ -3,7 +3,7 @@ import asyncio
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 
-from app.api.deps import get_db, get_current_user
+from app.api.deps import get_db, get_current_user, check_quota, deduct_quota
 from app.models.user import User
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -334,7 +334,8 @@ async def batch_detect_images(
 @router.post("/thesis")
 async def detect_thesis(
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(check_quota),
+    db: AsyncSession = Depends(get_db),
 ):
     """
     论文 AIGC 检测 — 对标知网/Turnitin 标准, 智能自适应阈值
@@ -634,6 +635,8 @@ async def detect_thesis(
         }
     optimization_data["risk_factors"] = thesis_report.risk_factors
     optimization_data["human_indicators"] = thesis_report.human_indicators
+
+    await deduct_quota("thesis", db, current_user)
 
     return {
         "report_meta": {
