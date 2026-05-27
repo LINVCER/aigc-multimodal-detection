@@ -31,7 +31,7 @@ class Wav2Vec2AIGCDetector(DetectionPipeline):
 
     def __init__(self, model_dir: str | None = None, classifier_path: str | None = None):
         super().__init__()
-        self.model_dir = model_dir or "../models/audio/wav2vec2-xls-r-300m"
+        self.model_dir = model_dir or "../models/audio/wav2vec2-base"
         self.classifier_path = classifier_path or "../models/audio/aigc_audio_classifier.pth"
         self._encoder = None
         self._feature_extractor = None
