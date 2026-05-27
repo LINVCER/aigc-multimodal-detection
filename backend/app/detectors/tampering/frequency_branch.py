@@ -32,9 +32,9 @@ class FrequencyBranch(SpatialEvidenceBranch):
         _, binary = cv2.threshold(norm, 180, 255, cv2.THRESH_BINARY)
         mask = binary.astype(bool)
 
-        # 置信度: 基于信号强度而非二值mask均值
-        signal_ratio = (norm > 180).mean()
-        normalized_confidence = min(signal_ratio * 5, 1.0)
+        # 置信度: 使用归一化幅度的95分位数表示频率异常程度
+        magnitude_score = np.percentile(magnitude / (np.max(magnitude) + 1e-10), 95)
+        normalized_confidence = min(float(magnitude_score), 1.0)
 
         return BranchResult(
             branch_name=self.name,

@@ -31,9 +31,9 @@ class NoiseBranch(SpatialEvidenceBranch):
         _, binary = cv2.threshold(noise, 25, 255, cv2.THRESH_BINARY)
         mask = binary.astype(bool)
 
-        # 置信度: 基于噪声信号强度而非二值mask均值
-        signal_ratio = (noise > 25).mean()
-        normalized_confidence = min(signal_ratio * 5, 1.0)
+        # 置信度: 使用归一化噪声强度的95分位数表示噪声异常程度
+        noise_intensity = np.percentile(noise / 255.0, 95)
+        normalized_confidence = min(float(noise_intensity), 1.0)
 
         return BranchResult(
             branch_name=self.name,
