@@ -51,9 +51,13 @@ class ViTBranch(DetectionPipeline):
             return
 
         try:
+            import os as _os
             from transformers import CLIPModel, CLIPImageProcessor
 
             model_path = settings.image_vit_model_path
+            local_cache = "../models/image/clip-vit-large-patch14"
+            if _os.path.isdir(local_cache) and _os.path.exists(_os.path.join(local_cache, "config.json")):
+                model_path = local_cache
             self._model = CLIPModel.from_pretrained(model_path, local_files_only=True).vision_model.to(self.device)
             try:
                 self._processor = CLIPImageProcessor.from_pretrained(model_path, local_files_only=True)

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc, and_, or_, case
 from datetime import datetime, timedelta
 
-from app.api.deps import get_db, get_current_admin
+from app.api.deps import get_db, get_current_user, get_current_admin
 from app.models.user import User
 from app.models.task import Task
 from app.models.detection import DetectionResult
