@@ -34,8 +34,11 @@ async def convert_to_pdf(
         raise HTTPException(400, "文件超过 20MB 限制")
 
     if ext == "docx":
-        elements = _parse_docx(content)
-        pdf_bytes = _generate_pdf(elements, file.filename)
+        # Use LibreOffice for perfect fidelity, fallback to python-docx + fpdf2
+        pdf_bytes = _docx_to_pdf_libreoffice(content, file.filename)
+        if pdf_bytes is None:
+            elements = _parse_docx(content)
+            pdf_bytes = _generate_pdf(elements, file.filename)
     else:
         text = content.decode("utf-8-sig")
         if not text or len(text.strip()) < 5:
@@ -52,6 +55,48 @@ async def convert_to_pdf(
             "Content-Disposition": f"attachment; filename*=UTF-8''{urllib.parse.quote(out_name)}"
         },
     )
+
+
+def _docx_to_pdf_libreoffice(content: bytes, filename: str) -> bytes | None:
+    """使用 LibreOffice 转换 docx → PDF，完美保留格式"""
+    import subprocess
+    soffice_paths = ["soffice", "libreoffice", "/usr/bin/soffice", "/usr/bin/libreoffice"]
+    soffice = None
+    for p in soffice_paths:
+        if subprocess.run(["which", p], capture_output=True).returncode == 0:
+            soffice = p
+            break
+    if not soffice:
+        soffice = "soffice"
+
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+        out_dir = tempfile.mkdtemp()
+        result = subprocess.run(
+            [soffice, "--headless", "--convert-to", "pdf", "--outdir", out_dir, tmp_path],
+            timeout=60,
+            capture_output=True,
+            text=True,
+        )
+        base = os.path.basename(tmp_path)
+        pdf_name = base.rsplit(".", 1)[0] + ".pdf"
+        pdf_path = os.path.join(out_dir, pdf_name)
+        if os.path.exists(pdf_path) and os.path.getsize(pdf_path) > 100:
+            with open(pdf_path, "rb") as f:
+                return f.read()
+        return None
+    except Exception:
+        return None
+    finally:
+        try:
+            os.unlink(tmp_path)
+            for f in os.listdir(out_dir):
+                os.unlink(os.path.join(out_dir, f))
+            os.rmdir(out_dir)
+        except Exception:
+            pass
 
 
 def _parse_docx(content: bytes) -> list[dict]:
