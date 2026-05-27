@@ -184,7 +184,7 @@
         v-for="item in cachedResults"
         :key="item.id"
         class="history-item"
-        @click="result = item.data; window.scrollTo({ top: 0, behavior: 'smooth' })"
+        @click="result = item.data; scrollToTop()"
       >
         <el-tag :type="item.data.is_tampered ? 'danger' : 'success'" size="small">
           {{ item.data.is_tampered ? '篡改' : '真实' }}
@@ -219,6 +219,7 @@ const previewUrl = ref("")
 const detecting = ref(false)
 const result = ref<any>(null)
 const dragOver = ref(false)
+const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
 
 const cachedResults = computed(() => resultsStore.getLatest("tampering").reverse())
 

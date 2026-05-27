@@ -11,7 +11,7 @@
         </el-table-column>
         <el-table-column prop="modality" label="模态" width="70">
           <template #default="{ row }">
-            <el-tag size="small">{{ { text: '文本', image: '图像', audio: '音频' }[row.modality] }}</el-tag>
+            <el-tag size="small">{{ ({ text: '文本', image: '图像', audio: '音频' } as Record<string,string>)[row.modality] }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="结果" width="80">

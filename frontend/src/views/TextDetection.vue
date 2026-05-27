@@ -102,7 +102,7 @@
       <h3 style="margin-bottom:8px;font-size:14px;color:#718096">近期检测</h3>
       <div v-for="r in cachedResults" :key="r.id"
         style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:white;border-radius:6px;border:1px solid #e2e8f0;margin-bottom:4px;cursor:pointer"
-        @click="result=r.data;window.scrollTo({top:0,behavior:'smooth'})">
+        @click="result=r.data;scrollToTop()">
         <span style="font-size:13px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.title }}</span>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
           <span style="font-size:12px;color:#a0aec0">{{ r.timestamp }}</span>
@@ -133,6 +133,7 @@ const detecting = ref(false)
 const result = ref<any>(null)
 const modelInfo = ref<any>(null)
 const resultsStore = useResultsStore()
+const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
 const { pollTask: pollTaskAsync } = usePollTask()
 const cachedResults = computed(() => resultsStore.getLatest("text").reverse())
 const options = reactive({ explain: true, attribution: true })

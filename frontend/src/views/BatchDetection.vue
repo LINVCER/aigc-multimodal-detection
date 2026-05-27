@@ -120,7 +120,7 @@
       <el-table :data="filteredResults" stripe border max-height="600" style="width:100%">
         <el-table-column type="index" label="#" width="50" />
         <el-table-column prop="filename" label="文件名" min-width="220" show-overflow-tooltip />
-        <el-table-column label="AI 率" width="160" sortable :sort-method="(a,b)=>a.confidence-b.confidence">
+        <el-table-column label="AI 率" width="160" sortable :sort-method="(a: any, b: any) => a.confidence - b.confidence">
           <template #default="{row}">
             <div v-if="row.error" style="color:#dc2626;font-size:12px">{{ row.error }}</div>
             <el-progress v-else :percentage="Math.round(row.confidence*100)" :color="confColor(row.confidence)" :stroke-width="12">
@@ -180,7 +180,7 @@
         <div style="display:flex;justify-content:space-between;align-items:center">
           <span style="font-weight:600;font-size:14px">{{ b.total }} 份文件</span>
           <el-tag :type="b.status==='completed'?'success':b.status==='cancelled'?'info':'warning'" size="small">
-            {{ {completed:'完成',cancelled:'已取消',processing:'进行中',partial:'部分完成'}[b.status] || b.status }}
+            {{ ({completed:'完成',cancelled:'已取消',processing:'进行中',partial:'部分完成'} as Record<string,string>)[b.status] || b.status }}
           </el-tag>
         </div>
         <div style="font-size:12px;color:#a0aec0;margin-top:6px">

@@ -201,7 +201,7 @@
       <div style="display:flex;flex-direction:column;gap:8px">
         <div v-for="r in cachedResults" :key="r.id"
           style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:white;border-radius:8px;border:1px solid #e2e8f0;cursor:pointer"
-          @click="report = r.data; window.scrollTo({top:0,behavior:'smooth'})">
+          @click="report = r.data; scrollToTop()">
           <div>
             <span style="font-weight:500">{{ r.title }}</span>
             <span style="font-size:12px;color:#a0aec0;margin-left:8px">{{ r.timestamp }}</span>
@@ -233,6 +233,7 @@ const report = ref<any>(null)
 const dragOver = ref(false)
 const fileInput = ref<HTMLInputElement>()
 const resultsStore = useResultsStore()
+const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
 const cachedResults = computed(() => resultsStore.getLatest("thesis").reverse())
 const scoreColor = computed(() => {
   if (!report.value) return "#718096"
