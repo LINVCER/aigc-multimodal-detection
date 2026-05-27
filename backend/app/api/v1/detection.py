@@ -11,6 +11,7 @@ from app.schemas.detection import (
     DetectionTaskResponse,
     DetectionResultResponse,
     BatchDetectionRequest,
+    TamperingDetectionResponse,
 )
 from app.services.detection_service import (
     create_task,
@@ -202,6 +203,80 @@ async def detect_audio(
     )
 
 
+@router.post("/tampering", response_model=TamperingDetectionResponse)
+async def detect_tampering_endpoint(
+    file: UploadFile = File(...),
+    options: str = Form(default="{}"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """篡改检测 — Mask R-CNN + FFT + 噪声 + ELA + EXIF 五路融合"""
+    import json
+    image_data = await file.read()
+    task = await create_task(
+        db=db, user_id=str(current_user.id), modality="tampering",
+    )
+
+    from app.services.tampering_service import detect_tampering as do_detect
+    try:
+        opts = json.loads(options) if options else {}
+        result = await asyncio.wait_for(do_detect(image_data, opts), timeout=120)
+    except asyncio.TimeoutError:
+        await update_task_status(db, str(task.id), "failed")
+        await db.commit()
+        raise HTTPException(status_code=504, detail="篡改检测超时，请稍后重试")
+    except Exception as e:
+        await update_task_status(db, str(task.id), "failed")
+        await db.commit()
+        raise HTTPException(status_code=500, detail=f"检测处理异常: {str(e)}")
+
+    from app.config import thresholds
+    risk = (
+        "high" if result.tampering_score > thresholds.TAMPERING_RISK_HIGH else
+        "medium" if result.tampering_score > thresholds.TAMPERING_RISK_MEDIUM else
+        "low"
+    )
+    # 存储篡改检测完整数据到 raw_scores JSON 字段
+    tampering_raw_scores = {
+        "tampering_type": result.tampering_type,
+        "tampering_score": result.tampering_score,
+        "is_tampered": result.is_tampered,
+        "branches": [
+            {"name": b.branch_name, "confidence": b.confidence,
+             "is_tampered": bool(b.mask.any()) if b.mask is not None else False}
+            for b in result.branch_results
+        ],
+        "explanation": result.explanation_data,
+    }
+    await save_detection_result(
+        db=db, task_id=str(task.id), modality="tampering",
+        is_ai_generated=result.is_tampered,
+        confidence=result.tampering_score,
+        risk_level=risk,
+        raw_scores=tampering_raw_scores,
+    )
+    await update_task_status(db, str(task.id), "completed")
+    await db.commit()
+
+    return TamperingDetectionResponse(
+        task_id=str(task.id),
+        status="completed",
+        modality="tampering",
+        message=f"判定: {'检测到篡改' if result.is_tampered else '图像真实'}",
+        is_tampered=result.is_tampered,
+        tampering_score=result.tampering_score,
+        tampering_type=result.tampering_type,
+        risk_level=risk,
+        mask_image=result.mask_base64,
+        overlay_image=result.overlay_base64,
+        branches=[
+            {"name": b.branch_name, "confidence": b.confidence,
+             "is_tampered": bool(b.mask.any()) if b.mask is not None else False}
+            for b in result.branch_results
+        ],
+    )
+
+
 @router.get("/status/{task_id}")
 async def get_detection_status(
     task_id: str,
@@ -274,6 +349,21 @@ async def get_detection_result_api(
     detection = await get_detection_result(db, task_id)
     if not detection:
         raise HTTPException(status_code=404, detail="检测结果不存在")
+
+    # 篡改检测: 从 raw_scores 提取 tampering 数据返回
+    if detection.modality == "tampering":
+        raw = detection.raw_scores or {}
+        return TamperingDetectionResponse(
+            task_id=str(task.id),
+            status=task.status,
+            modality="tampering",
+            message=f"判定: {'检测到篡改' if raw.get('is_tampered') else '图像真实'}",
+            is_tampered=raw.get("is_tampered", detection.is_ai_generated),
+            tampering_score=raw.get("tampering_score", detection.confidence),
+            tampering_type=raw.get("tampering_type", "unknown"),
+            risk_level=detection.risk_level,
+            branches=raw.get("branches"),
+        )
 
     return DetectionResultResponse(
         task_id=str(task.id),

@@ -1,6 +1,6 @@
 # AIGC--多模态检测
 
-> 面向教育、出版、传媒场景的 AI 生成内容检测平台，覆盖文本/图像/音频三模态，支持论文专项检测与一键降 AIGC。
+> 面向教育、出版、传媒场景的 AI 生成内容检测平台，覆盖文本/图像/音频三模态 + 图像篡改检测，支持论文专项检测与一键降 AIGC。
 
 ---
 
@@ -22,7 +22,7 @@
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                      客户端层                             │
-│  Vue3 Web 前端 (14页)  │  微信小程序  │  Chrome 扩展      │
+│  Vue3 Web 前端 (15页)  │  微信小程序  │  Chrome 扩展      │
 └────────────┬────────────┴──────┬──────┴────────┬─────────┘
              │                   │               │
              ▼                   ▼               ▼
@@ -39,6 +39,7 @@
 │ 文本3路融合 │ │ DeepSeek │ │ MySQL │ │ Redis + Celery   │
 │ 图像3路融合 │ │ MiMo-VL  │ │ MinIO │ │ Alembic 迁移     │
 │ 音频3路融合 │ │          │ │       │ │                  │
+│ 篡改5路融合 │ │          │ │       │ │                  │
 └────────────┘ └─────────┘ └───────┘ └──────────────────┘
 ```
 
@@ -54,6 +55,7 @@
 | 认证 | JWT (HS256, access + refresh token) |
 | 文本模型 | hfl/chinese-roberta-wwm-ext (HIT) |
 | 图像模型 | openai/clip-vit-large-patch14 + 自研高频噪声 CNN |
+| 篡改检测 | Mask R-CNN (ResNet-50+FPN) + FFT频域 + 噪声不一致 + JPEG ELA + EXIF |
 | 音频模型 | wav2vec2-xls-r-300m + RawNet2 |
 | LLM | DeepSeek (OpenAI 兼容) / MiMo-VL (Anthropic 兼容) |
 | 小程序 | uni-app 3.x |
@@ -64,7 +66,7 @@
 | 模块 | 端点前缀 | 功能 |
 |------|---------|------|
 | `auth` | `/api/v1/auth` | 注册、登录、Token 刷新 |
-| `detection` | `/api/v1/detect` | 单条文本/图像/音频检测 |
+| `detection` | `/api/v1/detect` | 单条文本/图像/音频/篡改检测 |
 | `upload` | `/api/v1/detect` | 文档上传、论文检测、批量检测 |
 | `report` | `/api/v1/report` | 检测报告生成与导出 |
 | `admin` | `/api/v1/admin` | 用户管理、配额管理 |
@@ -72,7 +74,7 @@
 | `robustness` | `/api/v1/robustness` | 对抗鲁棒性测试 + 降 AIGC |
 | `assistant` | `/api/v1/assistant` | 文档转 PDF + TTS 语音合成 |
 
-### 前端页面 (14 页)
+### 前端页面 (15 页)
 
 | 路由 | 页面 | 功能 |
 |------|------|------|
@@ -80,6 +82,7 @@
 | `/dashboard` | 仪表盘 | 快速入口 + 历史概览 |
 | `/detect/text` | 文本检测 | 单条文本 AI 检测 |
 | `/detect/image` | 图像检测 | 图片伪造检测 |
+| `/detect/tampering` | 篡改检测 | 图像篡改区域定位 (五路融合) |
 | `/detect/audio` | 音频检测 | 合成语音检测 |
 | `/detect/thesis` | 论文检测 | 学术论文 AIGC 专项检测 |
 | `/detect/reduce` | 降 AIGC | 多轮迭代降 AI 率 |
@@ -175,6 +178,52 @@
   └─→ [融合] 加权融合
         API 不可用时动态重分配 (Wav2Vec2 0.75 + RawNet2 0.25)
 ```
+
+### 篡改检测 — 五路融合
+
+```
+输入图像
+  │
+  ├─→ [输入标准化] 长边缩放至 ≤1536px (保持纵横比)
+  │
+  ├─→ [分支1] Mask R-CNN (深度分割)
+  │     maskrcnn_resnet50_fpn (ResNet-50 + FPN)
+  │     长边缩放 [800, 1000, 1200] + TTA 水平翻转
+  │     双阈值二值化: score>0.6→mask 0.6, score 0.3-0.6→mask 0.4
+  │     → 像素级 mask + score_map
+  │
+  ├─→ [分支2] FFT 频域异常
+  │     灰度图 → FFT → 对数振幅 → 归一化 → 连续 score_map [0,1]
+  │
+  ├─→ [分支3] 噪声不一致
+  │     灰度图 → 高斯模糊差分 → 归一化 → 连续 score_map [0,1]
+  │
+  ├─→ [分支4] JPEG ELA (压缩一致性)
+  │     以 quality=95 重压缩 → |原图-重压缩| → 最大通道 → score_map
+  │
+  ├─→ [分支5] EXIF 元数据一致性
+  │     检查 Software/Make/DateTime 等字段 → 全局置信度
+  │
+  └─→ [融合] 核心-边缘分离集成
+        DL mask 腐蚀 → 核心 (直接保留)
+        DL mask 膨胀-核心 → 边缘
+        边缘确认: freq>Tf AND noise>Tn AND ela>Te
+        support_ratio > 0.35 → 确认; 0.15-0.35 → 不确定 (黄色标注)
+        形状过滤 (面积≥80, 宽高比 0.1-8.0) + 形态学闭运算
+  │
+  └─→ [置信度校准]
+        tampering_score = 0.55×area + 0.30×confidence + 0.15×consistency + 0.10×exif
+        面积得分: 分段函数 (<5%线性, 5-30%缓增, >30%对数衰减)
+        篡改类型: splicing / copy_move / inpainting / retouching / unknown
+  │
+  └─→ [可视化]
+        overlay: 红=确认篡改 / 黄=不确定 / 原图=真实
+```
+
+**阈值配置 (可在 config.py 调整):**
+- FFT 阈值: 0.6 / 噪声阈值: 0.6 / ELA 阈值: 0.5
+- support_ratio 确认: 0.35 / 不确定: 0.15
+- 风险等级: low (<0.3) / medium (0.3-0.7) / high (>0.7)
 
 ### 论文检测 — 多阶段管线
 
@@ -505,6 +554,7 @@ CORS_ORIGINS=http://localhost:5173,chrome-extension://*
 | `hfl/chinese-roberta-wwm-ext` | ~400MB | 中文文本检测 |
 | `openai/clip-vit-large-patch14` | ~1.7GB | 图像检测 |
 | `wav2vec2-xls-r-300m` | ~1.2GB | 音频检测 |
+| `best_model.pth` | ~504MB | 篡改检测 (Mask R-CNN) |
 
 可通过 `HF_HOME` 环境变量指定缓存目录:
 ```bash
@@ -537,6 +587,7 @@ python scripts/create_admin.py
 │   │   │   ├── text/                 # RoBERTa + LLM logprob + 统计特征
 │   │   │   ├── image/                # CNN + CLIP-ViT + MiMo-VL
 │   │   │   ├── audio/                # Wav2Vec2 + RawNet2 + Resemble
+│   │   │   ├── tampering/            # 篡改检测 (Mask R-CNN + FFT + ELA + EXIF)
 │   │   │   ├── defense/              # 同形字标准化 + 改写检测
 │   │   │   └── metadata/             # 元数据标识检测
 │   │   ├── services/                 # 业务服务层
@@ -544,7 +595,8 @@ python scripts/create_admin.py
 │   │   │   ├── thesis_forensics.py   # 论文取证分析
 │   │   │   ├── thesis_optimizer.py   # 学科自适应优化
 │   │   │   ├── arbitration.py        # 贝叶斯冲突消解
-│   │   │   └── calibration.py        # 温度/Platt 校准
+│   │   │   ├── calibration.py        # 温度/Platt 校准
+│   │   │   └── tampering_service.py  # 篡改检测服务
 │   │   ├── models/                   # SQLAlchemy ORM
 │   │   ├── schemas/                  # Pydantic 数据模型
 │   │   └── utils/                    # 文档解析 / N-gram 工具
@@ -555,7 +607,7 @@ python scripts/create_admin.py
 ├── frontend/
 │   ├── package.json
 │   ├── vite.config.ts
-│   └── src/views/                    # 14 个页面组件
+│   └── src/views/                    # 15 个页面组件
 ├── miniapp/                          # 微信小程序 (uni-app)
 ├── extension/                        # Chrome 扩展 (MV3)
 ├── data/                             # 训练数据集

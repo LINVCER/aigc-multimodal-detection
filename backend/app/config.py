@@ -49,7 +49,20 @@ class ThresholdConfig:
     BURSTINESS_UNIFORM: float = 0.25    # 节奏偏均匀阈值
     ZIPF_DEVIATION: float = 0.3         # Zipf偏差阈值
     HAPAX_LOW: float = 0.3             # Hapax比率偏低阈值
-    
+
+    # ===== 篡改检测阈值 =====
+    TAMPERING_RISK_HIGH: float = 0.7       # 篡改高风险阈值
+    TAMPERING_RISK_MEDIUM: float = 0.3     # 篡改中风险阈值
+    TAMPERING_FREQ_THRESHOLD: float = 0.6  # FFT score_map 阈值
+    TAMPERING_NOISE_THRESHOLD: float = 0.6 # 噪声 score_map 阈值
+    TAMPERING_ELA_THRESHOLD: float = 0.5   # ELA score_map 阈值
+    TAMPERING_SUPPORT_CONFIRM: float = 0.35   # support_ratio 确认阈值
+    TAMPERING_SUPPORT_UNCERTAIN: float = 0.15 # support_ratio 不确定阈值
+    TAMPERING_WEIGHT_AREA: float = 0.55    # 面积得分权重
+    TAMPERING_WEIGHT_CONFIDENCE: float = 0.30 # 实例置信度权重
+    TAMPERING_WEIGHT_CONSISTENCY: float = 0.15 # 分支一致性权重
+    TAMPERING_EXIF_WEIGHT: float = 0.10    # EXIF 修正权重
+
     @classmethod
     def get_risk_level(cls, confidence: float) -> str:
         """统一的风险等级判定"""
@@ -144,6 +157,7 @@ class Settings(BaseSettings):
     image_vit_model_path: str = "openai/clip-vit-large-patch14"
     image_cnn_model_path: str = "../models/image/cnn_detection.pth"
     audio_rawnet2_model_path: str = "../models/audio/rawnet2_model.pth"
+    tampering_maskrcnn_checkpoint: str = "../models/tampering/best_model.pth"
 
     # 训练数据
     text_training_data_dir: str = "../data/training"

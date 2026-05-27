@@ -209,3 +209,23 @@ export interface TextChange {
   optimized: string
   position: number
 }
+
+// ===== 篡改检测 =====
+export interface TamperingDetectionResult {
+  task_id: string
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  is_tampered: boolean
+  tampering_score: number
+  tampering_type: string
+  risk_level: 'low' | 'medium' | 'high'
+  mask_image: string
+  overlay_image: string
+  branches: TamperingBranchResult[]
+  created_at: string
+}
+
+export interface TamperingBranchResult {
+  name: string
+  confidence: number
+  is_tampered: boolean
+}

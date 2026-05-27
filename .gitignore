@@ -92,7 +92,7 @@ frontend/auto-imports.d.ts
 frontend/components.d.ts
 
 # ======== 模型文件 ========
-models/
+/models/
 *.pth
 *.pt
 *.bin

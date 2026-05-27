@@ -71,6 +71,7 @@ const navItems = [
   { name: "首页", path: "/dashboard" },
   { name: "文本检测", path: "/detect/text" },
   { name: "图像检测", path: "/detect/image" },
+  { name: "篡改检测", path: "/detect/tampering" },
   { name: "音频检测", path: "/detect/audio" },
   { name: "论文检测", path: "/detect/thesis" },
   { name: "降AIGC", path: "/detect/reduce" },

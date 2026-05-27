@@ -95,3 +95,20 @@ class FeedbackRequest(BaseModel):
     task_id: str
     is_correct: bool
     comment: str | None = None
+
+
+# ===== 篡改检测 =====
+
+class TamperingDetectionResponse(BaseModel):
+    task_id: str
+    status: str
+    modality: str = "tampering"
+    message: str | None = None
+    is_tampered: bool | None = None
+    tampering_score: float | None = None
+    tampering_type: str | None = None
+    risk_level: str | None = None
+    mask_image: str | None = None
+    overlay_image: str | None = None
+    uncertain_mask_image: str | None = None
+    branches: list[dict[str, Any]] | None = None

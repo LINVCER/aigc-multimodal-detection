@@ -4,7 +4,7 @@ import { useAuthStore } from "./auth"
 
 interface CachedResult {
   id: string
-  type: "text" | "image" | "thesis" | "batch" | "audio"
+  type: "text" | "image" | "thesis" | "batch" | "audio" | "tampering"
   title: string
   timestamp: string
   data: any

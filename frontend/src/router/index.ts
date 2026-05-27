@@ -38,6 +38,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "音频检测" },
       },
       {
+        path: "detect/tampering",
+        name: "TamperingDetection",
+        component: () => import("@/views/TamperingDetection.vue"),
+        meta: { title: "篡改检测" },
+      },
+      {
         path: "detect/thesis",
         name: "ThesisDetection",
         component: () => import("@/views/ThesisDetection.vue"),
