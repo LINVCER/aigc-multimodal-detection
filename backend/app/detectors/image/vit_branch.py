@@ -133,6 +133,21 @@ class ViTBranch(DetectionPipeline):
             logit=calibrated_logit,
         )
 
+    def unload(self):
+        """释放显存/内存"""
+        if self._model:
+            self._model.cpu()
+            del self._model
+            self._model = None
+        if self._linear_head:
+            del self._linear_head
+            self._linear_head = None
+        self._loaded = False
+        self._processor = None
+        import gc; gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
     async def explain(self, input_data: Image.Image, output: DetectionOutput) -> dict:
         return {
             "detector": self.name,

@@ -49,4 +49,7 @@ async def detect_audio(audio_bytes: bytes, options: dict | None = None) -> Detec
             "rawnet2_confidence": local_output.confidence,
         }
 
+    # 检测完成后释放 Wav2Vec2 大模型内存
+    _wav2vec2.unload()
+
     return fused

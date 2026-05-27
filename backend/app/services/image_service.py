@@ -103,6 +103,9 @@ async def detect_image(image_data: bytes, options: dict | None = None) -> Detect
             "mimo_explanation": mimo_explain if mimo_output.metadata.get("status") != "model_not_loaded" else None,
         }
 
+    # 检测完成后释放 ViT 大模型内存（4GB小服务器优化）
+    _vit_branch.unload()
+
     return fused
 
 

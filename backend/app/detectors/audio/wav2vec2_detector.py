@@ -120,6 +120,21 @@ class Wav2Vec2AIGCDetector(DetectionPipeline):
 
         return pooled
 
+    def unload(self):
+        """释放模型内存"""
+        if self._encoder:
+            self._encoder.cpu()
+            del self._encoder
+            self._encoder = None
+        if self._classifier:
+            del self._classifier
+            self._classifier = None
+        self._loaded = False
+        self._feature_extractor = None
+        import gc; gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
     async def detect(self, input_data: np.ndarray, sample_rate: int = 16000) -> DetectionOutput:
         import asyncio
 
