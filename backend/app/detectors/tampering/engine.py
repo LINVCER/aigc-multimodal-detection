@@ -59,11 +59,11 @@ class TamperingEngine:
         # 5. 获取全局最高置信度
         prob = float(score_map.max()) if score_map.any() else 0.0
 
-        # 6. 三方投票判定
+        # 6. 三方投票判定（高阈值降误报）
         votes_tampered = sum([
             1 if bool(dl_mask.any()) else 0,
-            1 if freq_result.confidence > 0.5 else 0,
-            1 if noise_result.confidence > 0.5 else 0,
+            1 if freq_result.confidence > 0.65 else 0,
+            1 if noise_result.confidence > 0.65 else 0,
         ])
         votes_real = 3 - votes_tampered
         if votes_tampered >= 2:

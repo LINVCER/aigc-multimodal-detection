@@ -21,11 +21,11 @@ from app.detectors.tampering.output import BranchResult
 
 logger = logging.getLogger(__name__)
 
-SCORE_THRESHOLD_LOW = 0.3
-SCORE_THRESHOLD_HIGH = 0.6
-MASK_THRESHOLD_LOW = 0.4
-MASK_THRESHOLD_HIGH = 0.6
-CONFIDENCE_FILTER = 0.45
+SCORE_THRESHOLD_LOW = 0.4
+SCORE_THRESHOLD_HIGH = 0.7
+MASK_THRESHOLD_LOW = 0.5
+MASK_THRESHOLD_HIGH = 0.7
+CONFIDENCE_FILTER = 0.55
 
 
 class MaskRCNNBranch(SpatialEvidenceBranch):
