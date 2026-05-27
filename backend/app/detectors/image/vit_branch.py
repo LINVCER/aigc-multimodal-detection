@@ -121,8 +121,9 @@ class ViTBranch(DetectionPipeline):
             cls_feature = vision_outputs.last_hidden_state[:, 0]
             logit = self._linear_head(cls_feature).squeeze(-1).item()
 
-        # 温度校准 (Platt参数异常暂不使用)
-        calibrated_logit = logit / max(self.temperature, 1.0)
+        # 温度校准 + 偏置修正 (模型过拟合，AUC=0.9997)
+        t = max(self.temperature * 2.0, 3.0)  # 温度加倍
+        calibrated_logit = (logit - 0.15) / t  # 减去AI偏置再除温度
         prob = torch.sigmoid(torch.tensor(calibrated_logit)).item()
         prob = max(0.01, min(0.99, prob))
 
