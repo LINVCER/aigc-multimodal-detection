@@ -140,7 +140,7 @@
 
     <!-- MiMo-VL 分析 -->
     <el-card v-if="result?.explanation?.mimo_explanation?.note" style="margin-top:12px">
-      <template #header><span style="font-weight:600">MiMo-VL 视觉分析</span></template>
+      <template #header><span style="font-weight:600">AI模型 视觉分析</span></template>
       <p style="font-size:13px;color:#4a5568;margin:0">{{ result.explanation.mimo_explanation.note }}</p>
     </el-card>
 

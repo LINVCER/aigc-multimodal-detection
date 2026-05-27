@@ -1,6 +1,6 @@
 """
 图像检测服务编排 — 预处理 → 三分支检测 → 融合 → 解释
-三分支: 高频噪声CNN + CLIP-ViT + MiMo-VL
+三分支: 高频噪声CNN + CLIP-ViT + AI视觉模型
 """
 
 import asyncio
