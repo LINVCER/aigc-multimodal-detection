@@ -100,8 +100,8 @@ class Wav2Vec2AIGCDetector(DetectionPipeline):
             )
             sample_rate = 16000
 
-        # 分段处理 (每段 3-8秒)
-        chunk_size = 16000 * 5  # 5秒
+        # 分段处理: 取中段3秒加速CPU推理
+        chunk_size = 16000 * 3  # 3秒
         if len(audio) > chunk_size:
             # 取音频中段 (避免开头静音)
             start = (len(audio) - chunk_size) // 2
@@ -155,7 +155,7 @@ class Wav2Vec2AIGCDetector(DetectionPipeline):
                 asyncio.get_event_loop().run_in_executor(
                     None, self._extract_features, input_data, sample_rate,
                 ),
-                timeout=30,
+                timeout=120,  # CPU推理慢，延长时间
             )
         except (asyncio.TimeoutError, Exception):
             return DetectionOutput(
