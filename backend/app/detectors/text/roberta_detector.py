@@ -35,8 +35,8 @@ class ChineseRobertaDetector(DetectionPipeline):
 
         model_path = settings.text_model_path
         try:
-            self._tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True, local_files_only=True)
-            self._model = AutoModel.from_pretrained(model_path, trust_remote_code=True, local_files_only=True).to(self.device)
+            self._tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+            self._model = AutoModel.from_pretrained(model_path, trust_remote_code=True).to(self.device)
             self._model.eval()
             # 分类头 (需与训练脚本结构一致)
             hidden_size = self._model.config.hidden_size
