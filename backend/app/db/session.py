@@ -5,13 +5,20 @@ from app.config import get_settings
 
 settings = get_settings()
 
+_db_url = settings.database_url_resolved
+_use_mysql = "mysql" in _db_url
+
+_engine_kwargs = {}
+if _use_mysql:
+    _engine_kwargs["pool_size"] = 20
+    _engine_kwargs["max_overflow"] = 10
+    _engine_kwargs["pool_pre_ping"] = False
+
 engine = create_async_engine(
-    settings.database_url_resolved,
-    pool_size=20,
-    max_overflow=10,
-    pool_pre_ping=False,
+    _db_url,
     echo=settings.debug,
-    connect_args={"charset": "utf8mb4"} if "mysql" in settings.database_url_resolved else {},
+    connect_args={"charset": "utf8mb4"} if _use_mysql else {},
+    **_engine_kwargs,
 )
 
 async_session_factory = async_sessionmaker(
