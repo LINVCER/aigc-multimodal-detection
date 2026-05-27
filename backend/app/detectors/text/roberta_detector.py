@@ -34,9 +34,14 @@ class ChineseRobertaDetector(DetectionPipeline):
             return
 
         model_path = settings.text_model_path
+        # 尝试从本地缓存路径加载
+        local_cache = "/root/.cache/huggingface/hub/models--hfl--chinese-roberta-wwm-ext"
+        import os
+        if os.path.isdir(local_cache) and os.path.exists(os.path.join(local_cache, "config.json")):
+            model_path = local_cache
         try:
-            self._tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
-            self._model = AutoModel.from_pretrained(model_path, trust_remote_code=True).to(self.device)
+            self._tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True, local_files_only=True)
+            self._model = AutoModel.from_pretrained(model_path, trust_remote_code=True, local_files_only=True).to(self.device)
             self._model.eval()
             # 分类头 (需与训练脚本结构一致)
             hidden_size = self._model.config.hidden_size
