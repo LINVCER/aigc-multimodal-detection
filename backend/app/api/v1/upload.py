@@ -604,9 +604,12 @@ async def detect_thesis(
     )
     discipline = detect_discipline(text)
     adpt_threshold = get_threshold(discipline)
+    chapter_dicts = [
+        {"text": ch.full_text, "type": ch.chapter_type} for ch in chapters if not ch.is_skip
+    ] if consistency else None
     thesis_report = generate_thesis_report(
         text, para_results,
-        chapters=[ch for ch in chapters if not ch.is_skip] if consistency else None,
+        chapters=chapter_dicts,
         sentences_list=[ch.paragraphs for ch in chapters if not ch.is_skip and ch.paragraphs] if consistency else None,
     )
     optimization_data = {
