@@ -69,14 +69,18 @@ class Wav2Vec2AIGCDetector(DetectionPipeline):
             nn.Linear(64, 1),
         ).to(DEVICE)
 
-        # 加载预训练分类头 (如果有)
+        # 加载预训练分类头 (如果有)，自动适配维度差异
         if os.path.exists(self.classifier_path):
             try:
                 state = torch.load(self.classifier_path, map_location=DEVICE)
-                # 兼容 training script 的 'net.' 前缀
                 if any(k.startswith('net.') for k in state.keys()):
                     state = {k.replace('net.', ''): v for k, v in state.items()}
-                self._classifier.load_state_dict(state)
+                # 维度适配: 1024→768 截断第一层权重
+                if '0.weight' in state and state['0.weight'].shape[1] != hidden:
+                    old_dim = state['0.weight'].shape[1]
+                    state['0.weight'] = state['0.weight'][:, :hidden]
+                    print(f"[Wav2Vec2Detector] 分类头维度适配: {old_dim}→{hidden}")
+                self._classifier.load_state_dict(state, strict=False)
                 print(f"[Wav2Vec2Detector] 已加载分类头: {self.classifier_path}")
             except Exception as e:
                 print(f"[Wav2Vec2Detector] 分类头加载失败 ({e})，使用随机初始化")
