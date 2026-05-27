@@ -130,10 +130,16 @@ def _pdf_to_docx_libreoffice(content: bytes, filename: str) -> bytes | None:
     tmp_path = None
     out_dir = None
     try:
-        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
-            tmp.write(content)
-            tmp_path = tmp.name
+        # 使用固定文件名避免路径问题
         out_dir = tempfile.mkdtemp()
+        tmp_path = os.path.join(out_dir, "input.pdf")
+        with open(tmp_path, "wb") as f:
+            f.write(content)
+            f.flush()
+            os.fsync(f.fileno())
+
+        logger.info(f"PDF file: {tmp_path}, size={os.path.getsize(tmp_path)}")
+
         result = subprocess.run(
             [soffice, "--headless", "--convert-to", "docx", "--outdir", out_dir, tmp_path],
             timeout=120,
@@ -144,28 +150,18 @@ def _pdf_to_docx_libreoffice(content: bytes, filename: str) -> bytes | None:
         logger.info(f"LibreOffice stderr: {result.stderr}")
         logger.info(f"LibreOffice returncode: {result.returncode}")
 
-        base = os.path.basename(tmp_path)
-        docx_name = base.rsplit(".", 1)[0] + ".docx"
-        docx_path = os.path.join(out_dir, docx_name)
-
-        # 列出输出目录
+        # 查找输出的 .docx 文件
         if os.path.isdir(out_dir):
-            logger.info(f"Output dir files: {os.listdir(out_dir)}")
-
-        if os.path.exists(docx_path) and os.path.getsize(docx_path) > 100:
-            with open(docx_path, "rb") as f:
-                return f.read()
-
-        # 尝试查找任意 .docx 文件（LibreOffice 有时会改变文件名）
-        if os.path.isdir(out_dir):
-            for f in os.listdir(out_dir):
+            files = os.listdir(out_dir)
+            logger.info(f"Output dir files: {files}")
+            for f in files:
                 if f.endswith(".docx"):
                     fpath = os.path.join(out_dir, f)
                     if os.path.getsize(fpath) > 100:
                         with open(fpath, "rb") as fh:
                             return fh.read()
 
-        logger.error(f"PDF→Word conversion failed: no output docx at {docx_path}")
+        logger.error("PDF→Word conversion failed: no output docx")
         return None
     except subprocess.TimeoutExpired:
         logger.error("PDF→Word conversion timed out (120s)")
@@ -175,7 +171,7 @@ def _pdf_to_docx_libreoffice(content: bytes, filename: str) -> bytes | None:
         return None
     finally:
         try:
-            if tmp_path:
+            if tmp_path and os.path.exists(tmp_path):
                 os.unlink(tmp_path)
             if out_dir and os.path.isdir(out_dir):
                 for f in os.listdir(out_dir):
