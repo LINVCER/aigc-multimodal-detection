@@ -196,14 +196,17 @@
     </div>
 
     <!-- 论文检测任务列表 -->
-    <div style="margin-top:24px" v-if="taskList.length > 0">
+    <div style="margin-top:24px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
         <h3 style="margin:0">论文检测任务列表</h3>
         <el-button size="small" text @click="fetchTaskList">
           <el-icon><Refresh /></el-icon> 刷新
         </el-button>
       </div>
-      <div style="display:flex;flex-direction:column;gap:8px">
+      <div v-if="taskList.length === 0" style="text-align:center;padding:24px;color:#a0aec0;font-size:13px">
+        暂无检测任务，提交论文后任务会显示在此处
+      </div>
+      <div v-else style="display:flex;flex-direction:column;gap:8px">
         <div v-for="t in taskList" :key="t.task_id"
           style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:white;border-radius:8px;border:1px solid #e2e8f0;cursor:pointer"
           :style="t.status === 'processing' ? 'border-color:#e6a23c;background:#fdf6ec' : ''"
@@ -211,13 +214,13 @@
           <div style="flex:1;min-width:0">
             <div style="display:flex;align-items:center;gap:8px">
               <span style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-                {{ t.input_content || '论文检测' }}
+                {{ t.input_content || t.task_id?.slice(0, 8) + '...' || '论文检测' }}
               </span>
               <el-tag :type="t.status === 'completed' ? 'success' : t.status === 'failed' ? 'danger' : 'warning'" size="small">
-                {{ t.status === 'completed' ? '已完成' : t.status === 'failed' ? '失败' : '处理中' }}
+                {{ {completed:'已完成',failed:'失败',processing:'处理中',pending:'排队中'}[t.status] || t.status }}
               </el-tag>
             </div>
-            <span style="font-size:12px;color:#a0aec0">{{ t.created_at }}</span>
+            <span style="font-size:12px;color:#a0aec0">{{ t.created_at?.slice(0, 19) }}</span>
           </div>
           <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;margin-left:16px">
             <span v-if="t.status === 'completed'" style="font-size:13px;color:#718096">

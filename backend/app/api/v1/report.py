@@ -82,7 +82,7 @@ async def get_history(
             confidence=det.confidence if det else 0.0,
             risk_level=det.risk_level if det else None,
             created_at=str(task.created_at) if task.created_at else "",
-            input_content=(task.input_content[:200] if task.input_content else None),
+            input_content=(task.input_content[:200] if task.input_content else (task.input_file_url[:200] if task.input_file_url else None)),
         ))
 
     return HistoryResponse(items=items, total=total, page=page, size=size)
