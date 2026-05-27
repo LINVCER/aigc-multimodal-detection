@@ -26,13 +26,8 @@ class AudioEnsemble:
     ) -> DetectionOutput:
         branches = []
 
-        # Wav2Vec2-base (380MB, CPU可用)
-        w2v_alive = (
-            wav2vec2_output
-            and wav2vec2_output.metadata.get("status") not in ("model_load_error", "nan_output", "feature_extraction_timeout")
-        )
-        if w2v_alive:
-            branches.append((0.50, wav2vec2_output.logit, "wav2vec2_xlsr_aigc", wav2vec2_output))
+        # Wav2Vec2-base 分类头需重训，暂时跳过
+        w2v_alive = False
 
         # MiMo API (声学特征不够可靠，仅辅助)
         api_available = (
