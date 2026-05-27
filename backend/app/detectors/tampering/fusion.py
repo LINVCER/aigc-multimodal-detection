@@ -38,11 +38,12 @@ class TamperingFusion:
         dilated = cv2.dilate(dl, kernel_edge)
         edge = dilated - core
 
-        # 辅助特征必须同时出现在频域和噪声中
-        aux = (freq_mask & noise_mask).astype(np.uint8)
+        # 噪声为主，频域为辅：噪声 OR (频域 AND 噪声) 确认边缘
+        noise_confirm = noise_mask.astype(np.uint8)
+        freq_confirm = (freq_mask & noise_mask).astype(np.uint8)
 
-        # 核心 + 边缘内同时有辅助特征的区域
-        fused = core | (edge & aux)
+        # 核心 + 边缘内被噪声确认的区域 (噪声权重更高)
+        fused = core | (edge & (noise_confirm | freq_confirm))
         fused = fused.astype(bool)
 
         # 形状过滤
