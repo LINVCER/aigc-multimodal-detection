@@ -94,10 +94,9 @@ class Wav2Vec2AIGCDetector(DetectionPipeline):
 
         # 重采样到 16kHz
         if sample_rate != 16000:
-            import librosa
-            audio = librosa.resample(
-                audio, orig_sr=sample_rate, target_sr=16000,
-            )
+            from scipy.signal import resample as _resample
+            num_samples = int(len(audio) * 16000 / sample_rate)
+            audio = _resample(audio, num_samples).astype(np.float32)
             sample_rate = 16000
 
         # 分段处理: 取中段3秒加速CPU推理
@@ -151,13 +150,8 @@ class Wav2Vec2AIGCDetector(DetectionPipeline):
             )
 
         try:
-            features = await asyncio.wait_for(
-                asyncio.get_event_loop().run_in_executor(
-                    None, self._extract_features, input_data, sample_rate,
-                ),
-                timeout=120,  # CPU推理慢，延长时间
-            )
-        except (asyncio.TimeoutError, Exception):
+            features = self._extract_features(input_data, sample_rate)
+        except Exception:
             return DetectionOutput(
                 is_ai_generated=False, confidence=0.5, logit=0.0,
                 metadata={"status": "feature_extraction_timeout"},
