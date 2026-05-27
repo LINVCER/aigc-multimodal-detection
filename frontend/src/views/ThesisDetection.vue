@@ -271,13 +271,11 @@ async function handleDetect() {
     const { data } = await api.post("/detect/thesis", fd, {
       timeout: 300000,
     })
-    if (data.status === "completed") {
+    if (data.overall_score) {
       report.value = data
       resultsStore.add("thesis", file.value?.name || "论文", data)
-    } else if (data.status === "failed") {
-      ElMessage.error(data.message || "论文检测失败")
     } else {
-      ElMessage.warning("论文检测状态: " + data.status)
+      ElMessage.error(data.message || "论文检测失败")
     }
   } catch (e: any) {
     ElMessage.error(extractApiErrorMessage(e, "论文检测失败"))
