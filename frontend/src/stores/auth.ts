@@ -26,7 +26,8 @@ export const useAuthStore = defineStore("auth", () => {
         localStorage.setItem("user_role", data.role)
       }
     } catch {
-      logout()
+      isLoggedIn.value = false
+      localStorage.removeItem("access_token")
     }
   }
 
