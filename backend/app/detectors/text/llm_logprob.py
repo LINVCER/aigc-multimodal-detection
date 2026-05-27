@@ -67,7 +67,17 @@ class LLMLogprobDetector(DetectionPipeline):
                     return None
                 data = resp.json()
 
-            content = data.get("content", [{}])[0].get("text", "")
+            # 处理 Anthropic/MiMo 响应，支持 text 和 thinking 两种 content 类型
+            raw_content = data.get("content", [{}])
+            content_text = ""
+            for block in raw_content:
+                if block.get("type") == "text":
+                    content_text = block.get("text", "")
+                    break
+                elif block.get("type") == "thinking":
+                    content_text = block.get("thinking", "")
+                    break
+            content = content_text
             # Parse JSON from response
             content = content.strip()
             # Handle markdown code block

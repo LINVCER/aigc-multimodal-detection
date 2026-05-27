@@ -139,6 +139,8 @@ class MiMoVLBranch(DetectionPipeline):
         for block in data.get("content", []):
             if block.get("type") == "text":
                 text += block["text"]
+            elif block.get("type") == "thinking":
+                text += block.get("thinking", "")
 
         confidence, reasoning = self._parse_response(text)
 
