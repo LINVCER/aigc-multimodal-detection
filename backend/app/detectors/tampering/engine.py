@@ -59,25 +59,8 @@ class TamperingEngine:
         # 5. 获取全局最高置信度
         prob = float(score_map.max()) if score_map.any() else 0.0
 
-        # 6. 三方投票判定（高阈值降误报）
-        votes_tampered = sum([
-            1 if bool(dl_mask.any()) else 0,
-            1 if freq_result.confidence > 0.65 else 0,
-            1 if noise_result.confidence > 0.65 else 0,
-        ])
-        votes_real = 3 - votes_tampered
-        if votes_tampered >= 2:
-            is_forged = True
-            verdict = "检测到篡改"
-        elif votes_real >= 2:
-            is_forged = False
-            verdict = "图像真实"
-        else:
-            is_forged = bool(np.any(fused_mask))
-            verdict = "不确定"
-
-        # 传统判定作为备用
-        legacy_forged = bool(np.any(fused_mask))
+        # 6. 判定
+        is_forged = bool(np.any(fused_mask))
 
         # 风险等级
         risk_level = "high" if prob > 0.7 else "medium" if prob > 0.3 else "low"
@@ -111,13 +94,12 @@ class TamperingEngine:
                     {"name": "noise_inconsistency", "confidence": noise_result.confidence,
                      "is_tampered": noise_result.confidence > 0.5},
                 ],
-                "votes": {"tampered": votes_tampered, "real": votes_real, "verdict": verdict},
                 "fusion_method": "核心-边缘分离集成",
                 "risk_level": risk_level,
                 "tampered_pixels": int(fused_mask.sum()),
                 "total_pixels": int(fused_mask.size),
             },
-            metadata={"original_size": (w, h), "verdict": verdict, "votes_tampered": votes_tampered, "votes_real": votes_real},
+            metadata={"original_size": (w, h)},
         )
 
     def _make_overlay(self, image: Image.Image, mask: np.ndarray) -> str:
