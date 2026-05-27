@@ -111,6 +111,19 @@ class ImageFusion:
 
         is_ai = fused_prob > self.decision_threshold
 
+        # 三方投票判定
+        votes_ai = sum(1 for _, _, _, o in normalized if o.is_ai_generated)
+        votes_real = len(normalized) - votes_ai
+        if votes_ai >= 2:
+            verdict = "AI生成"
+            is_ai = True
+        elif votes_real >= 2:
+            verdict = "真实图像"
+            is_ai = False
+        else:
+            verdict = "不确定"
+            is_ai = fused_prob > self.decision_threshold
+
         return DetectionOutput(
             is_ai_generated=is_ai,
             confidence=round(fused_prob, 4),
@@ -120,16 +133,15 @@ class ImageFusion:
                     {"name": name, "weight": round(w, 3), "confidence": round(o.confidence, 4)}
                     for w, _, name, o in normalized
                 ],
+                "votes": {"ai": votes_ai, "real": votes_real, "verdict": verdict},
                 "sensitivity": round(self.sensitivity, 2),
-                "threshold_used": round(self.decision_threshold, 3),
-                "logit_bias_applied": round(self.logit_bias, 3),
             },
             metadata={
-                "fusion_method": "sensitive_weighted_fusion",
+                "fusion_method": "majority_vote_w_fallback",
                 "branch_weights": {name: round(w, 3) for w, _, name, _ in normalized},
-                "max_branch_confidence": round(max_conf, 4),
-                "min_branch_confidence": round(min_conf, 4),
-                "confidence_spread": round(conf_spread, 4),
+                "verdict": verdict,
+                "votes_ai": votes_ai,
+                "votes_real": votes_real,
             },
         )
 

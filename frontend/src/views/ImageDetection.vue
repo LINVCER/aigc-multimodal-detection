@@ -67,28 +67,27 @@
         </div>
       </template>
 
-      <!-- 置信度仪表盘 -->
+      <!-- 判定结果 -->
       <div class="gauge-section">
-        <div class="gauge-ring" :style="{ '--pct': (result.confidence * 100).toFixed(0) }">
-          <div class="gauge-inner">
-            <span class="gauge-value">{{ (result.confidence * 100).toFixed(1) }}%</span>
-            <span class="gauge-label">AI 生成概率</span>
+        <div class="vote-result">
+          <div class="vote-header">三方投票判定</div>
+          <div class="vote-verdict" :style="{color: result.is_ai_generated ? '#dc2626' : result.metadata?.verdict === '不确定' ? '#e6a23c' : '#10b981'}">
+            {{ result.metadata?.verdict || (result.is_ai_generated ? 'AI生成' : '真实图像') }}
+          </div>
+          <div class="vote-detail">
+            {{ result.metadata?.votes_ai || 0 }} 票AI : {{ result.metadata?.votes_real || 0 }} 票真实
           </div>
         </div>
 
-        <div class="risk-info">
+        <!-- 管理员可见概率 -->
+        <div class="risk-info" v-if="authStore.user?.role === 'admin'">
           <div class="risk-item">
-            <span class="risk-label">风险等级</span>
-            <el-tag
-              :type="riskTagTypeComputed"
-              size="large"
-            >
-              {{ riskTextComputed }}
-            </el-tag>
+            <span class="risk-label">融合概率</span>
+            <span class="risk-value">{{ (result.confidence * 100).toFixed(1) }}%</span>
           </div>
           <div class="risk-item">
-            <span class="risk-label">校准置信度</span>
-            <span class="risk-value">{{ result.calibrated_confidence != null ? (result.calibrated_confidence * 100).toFixed(1) + '%' : 'N/A' }}</span>
+            <span class="risk-label">风险等级</span>
+            <el-tag :type="riskTagTypeComputed" size="large">{{ riskTextComputed }}</el-tag>
           </div>
         </div>
       </div>
@@ -168,6 +167,7 @@ import api from "@/api"
 import { ElMessage } from "element-plus"
 import { UploadFilled, Loading } from "@element-plus/icons-vue"
 import { useResultsStore } from "@/stores/results"
+import { useAuthStore } from "@/stores/auth"
 import { usePollTask } from "@/composables/usePollTask"
 import { extractApiErrorMessage } from "@/utils/errors"
 import { riskTagType, riskText as getRiskText } from "@/utils/color"
@@ -177,6 +177,7 @@ const previewUrl = ref<string>("")
 const detecting = ref(false)
 const result = ref<any>(null)
 const resultsStore = useResultsStore()
+const authStore = useAuthStore()
 const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
 const { pollTask: pollTaskAsync } = usePollTask()
 const cachedResults = computed(() => resultsStore.getLatest("image").reverse())
@@ -291,6 +292,11 @@ async function pollTask(taskId: string) {
   gap: 32px;
   padding: 16px 0;
 }
+
+.vote-result { text-align: center; padding: 16px 24px; background: #f8fafc; border-radius: 12px; }
+.vote-header { font-size: 12px; color: #a0aec0; margin-bottom: 4px; }
+.vote-verdict { font-size: 28px; font-weight: 700; }
+.vote-detail { font-size: 13px; color: #718096; margin-top: 6px; }
 
 .gauge-ring {
   --pct: 50;
