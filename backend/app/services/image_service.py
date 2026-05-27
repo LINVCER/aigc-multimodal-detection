@@ -38,12 +38,20 @@ async def detect_image(image_data: bytes, options: dict | None = None) -> Detect
     if fmt not in ("JPEG", "PNG", "WEBP", "BMP"):
         image = image.convert("RGB")
 
-    # 三分支并行检测
-    hf_output, vit_output, mimo_output = await asyncio.gather(
-        _hf_branch.detect(image),
-        _vit_branch.detect(image),
-        _mimo_branch.detect(image),
-    )
+    # 三分支并行检测 (ViT 内存不足时自动跳过)
+    vit_output = DetectionOutput(is_ai_generated=False, confidence=0.5, logit=0.0,
+                                 metadata={"status": "memory_error", "note": "4GB内存不足，跳过ViT"})
+    try:
+        hf_output, vit_output, mimo_output = await asyncio.gather(
+            _hf_branch.detect(image),
+            _vit_branch.detect(image),
+            _mimo_branch.detect(image),
+        )
+    except Exception:
+        hf_output, mimo_output = await asyncio.gather(
+            _hf_branch.detect(image),
+            _mimo_branch.detect(image),
+        )
 
     # 融合
     fused = _fusion.fuse(hf_output, vit_output, mimo_output)
