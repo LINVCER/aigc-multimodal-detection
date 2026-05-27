@@ -26,13 +26,8 @@ class AudioEnsemble:
     ) -> DetectionOutput:
         branches = []
 
-        # Wav2Vec2 (主力本地) — NaN/死分支跳过
-        w2v_alive = (
-            wav2vec2_output
-            and wav2vec2_output.metadata.get("status") not in ("model_load_error", "nan_output")
-        )
-        if w2v_alive:
-            branches.append((0.50, wav2vec2_output.logit, "wav2vec2_xlsr_aigc", wav2vec2_output))
+        # Wav2Vec2 (CPU不可靠，跳过)
+        w2v_alive = False
 
         # MiMo API (声学特征不够可靠，仅辅助)
         api_available = (
@@ -61,7 +56,7 @@ class AudioEnsemble:
 
         fused_logit = sum(w * l for w, l, _, _ in normalized)
         fused_prob = 1.0 / (1.0 + math.exp(-fused_logit))
-        is_ai = fused_prob > 0.45
+        is_ai = fused_prob > 0.55
 
         return DetectionOutput(
             is_ai_generated=is_ai,
