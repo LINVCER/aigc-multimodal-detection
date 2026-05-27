@@ -120,36 +120,67 @@ def _docx_to_pdf_libreoffice(content: bytes, filename: str) -> bytes | None:
 def _pdf_to_docx_libreoffice(content: bytes, filename: str) -> bytes | None:
     """使用 LibreOffice 转换 PDF → Word"""
     import subprocess
+    from loguru import logger
+
     soffice = _find_soffice()
     if not soffice:
+        logger.error("LibreOffice not found on server")
         return None
 
+    tmp_path = None
+    out_dir = None
     try:
         with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
             tmp.write(content)
             tmp_path = tmp.name
         out_dir = tempfile.mkdtemp()
-        subprocess.run(
+        result = subprocess.run(
             [soffice, "--headless", "--convert-to", "docx", "--outdir", out_dir, tmp_path],
             timeout=120,
             capture_output=True,
             text=True,
         )
+        logger.info(f"LibreOffice stdout: {result.stdout}")
+        logger.info(f"LibreOffice stderr: {result.stderr}")
+        logger.info(f"LibreOffice returncode: {result.returncode}")
+
         base = os.path.basename(tmp_path)
         docx_name = base.rsplit(".", 1)[0] + ".docx"
         docx_path = os.path.join(out_dir, docx_name)
+
+        # 列出输出目录
+        if os.path.isdir(out_dir):
+            logger.info(f"Output dir files: {os.listdir(out_dir)}")
+
         if os.path.exists(docx_path) and os.path.getsize(docx_path) > 100:
             with open(docx_path, "rb") as f:
                 return f.read()
+
+        # 尝试查找任意 .docx 文件（LibreOffice 有时会改变文件名）
+        if os.path.isdir(out_dir):
+            for f in os.listdir(out_dir):
+                if f.endswith(".docx"):
+                    fpath = os.path.join(out_dir, f)
+                    if os.path.getsize(fpath) > 100:
+                        with open(fpath, "rb") as fh:
+                            return fh.read()
+
+        logger.error(f"PDF→Word conversion failed: no output docx at {docx_path}")
         return None
-    except Exception:
+    except subprocess.TimeoutExpired:
+        logger.error("PDF→Word conversion timed out (120s)")
+        return None
+    except Exception as e:
+        logger.error(f"PDF→Word conversion error: {e}")
         return None
     finally:
         try:
-            os.unlink(tmp_path)
-            for f in os.listdir(out_dir):
-                os.unlink(os.path.join(out_dir, f))
-            os.rmdir(out_dir)
+            if tmp_path:
+                os.unlink(tmp_path)
+            if out_dir and os.path.isdir(out_dir):
+                for f in os.listdir(out_dir):
+                    os.unlink(os.path.join(out_dir, f))
+                os.rmdir(out_dir)
         except Exception:
             pass
 
