@@ -166,6 +166,8 @@ class Wav2Vec2AIGCDetector(DetectionPipeline):
                 is_ai_generated=False, confidence=0.5, logit=0.0,
                 metadata={"status": "nan_output", "note": "CPU推理数值异常，跳过此分支"},
             )
+
+        return DetectionOutput(
             is_ai_generated=prob > 0.3,
             confidence=round(prob, 4),
             logit=round(logit, 6),
