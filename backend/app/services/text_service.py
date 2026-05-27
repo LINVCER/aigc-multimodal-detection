@@ -57,7 +57,16 @@ async def detect_text(content: str, options: dict | None = None) -> DetectionOut
     logprob_output.metadata["sampled"] = text_len > 2000
 
     # 4. 按文本长度调整融合权重
-    if text_len < 50:
+    # RoBERTa 不可用时把权重分给 LLM
+    roberta_ok = roberta_output.metadata.get("status") != "model_load_error"
+    if not roberta_ok:
+        if text_len < 50:
+            _ensemble.set_weights(stat=0.70, roberta=0.0, logprob=0.30)
+        elif text_len < 300:
+            _ensemble.set_weights(stat=0.45, roberta=0.0, logprob=0.55)
+        else:
+            _ensemble.set_weights(stat=0.25, roberta=0.0, logprob=0.75)
+    elif text_len < 50:
         _ensemble.set_weights(stat=0.65, roberta=0.20, logprob=0.15)
     elif text_len < 300:
         _ensemble.set_weights(stat=0.40, roberta=0.40, logprob=0.20)
