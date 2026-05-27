@@ -32,10 +32,14 @@ class FrequencyBranch(SpatialEvidenceBranch):
         _, binary = cv2.threshold(norm, 180, 255, cv2.THRESH_BINARY)
         mask = binary.astype(bool)
 
+        # 置信度: 基于信号强度而非二值mask均值
+        signal_ratio = (norm > 180).mean()
+        normalized_confidence = min(signal_ratio * 5, 1.0)
+
         return BranchResult(
             branch_name=self.name,
             score_map=mask.astype(np.float32),
-            confidence=float(mask.mean()),
+            confidence=round(normalized_confidence, 4),
             mask=mask,
             metadata={"method": "FFT log-magnitude threshold 180"},
         )
