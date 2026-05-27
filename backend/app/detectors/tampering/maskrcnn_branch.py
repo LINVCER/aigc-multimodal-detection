@@ -1,10 +1,11 @@
-"""Mask R-CNN 篡改检测分支 — 长边缩放 + TTA + 多尺度推理"""
+"""
+Mask R-CNN 深度学习分支 — 匹配原始项目的 multi_scale_pipeline
 
-from __future__ import annotations
+2 尺度推理 + 双阈值二值化 + 置信度过滤
+"""
 
 import asyncio
 import logging
-from pathlib import Path
 
 import cv2
 import numpy as np
@@ -20,15 +21,11 @@ from app.detectors.tampering.output import BranchResult
 
 logger = logging.getLogger(__name__)
 
-# 长边缩放目标尺寸 (保持纵横比)
-TARGET_SIZES = [800, 1000, 1200]
-
-# 双阈值策略
 SCORE_THRESHOLD_LOW = 0.3
 SCORE_THRESHOLD_HIGH = 0.6
-MASK_THRESHOLD_HIGH = 0.6
 MASK_THRESHOLD_LOW = 0.4
-CONFIDENCE_FILTER_THRESHOLD = 0.45
+MASK_THRESHOLD_HIGH = 0.6
+CONFIDENCE_FILTER = 0.45
 
 
 class MaskRCNNBranch(SpatialEvidenceBranch):
@@ -37,7 +34,7 @@ class MaskRCNNBranch(SpatialEvidenceBranch):
 
     def __init__(self, checkpoint_path: str | None = None):
         self._model = None
-        self._device: torch.device | None = None
+        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self._checkpoint_path = checkpoint_path
         self._loaded = False
         self._transform = T.Compose([
@@ -45,48 +42,32 @@ class MaskRCNNBranch(SpatialEvidenceBranch):
             T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ])
 
-    def _default_checkpoint_path(self) -> str:
-        from app.config import get_settings
-        return get_settings().tampering_maskrcnn_checkpoint
-
     def _ensure_loaded(self) -> None:
         if self._loaded:
             return
-        ckpt = self._checkpoint_path or self._default_checkpoint_path()
-        if not Path(ckpt).exists():
-            logger.warning("Tampering checkpoint not found: %s", ckpt)
-            return
         try:
-            self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            from app.config import get_settings
+            ckpt = self._checkpoint_path or get_settings().tampering_maskrcnn_checkpoint
             model = maskrcnn_resnet50_fpn(pretrained=False)
             num_classes = 2
             in_features = model.roi_heads.box_predictor.cls_score.in_features
             model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
             in_features_mask = model.roi_heads.mask_predictor.conv5_mask.in_channels
             model.roi_heads.mask_predictor = MaskRCNNPredictor(in_features_mask, 256, num_classes)
-            checkpoint = torch.load(ckpt, map_location=self._device, weights_only=False)
-            if "model_state_dict" in checkpoint:
-                model.load_state_dict(checkpoint["model_state_dict"])
-            else:
-                model.load_state_dict(checkpoint)
+            state = torch.load(ckpt, map_location=self._device, weights_only=False)
+            if "model_state_dict" in state:
+                state = state["model_state_dict"]
+            model.load_state_dict(state)
             model.to(self._device)
             model.eval()
             self._model = model
             self._loaded = True
-            logger.info("Tampering Mask R-CNN loaded on %s", self._device)
+            logger.info("Mask R-CNN loaded on %s", self._device)
         except Exception:
             logger.exception("Failed to load tampering model")
 
-    def _resize_long_edge(self, image: Image.Image, target: int) -> Image.Image:
-        """长边缩放到 target，保持纵横比"""
-        w, h = image.size
-        if max(w, h) <= target:
-            return image
-        scale = target / max(w, h)
-        return image.resize((int(w * scale), int(h * scale)), Image.BICUBIC)
-
     async def detect(self, image: Image.Image) -> BranchResult:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, self._detect_sync, image)
 
     def _detect_sync(self, image: Image.Image) -> BranchResult:
@@ -94,57 +75,51 @@ class MaskRCNNBranch(SpatialEvidenceBranch):
         if not self._loaded:
             h, w = image.height, image.width
             return BranchResult(
-                branch_name=self.name,
-                score_map=np.zeros((h, w), dtype=np.float32),
-                confidence=0.0,
-                mask=np.zeros((h, w), dtype=bool),
+                branch_name=self.name, score_map=np.zeros((h, w), dtype=np.float32),
+                confidence=0.0, mask=np.zeros((h, w), dtype=bool),
                 metadata={"status": "model_not_loaded"},
             )
 
-        w, h = image.width, image.height
+        w, h = image.size
         final_mask = np.zeros((h, w), dtype=np.uint8)
         final_score_map = np.zeros((h, w), dtype=np.float32)
         instance_scores: list[float] = []
 
-        for target_size in TARGET_SIZES:
-            resized = self._resize_long_edge(image, target_size)
-            rw, rh = resized.size
-            # 原图推理 + 水平翻转推理 (TTA)
-            for flip in [False, True]:
-                if flip:
-                    pil_img = resized.transpose(Image.FLIP_LEFT_RIGHT)
-                else:
-                    pil_img = resized
-                img_tensor = self._transform(pil_img).unsqueeze(0).to(self._device)
-                with torch.no_grad():
-                    pred = self._model(img_tensor)[0]
-                masks = pred["masks"].cpu().numpy()
-                scores = pred["scores"].cpu().numpy()
-                for m, score in zip(masks, scores):
-                    if score < SCORE_THRESHOLD_LOW:
-                        continue
-                    instance_scores.append(float(score))
-                    if score > SCORE_THRESHOLD_HIGH:
-                        binary = (m[0] > MASK_THRESHOLD_HIGH).astype(np.uint8)
-                    else:
-                        binary = (m[0] > MASK_THRESHOLD_LOW).astype(np.uint8)
-                    if flip:
-                        binary = np.fliplr(binary).copy()
-                    # 缩放回原图尺寸 (INTER_NEAREST 避免灰色过渡带)
-                    if (rw, rh) != (w, h):
-                        binary = cv2.resize(binary, (w, h), interpolation=cv2.INTER_NEAREST)
-                    final_mask = cv2.bitwise_or(final_mask, binary)
-                    final_score_map = np.maximum(final_score_map, binary * float(score))
+        scales = [1.0, 0.75]
+        for s in scales:
+            new_w, new_h = int(w * s), int(h * s)
+            resized = image.resize((new_w, new_h))
+            img_tensor = self._transform(resized).unsqueeze(0).to(self._device)
 
-        # 置信度过滤
-        filtered_mask = (final_mask > 0) & (final_score_map > CONFIDENCE_FILTER_THRESHOLD)
-        global_prob = float(np.max(instance_scores)) if instance_scores else 0.0
+            with torch.no_grad():
+                pred = self._model(img_tensor)[0]
+
+            masks = pred["masks"].cpu().numpy()
+            scores = pred["scores"].cpu().numpy()
+
+            for m, score in zip(masks, scores):
+                if score < SCORE_THRESHOLD_LOW:
+                    continue
+                if score > SCORE_THRESHOLD_HIGH:
+                    binary = (m[0] > MASK_THRESHOLD_HIGH).astype(np.uint8)
+                else:
+                    binary = (m[0] > MASK_THRESHOLD_LOW).astype(np.uint8)
+
+                if s != 1.0:
+                    binary = cv2.resize(binary, (w, h), interpolation=cv2.INTER_NEAREST)
+
+                final_mask = cv2.bitwise_or(final_mask, binary)
+                score_float = float(score)
+                final_score_map = np.maximum(final_score_map, binary * score_float)
+                instance_scores.append(score_float)
+
+        # 置信度过滤: 保留 score_map > 0.45 的区域
+        filtered_mask = (final_mask > 0) & (final_score_map > CONFIDENCE_FILTER)
 
         return BranchResult(
             branch_name=self.name,
             score_map=final_score_map,
-            confidence=round(global_prob, 4),
+            confidence=round(float(np.mean(instance_scores)), 4) if instance_scores else 0.0,
             mask=filtered_mask,
-            metadata={"scales": TARGET_SIZES, "tta": True, "device": str(self._device),
-                       "instance_scores": instance_scores},
+            metadata={"instance_scores": instance_scores},
         )

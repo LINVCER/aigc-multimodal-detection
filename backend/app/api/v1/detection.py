@@ -210,7 +210,7 @@ async def detect_tampering_endpoint(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """篡改检测 — Mask R-CNN + FFT + 噪声 + ELA + EXIF 五路融合"""
+    """篡改检测 — Mask R-CNN + FFT + 噪声 三路融合"""
     import json
     image_data = await file.read()
     task = await create_task(
