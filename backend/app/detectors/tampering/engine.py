@@ -88,11 +88,11 @@ class TamperingEngine:
             explanation_data={
                 "branches": [
                     {"name": "maskrcnn_resnet50_fpn", "confidence": dl_result.confidence,
-                     "is_tampered": bool(dl_mask.any())},
+                     "is_tampered": dl_result.confidence > 0.65 and bool(dl_mask.any())},
                     {"name": "fft_frequency_anomaly", "confidence": freq_result.confidence,
-                     "is_tampered": freq_result.confidence > 0.5},
+                     "is_tampered": freq_result.confidence > 0.65},
                     {"name": "noise_inconsistency", "confidence": noise_result.confidence,
-                     "is_tampered": noise_result.confidence > 0.5},
+                     "is_tampered": noise_result.confidence > 0.65},
                 ],
                 "fusion_method": "核心-边缘分离集成",
                 "risk_level": risk_level,
