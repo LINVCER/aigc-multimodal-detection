@@ -25,10 +25,10 @@ class ImageFusion:
 
     def __init__(
         self,
-        high_freq_weight: float = 0.45,
+        high_freq_weight: float = 0.30,
         vit_weight: float = 0.35,
-        mimo_weight: float = 0.20,
-        sensitivity: float = 0.6,
+        mimo_weight: float = 0.35,
+        sensitivity: float = 0.25,
     ):
         self.high_freq_weight = high_freq_weight
         self.vit_weight = vit_weight
