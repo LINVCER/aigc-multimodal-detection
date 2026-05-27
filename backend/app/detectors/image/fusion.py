@@ -25,10 +25,10 @@ class ImageFusion:
 
     def __init__(
         self,
-        high_freq_weight: float = 0.35,
+        high_freq_weight: float = 0.45,
         vit_weight: float = 0.45,
-        mimo_weight: float = 0.20,
-        sensitivity: float = 0.20,
+        mimo_weight: float = 0.10,
+        sensitivity: float = 0.15,
     ):
         self.high_freq_weight = high_freq_weight
         self.vit_weight = vit_weight
@@ -62,7 +62,20 @@ class ImageFusion:
         if vit_available:
             branches.append((self.vit_weight, vit_output.logit, "vit", vit_output))
         if mimo_available:
-            branches.append((self.mimo_weight, mimo_output.logit, "mimo_vl", mimo_output))
+            # MiMo仅参与质感判定：与CNN+ViT均值偏差>0.4时大幅降权
+            avg_cnn_vit = 0.5
+            count = 0
+            if hf_available:
+                avg_cnn_vit = high_freq_output.confidence
+                count = 1
+            if vit_available:
+                avg_cnn_vit = (avg_cnn_vit * count + vit_output.confidence) / (count + 1)
+                count += 1
+            mimo_dev = abs(mimo_output.confidence - avg_cnn_vit)
+            if mimo_dev > 0.4:
+                branches.append((self.mimo_weight * 0.3, mimo_output.logit, "mimo_vl", mimo_output))
+            else:
+                branches.append((self.mimo_weight, mimo_output.logit, "mimo_vl", mimo_output))
 
         if not branches:
             return DetectionOutput(
