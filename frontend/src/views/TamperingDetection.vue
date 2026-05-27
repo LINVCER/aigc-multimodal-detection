@@ -290,7 +290,8 @@ function handleFileInput(e: Event) {
 }
 
 function setFile(f: File) {
-  if (!f.type.startsWith("image/")) {
+  const valid = f.type.startsWith("image/") || /\.(jpg|jpeg|png|webp|bmp|gif|tiff?)$/i.test(f.name)
+  if (!valid) {
     ElMessage.warning("请选择图像文件")
     return
   }
