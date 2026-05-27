@@ -10,6 +10,7 @@ Wav2Vec2 XLS-R 音频 AIGC 检测器
            ../models/audio/aigc_audio_classifier.pth (分类头权重)
 """
 
+import math
 import os
 import torch
 import torch.nn as nn
@@ -145,8 +146,11 @@ class Wav2Vec2AIGCDetector(DetectionPipeline):
 
         logit = self._classifier(features).squeeze(-1).item()
         prob = torch.sigmoid(torch.tensor(logit)).item()
-
-        return DetectionOutput(
+        if math.isnan(logit) or math.isnan(prob):
+            return DetectionOutput(
+                is_ai_generated=False, confidence=0.5, logit=0.0,
+                metadata={"status": "nan_output", "note": "CPU推理数值异常，跳过此分支"},
+            )
             is_ai_generated=prob > 0.3,
             confidence=round(prob, 4),
             logit=round(logit, 6),
