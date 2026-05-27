@@ -257,7 +257,7 @@ const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
 
 async function fetchTaskList() {
   try {
-    const { data } = await api.get("/report/history/list", { params: { page: 1, size: 10 } })
+    const { data } = await api.get("/reports/history/list", { params: { page: 1, size: 10 } })
     taskList.value = (data.items || []).filter((t: any) => t.modality === "thesis")
   } catch {}
 }
