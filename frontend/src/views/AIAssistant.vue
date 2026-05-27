@@ -1,31 +1,31 @@
 <template>
   <div class="ai-assistant">
     <h1>AI 助手</h1>
-    <p style="color:#718096;margin-top:0">文档工具: 转 PDF、文字转语音</p>
+    <p style="color:#718096;margin-top:0">文档工具: 文档互转、文字转语音</p>
 
     <el-tabs v-model="activeTab" type="border-card">
-      <!-- 文档转 PDF -->
-      <el-tab-pane label="文档转 PDF" name="pdf">
+      <!-- 文档互转 -->
+      <el-tab-pane label="文档互转" name="pdf">
         <el-card>
           <div class="upload-zone" @click="triggerPdfUpload" @dragover.prevent @drop.prevent="handlePdfDrop">
             <div v-if="!pdfFile">
               <el-icon :size="48" color="#a0aec0"><Document /></el-icon>
               <p style="margin:12px 0 4px;font-size:15px;color:#4a5568">拖拽文档到此处或点击选择</p>
-              <p style="font-size:13px;color:#a0aec0">支持 .txt / .docx</p>
+              <p style="font-size:13px;color:#a0aec0">支持 .txt / .docx / .pdf</p>
             </div>
             <div v-else>
               <div style="font-weight:600;font-size:15px">{{ pdfFile.name }}</div>
               <div style="font-size:13px;color:#a0aec0">{{ formatSize(pdfFile.size) }}</div>
               <el-button size="small" type="danger" text @click.stop="pdfFile=null" style="margin-top:4px">移除</el-button>
             </div>
-            <input ref="pdfInput" type="file" accept=".txt,.docx" style="display:none" @change="handlePdfFileInput" />
+            <input ref="pdfInput" type="file" accept=".txt,.docx,.pdf" style="display:none" @change="handlePdfFileInput" />
           </div>
-          <el-button type="primary" size="large" @click="convertToPdf" :loading="converting" :disabled="!pdfFile"
+          <el-button type="primary" size="large" @click="convertDocument" :loading="converting" :disabled="!pdfFile"
             style="margin-top:16px;width:100%">
-            <el-icon><MagicStick /></el-icon> {{ converting ? '转换中...' : '一键转换为 PDF' }}
+            <el-icon><MagicStick /></el-icon> {{ converting ? '转换中...' : convertBtnText }}
           </el-button>
         </el-card>
-        <el-alert v-if="pdfConverted" type="success" title="PDF 已生成并下载" show-icon style="margin-top:12px" closable @close="pdfConverted=false" />
+        <el-alert v-if="pdfConverted" type="success" title="文档已转换并下载" show-icon style="margin-top:12px" closable @close="pdfConverted=false" />
       </el-tab-pane>
 
       <!-- 文字转语音 -->
@@ -86,11 +86,18 @@ import { formatSize } from "@/utils/format"
 // Tabs
 const activeTab = ref("pdf")
 
-// === Document to PDF ===
+// === Document Conversion ===
 const pdfFile = ref<File | null>(null)
 const converting = ref(false)
 const pdfConverted = ref(false)
 const pdfInput = ref<HTMLInputElement>()
+
+const convertBtnText = computed(() => {
+  if (!pdfFile.value) return "一键转换"
+  const ext = pdfFile.value.name.split(".").pop()?.toLowerCase()
+  if (ext === "pdf") return "转换为 Word"
+  return "转换为 PDF"
+})
 
 function triggerPdfUpload() { pdfInput.value?.click() }
 function handlePdfFileInput(e: Event) {
@@ -101,20 +108,22 @@ function handlePdfDrop(e: DragEvent) {
   if (e.dataTransfer?.files?.length) pdfFile.value = e.dataTransfer.files[0]
 }
 
-async function convertToPdf() {
+async function convertDocument() {
   if (!pdfFile.value) return
   converting.value = true
   try {
     const fd = new FormData(); fd.append("file", pdfFile.value)
-    const { data } = await api.post("/assistant/convert-to-pdf", fd, {
+    const { data } = await api.post("/assistant/convert-document", fd, {
       responseType: "blob",
     })
+    const ext = pdfFile.value.name.split(".").pop()?.toLowerCase()
+    const outExt = ext === "pdf" ? ".docx" : ".pdf"
     const url = URL.createObjectURL(new Blob([data]))
     const a = document.createElement("a"); a.href = url
-    a.download = pdfFile.value.name.replace(/\.[^.]+$/, ".pdf")
+    a.download = pdfFile.value.name.replace(/\.[^.]+$/, outExt)
     a.click(); URL.revokeObjectURL(url)
     pdfConverted.value = true
-    ElMessage.success("PDF 已下载")
+    ElMessage.success("文档已下载")
   } catch { ElMessage.error("转换失败") }
   converting.value = false
 }

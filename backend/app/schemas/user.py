@@ -1,3 +1,4 @@
+from datetime import date
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -25,5 +26,7 @@ class UserResponse(BaseModel):
     email: str
     role: str
     quota_remaining: int
+    last_checkin_date: date | None = None
+    checkin_streak: int = 0
 
     model_config = {"from_attributes": True}

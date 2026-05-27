@@ -1,6 +1,6 @@
 import uuid
-from datetime import datetime
-from sqlalchemy import String, Integer, DateTime, Boolean, func
+from datetime import date, datetime
+from sqlalchemy import String, Integer, Date, DateTime, Boolean, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -18,6 +18,8 @@ class User(Base):
     is_blocked: Mapped[bool] = mapped_column(Boolean, default=False)
     subscription_type: Mapped[str | None] = mapped_column(String(20), nullable=True)  # monthly | quarterly | yearly
     subscription_expiry: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    last_checkin_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    checkin_streak: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 

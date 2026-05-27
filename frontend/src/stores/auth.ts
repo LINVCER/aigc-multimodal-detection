@@ -47,5 +47,23 @@ export const useAuthStore = defineStore("auth", () => {
     window.location.href = "/login"
   }
 
-  return { user, isLoggedIn, login, register, fetchUser, logout }
+  async function checkin() {
+    const { data } = await api.post("/auth/checkin")
+    if (user.value) {
+      user.value.quota_remaining = data.quota_remaining
+      user.value.last_checkin_date = new Date().toISOString().slice(0, 10)
+      user.value.checkin_streak = data.streak
+    }
+    return data
+  }
+
+  async function donate() {
+    const { data } = await api.post("/auth/donate")
+    if (user.value) {
+      user.value.quota_remaining = data.quota_remaining
+    }
+    return data
+  }
+
+  return { user, isLoggedIn, login, register, fetchUser, logout, checkin, donate }
 })

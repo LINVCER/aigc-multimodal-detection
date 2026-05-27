@@ -1,3 +1,4 @@
+from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -77,3 +78,36 @@ async def refresh_token(refresh_token: str, db: AsyncSession = Depends(get_db)):
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.post("/checkin")
+async def checkin(current_user: User = Depends(get_current_user)):
+    today = date.today()
+
+    if current_user.last_checkin_date == today:
+        raise HTTPException(status_code=409, detail="今日已签到")
+
+    # 计算连续天数
+    from datetime import timedelta
+    yesterday = today - timedelta(days=1)
+    if current_user.last_checkin_date == yesterday:
+        streak = current_user.checkin_streak + 1
+    else:
+        streak = 1
+
+    # 计算奖励: 基础10 + 连续额外(每天+2, 第7天封顶+12)
+    base = 10
+    bonus = min(streak - 1, 6) * 2
+    reward = base + bonus
+
+    current_user.quota_remaining += reward
+    current_user.last_checkin_date = today
+    current_user.checkin_streak = streak
+
+    return {"reward": reward, "streak": streak, "quota_remaining": current_user.quota_remaining}
+
+
+@router.post("/donate")
+async def donate(current_user: User = Depends(get_current_user)):
+    current_user.quota_remaining += 10
+    return {"reward": 10, "quota_remaining": current_user.quota_remaining}

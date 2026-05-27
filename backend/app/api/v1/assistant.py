@@ -1,7 +1,7 @@
 """
 AI 助手模块 — Linux 服务器版本
 
-1. 文档转 PDF: 上传 .txt/.docx 文档 → 转换为格式化 PDF
+1. 文档互转: .txt/.docx → PDF, .pdf → .docx
 2. 文字转语音: 输入文本 + 选择音色 → 生成语音文件
 """
 
@@ -17,24 +17,39 @@ router = APIRouter(prefix="/assistant", tags=["AI助手"])
 
 
 # ============================================================
-# 1. 文档转 PDF
+# 1. 文档互转
 # ============================================================
 
-@router.post("/convert-to-pdf")
-async def convert_to_pdf(
+@router.post("/convert-document")
+@router.post("/convert-to-pdf")  # 兼容旧路径
+async def convert_document(
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
 ):
     ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
-    if ext not in ("txt", "docx"):
-        raise HTTPException(400, f"不支持 .{ext} 格式，仅支持 .txt / .docx")
+    if ext not in ("txt", "docx", "pdf"):
+        raise HTTPException(400, f"不支持 .{ext} 格式，仅支持 .txt / .docx / .pdf")
 
     content = await file.read()
     if len(content) > 20 * 1024 * 1024:
         raise HTTPException(400, "文件超过 20MB 限制")
 
+    if ext == "pdf":
+        # PDF → Word
+        docx_bytes = _pdf_to_docx_libreoffice(content, file.filename)
+        if docx_bytes is None:
+            raise HTTPException(500, "PDF 转 Word 失败，请确保服务器已安装 LibreOffice")
+        out_name = file.filename.rsplit(".", 1)[0] + ".docx"
+        return Response(
+            content=docx_bytes,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers={
+                "Content-Disposition": f"attachment; filename*=UTF-8''{urllib.parse.quote(out_name)}"
+            },
+        )
+
+    # txt/docx → PDF
     if ext == "docx":
-        # Use LibreOffice for perfect fidelity, fallback to python-docx + fpdf2
         pdf_bytes = _docx_to_pdf_libreoffice(content, file.filename)
         if pdf_bytes is None:
             elements = _parse_docx(content)
@@ -57,24 +72,27 @@ async def convert_to_pdf(
     )
 
 
+def _find_soffice() -> str | None:
+    """查找 LibreOffice 可执行文件路径"""
+    import subprocess
+    soffice_paths = ["soffice", "libreoffice", "/usr/bin/soffice", "/usr/bin/libreoffice"]
+    for p in soffice_paths:
+        if subprocess.run(["which", p], capture_output=True).returncode == 0:
+            return p
+    return None
+
+
 def _docx_to_pdf_libreoffice(content: bytes, filename: str) -> bytes | None:
     """使用 LibreOffice 转换 docx → PDF，完美保留格式"""
     import subprocess
-    soffice_paths = ["soffice", "libreoffice", "/usr/bin/soffice", "/usr/bin/libreoffice"]
-    soffice = None
-    for p in soffice_paths:
-        if subprocess.run(["which", p], capture_output=True).returncode == 0:
-            soffice = p
-            break
-    if not soffice:
-        soffice = "soffice"
+    soffice = _find_soffice() or "soffice"
 
     try:
         with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp:
             tmp.write(content)
             tmp_path = tmp.name
         out_dir = tempfile.mkdtemp()
-        result = subprocess.run(
+        subprocess.run(
             [soffice, "--headless", "--convert-to", "pdf", "--outdir", out_dir, tmp_path],
             timeout=60,
             capture_output=True,
@@ -85,6 +103,43 @@ def _docx_to_pdf_libreoffice(content: bytes, filename: str) -> bytes | None:
         pdf_path = os.path.join(out_dir, pdf_name)
         if os.path.exists(pdf_path) and os.path.getsize(pdf_path) > 100:
             with open(pdf_path, "rb") as f:
+                return f.read()
+        return None
+    except Exception:
+        return None
+    finally:
+        try:
+            os.unlink(tmp_path)
+            for f in os.listdir(out_dir):
+                os.unlink(os.path.join(out_dir, f))
+            os.rmdir(out_dir)
+        except Exception:
+            pass
+
+
+def _pdf_to_docx_libreoffice(content: bytes, filename: str) -> bytes | None:
+    """使用 LibreOffice 转换 PDF → Word"""
+    import subprocess
+    soffice = _find_soffice()
+    if not soffice:
+        return None
+
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+        out_dir = tempfile.mkdtemp()
+        subprocess.run(
+            [soffice, "--headless", "--convert-to", "docx", "--outdir", out_dir, tmp_path],
+            timeout=120,
+            capture_output=True,
+            text=True,
+        )
+        base = os.path.basename(tmp_path)
+        docx_name = base.rsplit(".", 1)[0] + ".docx"
+        docx_path = os.path.join(out_dir, docx_name)
+        if os.path.exists(docx_path) and os.path.getsize(docx_path) > 100:
+            with open(docx_path, "rb") as f:
                 return f.read()
         return None
     except Exception:

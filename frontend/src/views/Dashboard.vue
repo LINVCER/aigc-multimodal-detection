@@ -27,6 +27,37 @@
       </div>
     </div>
 
+    <!-- 签到卡片 -->
+    <div class="checkin-section">
+      <div class="checkin-card">
+        <div class="checkin-left">
+          <h3>每日签到</h3>
+          <p class="checkin-streak">连续签到 <strong>{{ auth.user?.checkin_streak || 0 }}</strong> 天</p>
+          <div class="checkin-calendar">
+            <span
+              v-for="i in 7"
+              :key="i"
+              class="calendar-dot"
+              :class="{ checked: i <= (auth.user?.checkin_streak || 0) % 7 || (auth.user?.checkin_streak || 0) >= 7 && i <= 7 }"
+            ></span>
+          </div>
+        </div>
+        <div class="checkin-right">
+          <el-button
+            :type="todayChecked ? 'info' : 'primary'"
+            :disabled="todayChecked"
+            :loading="checkinLoading"
+            round
+            size="large"
+            @click="handleCheckin"
+          >
+            {{ todayChecked ? '已签到' : `签到 +${todayReward}` }}
+          </el-button>
+          <p class="checkin-hint" v-if="!todayChecked">连续签到奖励递增</p>
+        </div>
+      </div>
+    </div>
+
     <!-- 检测入口卡片 -->
     <div class="modules-section">
       <h2 class="section-title">快速检测</h2>
@@ -103,7 +134,16 @@
     <el-dialog v-model="showDonate" title="打赏支持" width="320px" center>
       <div style="text-align:center">
         <img src="/qrcode_pay.png" style="width:240px;border-radius:8px" />
-        <p style="font-size:12px;color:#a0aec0;margin:12px 0 0">感谢您的支持！</p>
+        <p style="font-size:12px;color:#a0aec0;margin:12px 0 0">扫码打赏后点击下方按钮领取配额</p>
+        <el-button
+          type="primary"
+          :loading="donateLoading"
+          style="margin-top:16px"
+          @click="handleDonate"
+        >
+          我已打赏，领取 +10 配额
+        </el-button>
+        <p v-if="donateSuccess" style="font-size:14px;color:#10b981;margin:8px 0 0">+10 配额已到账！</p>
       </div>
     </el-dialog>
   </div>
@@ -114,11 +154,53 @@ import { computed, ref } from "vue"
 import { useRouter } from "vue-router"
 import { useResultsStore } from "@/stores/results"
 import { useAuthStore } from "@/stores/auth"
+import { ElMessage } from "element-plus"
 
 const router = useRouter()
 const store = useResultsStore()
 const auth = useAuthStore()
 const showDonate = ref(false)
+const checkinLoading = ref(false)
+const donateLoading = ref(false)
+const donateSuccess = ref(false)
+
+const todayChecked = computed(() => {
+  const last = auth.user?.last_checkin_date
+  if (!last) return false
+  return last === new Date().toISOString().slice(0, 10)
+})
+
+const todayReward = computed(() => {
+  const streak = auth.user?.checkin_streak || 0
+  const nextStreak = todayChecked.value ? streak : streak + 1
+  return 10 + Math.min(nextStreak - 1, 6) * 2
+})
+
+async function handleCheckin() {
+  checkinLoading.value = true
+  try {
+    const data = await auth.checkin()
+    ElMessage.success(`签到成功！+${data.reward} 配额`)
+  } catch (e: any) {
+    ElMessage.warning(e.response?.data?.detail || "签到失败")
+  } finally {
+    checkinLoading.value = false
+  }
+}
+
+async function handleDonate() {
+  donateLoading.value = true
+  try {
+    await auth.donate()
+    donateSuccess.value = true
+    ElMessage.success("+10 配额已到账！")
+    setTimeout(() => { showDonate.value = false; donateSuccess.value = false }, 2000)
+  } catch {
+    ElMessage.error("领取失败，请重试")
+  } finally {
+    donateLoading.value = false
+  }
+}
 
 const greeting = computed(() => {
   const hour = new Date().getHours()
@@ -600,6 +682,63 @@ function navigateTo(r: any) {
     width: 100%;
     justify-content: space-around;
   }
+}
+
+.checkin-section { margin-bottom: 40px; }
+
+.checkin-card {
+  background: white;
+  border-radius: 16px;
+  padding: 28px 32px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.checkin-left h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+}
+
+.checkin-streak {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0 0 12px 0;
+}
+
+.checkin-streak strong {
+  color: #667eea;
+  font-size: 18px;
+}
+
+.checkin-calendar {
+  display: flex;
+  gap: 6px;
+}
+
+.calendar-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  transition: background 0.2s;
+}
+
+.calendar-dot.checked {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.checkin-right {
+  text-align: center;
+}
+
+.checkin-hint {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 8px 0 0;
 }
 
 .donate-footer { text-align: center; padding: 24px; }

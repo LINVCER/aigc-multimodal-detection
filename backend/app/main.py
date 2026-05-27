@@ -16,6 +16,13 @@ async def lifespan(app: FastAPI):
     from app.db.session import engine, Base
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # 为 users 表添加签到字段（兼容已有数据库）
+        try:
+            from sqlalchemy import text
+            await conn.execute(text("ALTER TABLE users ADD COLUMN last_checkin_date DATE"))
+            await conn.execute(text("ALTER TABLE users ADD COLUMN checkin_streak INTEGER DEFAULT 0"))
+        except Exception:
+            pass  # 字段已存在则忽略
     logger.info("Database tables verified/created")
     yield
     logger.info(f"Shutting down {settings.app_name}...")
