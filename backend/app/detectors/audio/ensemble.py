@@ -1,10 +1,10 @@
 """
 音频检测三路融合
 
-Wav2Vec2 XLS-R (主力本地) + Resemble API (在线) + RawNet2 (本地兜底)
+Wav2Vec2 XLS-R (主力本地) + MiMo AI模型 (在线) + RawNet2 (本地兜底)
 
 策略:
-  API 可用: Wav2Vec2 0.50 | Resemble 0.35 | RawNet2 0.15
+  API 可用: Wav2Vec2 0.50 | MiMo 0.35 | RawNet2 0.15
   API 不可用: Wav2Vec2 0.75 | RawNet2 0.25
 """
 

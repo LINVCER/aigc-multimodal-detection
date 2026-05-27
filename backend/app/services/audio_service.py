@@ -1,15 +1,15 @@
 """
-音频检测服务编排 — Wav2Vec2 (主力) + Resemble API + RawNet2 → 三路融合
+音频检测服务编排 — Wav2Vec2 (主力) + MiMo API + RawNet2 → 三路融合
 """
 
 from app.detectors.base import DetectionOutput
 from app.detectors.audio.wav2vec2_detector import Wav2Vec2AIGCDetector
-from app.detectors.audio.resemble_client import ResembleAIDetector
+from app.detectors.audio.mimo_audio import MiMoAudioDetector
 from app.detectors.audio.rawnet2_detector import RawNet2Detector
 from app.detectors.audio.ensemble import AudioEnsemble
 
 _wav2vec2 = Wav2Vec2AIGCDetector()
-_api_detector = ResembleAIDetector()
+_api_detector = MiMoAudioDetector()
 _local_detector = RawNet2Detector()
 _ensemble = AudioEnsemble()
 
