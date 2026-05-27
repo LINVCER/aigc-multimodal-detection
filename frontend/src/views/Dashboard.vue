@@ -94,11 +94,23 @@
         <p>选择上方的检测类型，快速识别 AI 生成内容</p>
       </div>
     </div>
+
+    <!-- 打赏入口 -->
+    <div class="donate-footer">
+      <span class="donate-link" @click="showDonate = true">⚡ 打赏支持</span>
+    </div>
+
+    <el-dialog v-model="showDonate" title="打赏支持" width="320px" center>
+      <div style="text-align:center">
+        <img src="/qrcode_pay.png" style="width:240px;border-radius:8px" />
+        <p style="font-size:12px;color:#a0aec0;margin:12px 0 0">感谢您的支持！</p>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue"
+import { computed, ref } from "vue"
 import { useRouter } from "vue-router"
 import { useResultsStore } from "@/stores/results"
 import { useAuthStore } from "@/stores/auth"
@@ -106,6 +118,7 @@ import { useAuthStore } from "@/stores/auth"
 const router = useRouter()
 const store = useResultsStore()
 const auth = useAuthStore()
+const showDonate = ref(false)
 
 const greeting = computed(() => {
   const hour = new Date().getHours()
@@ -588,6 +601,10 @@ function navigateTo(r: any) {
     justify-content: space-around;
   }
 }
+
+.donate-footer { text-align: center; padding: 24px; }
+.donate-link { font-size: 12px; color: #a0aec0; cursor: pointer; }
+.donate-link:hover { color: #667eea; }
 
 @media (max-width: 640px) {
   .dashboard-page {
