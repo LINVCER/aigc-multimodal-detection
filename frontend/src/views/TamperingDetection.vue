@@ -2,7 +2,7 @@
   <div class="tampering-detect">
     <h1>篡改检测</h1>
     <p style="color:#718096;margin-top:0">
-      检测图像是否存在拼接、复制粘贴等篡改痕迹 — 五路融合: Mask R-CNN + FFT频域 + 噪声不一致 + JPEG ELA + EXIF元数据
+      检测图像是否存在拼接、复制粘贴等篡改痕迹 — 三路融合: Mask R-CNN + FFT频域 + 噪声不一致
     </p>
 
     <!-- 上传区域 -->
@@ -156,7 +156,7 @@
 
     <!-- 分支详情 -->
     <el-card v-if="result?.branches?.length" style="margin-top:16px">
-      <template #header><span style="font-weight:600">五路检测分支详情</span></template>
+      <template #header><span style="font-weight:600">三路检测分支详情</span></template>
       <div class="branch-grid">
         <div v-for="b in result.branches" :key="b.name" class="branch-card">
           <div class="branch-icon" :style="{ background: branchColor(b.name) }">
