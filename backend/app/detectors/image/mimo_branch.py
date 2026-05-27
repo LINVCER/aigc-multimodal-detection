@@ -97,28 +97,41 @@ class MiMoVLBranch(DetectionPipeline):
             "content-type": "application/json",
         }
 
-        # MiMo Anthropic API 可能不支持多模态，降级为纯文本分析
-        import numpy as np
-        arr = np.array(image.convert("RGB"))
-        stats_text = (
-            f"图片尺寸: {image.width}x{image.height}, "
-            f"均值: RGB({arr[:,:,0].mean():.0f},{arr[:,:,1].mean():.0f},{arr[:,:,2].mean():.0f}), "
-            f"标准差: ({arr[:,:,0].std():.0f},{arr[:,:,1].std():.0f},{arr[:,:,2].std():.0f})"
-        )
-        text_prompt = PROMPT + "\n\n[图片统计信息: " + stats_text + "]"
-
         payload = {
             "model": settings.mimo_model,
             "max_tokens": 200,
             "messages": [
-                {"role": "user", "content": text_prompt},
-            ],
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": "image/jpeg",
+                                "data": b64_image,
+                            },
+                        },
+                        {"type": "text", "text": PROMPT},
+                    ],
+                }
             ],
         }
 
-        url = f"{settings.mimo_api_base}/v1/messages"
-        resp = await self._client.post(url, headers=headers, json=payload)
-        resp.raise_for_status()
+        # 尝试两种路径: /v1/messages 和 /messages
+        import urllib.parse
+        base = settings.mimo_api_base.rstrip("/")
+        urls = [f"{base}/v1/messages", f"{base}/messages"]
+        resp = None
+        for url in urls:
+            try:
+                resp = await self._client.post(url, headers=headers, json=payload)
+                if resp.status_code != 404:
+                    break
+            except Exception:
+                continue
+        if resp is None or resp.status_code >= 400:
+            raise Exception(f"MiMo API failed: {resp.status_code if resp else 'no response'}")
 
         data = resp.json()
         # Anthropic Messages API 响应格式
