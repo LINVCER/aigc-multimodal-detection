@@ -69,21 +69,27 @@
         </div>
       </template>
 
-      <!-- 置信度仪表盘 -->
+      <!-- 投票判定 -->
       <div class="gauge-section">
-        <div class="gauge-ring" :style="{ '--pct': (result.tampering_score * 100).toFixed(0) }">
-          <div class="gauge-inner">
-            <span class="gauge-value">{{ (result.tampering_score * 100).toFixed(1) }}%</span>
-            <span class="gauge-label">篡改置信度</span>
+        <div class="vote-result">
+          <div class="vote-header">三方投票判定</div>
+          <div class="vote-verdict" :style="{color: result.is_tampered ? '#dc2626' : (result.metadata?.verdict === '不确定' ? '#e6a23c' : '#10b981')}">
+            {{ result.metadata?.verdict || (result.is_tampered ? '检测到篡改' : '图像真实') }}
+          </div>
+          <div class="vote-detail">
+            {{ result.metadata?.votes_tampered || 0 }} 票篡改 : {{ result.metadata?.votes_real || 0 }} 票真实
           </div>
         </div>
 
-        <div class="risk-info">
+        <!-- 管理员可见详情 -->
+        <div class="risk-info" v-if="authStore.user?.role === 'admin'">
+          <div class="risk-item">
+            <span class="risk-label">置信度</span>
+            <span class="risk-value">{{ (result.tampering_score * 100).toFixed(1) }}%</span>
+          </div>
           <div class="risk-item">
             <span class="risk-label">风险等级</span>
-            <el-tag :type="riskTagTypeComputed" size="large">
-              {{ riskTextComputed }}
-            </el-tag>
+            <el-tag :type="riskTagTypeComputed" size="large">{{ riskTextComputed }}</el-tag>
           </div>
           <div class="risk-item">
             <span class="risk-label">篡改类型</span>
@@ -206,11 +212,13 @@ import api from "@/api"
 import { ElMessage } from "element-plus"
 import { UploadFilled, Loading } from "@element-plus/icons-vue"
 import { useResultsStore } from "@/stores/results"
+import { useAuthStore } from "@/stores/auth"
 import { usePollTask } from "@/composables/usePollTask"
 import { extractApiErrorMessage } from "@/utils/errors"
 import { riskTagType, riskText as getRiskText } from "@/utils/color"
 
 const resultsStore = useResultsStore()
+const authStore = useAuthStore()
 const { pollTask: pollTaskAsync } = usePollTask()
 
 const fileInput = ref<HTMLInputElement>()
@@ -426,6 +434,11 @@ async function pollTask(taskId: string) {
   gap: 32px;
   padding: 16px 0;
 }
+
+.vote-result { text-align: center; padding: 16px 24px; background: #f8fafc; border-radius: 12px; flex-shrink: 0; }
+.vote-header { font-size: 12px; color: #a0aec0; margin-bottom: 4px; }
+.vote-verdict { font-size: 28px; font-weight: 700; }
+.vote-detail { font-size: 13px; color: #718096; margin-top: 6px; }
 
 .gauge-ring {
   --pct: 50;
