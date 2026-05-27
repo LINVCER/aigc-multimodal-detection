@@ -74,6 +74,7 @@ const navItems = [
   { name: "篡改检测", path: "/detect/tampering" },
   { name: "音频检测", path: "/detect/audio" },
   { name: "论文检测", path: "/detect/thesis" },
+  { name: "充值中心", path: "/recharge" },
   { name: "降AIGC", path: "/detect/reduce" },
   { name: "AI助手", path: "/assistant" },
 ]

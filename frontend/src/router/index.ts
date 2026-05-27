@@ -50,6 +50,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "论文检测" },
       },
       {
+        path: "recharge",
+        name: "Recharge",
+        component: () => import("@/views/RechargePage.vue"),
+        meta: { title: "充值中心" },
+      },
+      {
         path: "assistant",
         name: "AIAssistant",
         component: () => import("@/views/AIAssistant.vue"),

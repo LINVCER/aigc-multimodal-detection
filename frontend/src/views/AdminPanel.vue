@@ -459,6 +459,22 @@
               <el-tag size="small" type="info">{{ memberTotal }}</el-tag>
             </div>
           </template>
+          <!-- 待审核付款 -->
+          <div v-if="pendingPayments.length > 0" style="margin-bottom:16px;padding:12px 16px;background:#fef3c7;border-radius:8px;border:1px solid #f59e0b">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <h4 style="margin:0;color:#92400e">待审核付款 ({{ pendingPayments.length }})</h4>
+              <el-button size="small" text @click="fetchPendingPayments">刷新</el-button>
+            </div>
+            <div v-for="pp in pendingPayments" :key="pp.id" style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #fde68a">
+              <span>{{ pp.username }} — <b>¥{{ pp.amount }}</b></span>
+              <span style="font-size:12px;color:#92400e">{{ pp.created_at }}</span>
+              <div>
+                <el-button size="small" type="success" @click="confirmPayment(pp)">确认到账</el-button>
+                <el-button size="small" type="danger" @click="rejectPayment(pp)">拒绝</el-button>
+              </div>
+            </div>
+          </div>
+
           <div class="toolbar">
             <div class="toolbar-left">
               <el-input v-model="memberSearch" placeholder="搜索用户名/邮箱" clearable class="filter-select" @change="fetchMembers(1)" />
@@ -1031,6 +1047,32 @@ async function handleDeleteUser(user: any) {
   } catch {}
 }
 
+// ============ 付款审核 ============
+const pendingPayments = ref<any[]>([])
+
+async function fetchPendingPayments() {
+  try {
+    const { data } = await api.get("/admin/payments", { params: { status: "pending", page_size: 50 } })
+    pendingPayments.value = data.items || []
+  } catch {}
+}
+
+async function confirmPayment(p: any) {
+  try {
+    await api.post(`/admin/payments/${p.id}/confirm`)
+    ElMessage.success(`${p.username} 已到账 ¥${p.amount}`)
+    await Promise.all([fetchPendingPayments(), fetchMembers()])
+  } catch (e: any) { ElMessage.error(extractApiErrorMessage(e, "操作失败")) }
+}
+
+async function rejectPayment(p: any) {
+  try {
+    await api.post(`/admin/payments/${p.id}/reject`)
+    ElMessage.info("已拒绝")
+    fetchPendingPayments()
+  } catch (e: any) { ElMessage.error(extractApiErrorMessage(e, "操作失败")) }
+}
+
 onMounted(() => {
   fetchStats()
   fetchTrend()
@@ -1039,6 +1081,7 @@ onMounted(() => {
   fetchUsers(1)
   fetchDetections(1)
   fetchMembers(1)
+  fetchPendingPayments()
 })
 </script>
 

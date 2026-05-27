@@ -442,6 +442,103 @@ async def delete_user(
     return {"ok": True, "user_id": user_id, "deleted": True}
 
 
+# ============================================================
+# 支付管理
+# ============================================================
+
+from app.models.payment import Payment
+
+
+@router.post("/payment/submit")
+async def submit_payment(
+    amount: int = Query(ge=1, le=99999),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """用户提交付款通知"""
+    payment = Payment(user_id=str(current_user.id), amount=amount, status="pending")
+    db.add(payment)
+    await db.commit()
+    await db.refresh(payment)
+    return {"ok": True, "payment_id": str(payment.id), "amount": amount,
+            "message": "付款已提交，等待管理员确认"}
+
+
+@router.get("/payments")
+async def list_payments(
+    status_filter: str | None = Query(None, alias="status"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin),
+):
+    """管理员查看付款记录"""
+    from app.models.payment import Payment
+    base = select(Payment, User.username).join(User, Payment.user_id == User.id)
+    count_base = select(func.count(Payment.id)).join(User, Payment.user_id == User.id)
+    if status_filter:
+        base = base.where(Payment.status == status_filter)
+        count_base = count_base.where(Payment.status == status_filter)
+    base = base.order_by(desc(Payment.created_at)).offset((page - 1) * page_size).limit(page_size)
+    rows = (await db.execute(base)).all()
+    total = (await db.execute(count_base)).scalar() or 0
+
+    items = []
+    for p, uname in rows:
+        items.append({
+            "id": str(p.id), "user_id": str(p.user_id), "username": uname,
+            "amount": p.amount, "status": p.status,
+            "created_at": p.created_at.strftime("%Y-%m-%d %H:%M:%S") if p.created_at else None,
+            "confirmed_at": p.confirmed_at.strftime("%Y-%m-%d %H:%M:%S") if p.confirmed_at else None,
+        })
+    return {"items": items, "total": total, "page": page, "page_size": page_size}
+
+
+@router.post("/payments/{payment_id}/confirm")
+async def confirm_payment(
+    payment_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin),
+):
+    """管理员确认收款 → 自动充值"""
+    result = await db.execute(select(Payment).where(Payment.id == payment_id))
+    payment = result.scalar_one_or_none()
+    if not payment:
+        raise HTTPException(status_code=404, detail="付款记录不存在")
+    if payment.status != "pending":
+        raise HTTPException(status_code=400, detail="该付款已处理")
+
+    from datetime import datetime
+    payment.status = "confirmed"
+    payment.confirmed_at = datetime.now()
+
+    # 自动充值
+    r = await db.execute(select(User).where(User.id == payment.user_id))
+    user = r.scalar_one_or_none()
+    if user:
+        user.quota_remaining += payment.amount
+
+    await db.commit()
+    return {"ok": True, "payment_id": payment_id, "status": "confirmed",
+            "quota_remaining": user.quota_remaining if user else 0}
+
+
+@router.post("/payments/{payment_id}/reject")
+async def reject_payment(
+    payment_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin),
+):
+    """管理员拒绝付款"""
+    result = await db.execute(select(Payment).where(Payment.id == payment_id))
+    payment = result.scalar_one_or_none()
+    if not payment:
+        raise HTTPException(status_code=404, detail="付款记录不存在")
+    payment.status = "rejected"
+    await db.commit()
+    return {"ok": True, "payment_id": payment_id, "status": "rejected"}
+
+
 @router.get("/detections")
 async def list_detections(
     page: int = Query(1, ge=1),
