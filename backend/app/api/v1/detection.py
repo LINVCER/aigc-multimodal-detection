@@ -357,7 +357,7 @@ async def detect_multimodal(
     )
 
 
-@router.get("/result/{task_id}", response_model=DetectionResultResponse)
+@router.get("/result/{task_id}")
 async def get_detection_result_api(
     task_id: str,
     db: AsyncSession = Depends(get_db),
