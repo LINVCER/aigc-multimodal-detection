@@ -48,25 +48,31 @@ async def get_current_admin(current_user: User = Depends(get_current_user)) -> U
 
 QUOTA_COSTS = {
     "text": 1,
-    "image": 2,
-    "audio": 2,
-    "tampering": 3,
-    "thesis": 5,
-    "multimodal": 5,
+    "image": 1,
+    "audio": 1,
+    "tampering": 2,
+    "thesis": 2,
+    "multimodal": 3,
+    "assistant": 0,
 }
 
 
-async def check_quota(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-) -> User:
-    """检查用户是否有剩余额度"""
-    if current_user.quota_remaining <= 0:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="检测额度已用完，请联系管理员充值",
-        )
-    return current_user
+def require_quota(modality: str):
+    """返回指定模态的额度检查依赖"""
+    async def _check(
+        db: AsyncSession = Depends(get_db),
+        current_user: User = Depends(get_current_user),
+    ) -> User:
+        cost = QUOTA_COSTS.get(modality, 1)
+        if cost == 0:
+            return current_user
+        if current_user.quota_remaining < cost:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"额度不足：需要 {cost}，剩余 {current_user.quota_remaining}",
+            )
+        return current_user
+    return _check
 
 
 async def deduct_quota(
@@ -76,5 +82,7 @@ async def deduct_quota(
 ) -> None:
     """扣除指定模态的检测额度"""
     cost = QUOTA_COSTS.get(modality, 1)
+    if cost == 0:
+        return
     user.quota_remaining = max(0, user.quota_remaining - cost)
     await db.flush()

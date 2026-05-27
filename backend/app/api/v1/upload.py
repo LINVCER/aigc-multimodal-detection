@@ -3,7 +3,7 @@ import asyncio
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 
-from app.api.deps import get_db, get_current_user, check_quota, deduct_quota
+from app.api.deps import get_db, get_current_user, require_quota, deduct_quota
 from app.models.user import User
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -334,7 +334,7 @@ async def batch_detect_images(
 @router.post("/thesis")
 async def detect_thesis(
     file: UploadFile = File(...),
-    current_user: User = Depends(check_quota),
+    current_user: User = Depends(require_quota("thesis")),
     db: AsyncSession = Depends(get_db),
 ):
     """

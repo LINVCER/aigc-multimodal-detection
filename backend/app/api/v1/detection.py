@@ -4,7 +4,7 @@ import socket
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, get_current_user, check_quota, deduct_quota
+from app.api.deps import get_db, get_current_user, require_quota, deduct_quota
 from app.models.user import User
 from app.schemas.detection import (
     TextDetectionRequest,
@@ -42,7 +42,7 @@ def _redis_available() -> bool:
 async def detect_text(
     req: TextDetectionRequest,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(check_quota),
+    current_user: User = Depends(require_quota("text")),
 ):
     task = await create_task(
         db=db,
@@ -104,7 +104,7 @@ async def detect_image(
     file: UploadFile = File(...),
     options: str = Form(default="{}"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(check_quota),
+    current_user: User = Depends(require_quota("image")),
 ):
     image_data = await file.read()
     task = await create_task(
@@ -158,7 +158,7 @@ async def detect_audio(
     file: UploadFile = File(...),
     options: str = Form(default="{}"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(check_quota),
+    current_user: User = Depends(require_quota("audio")),
 ):
     task = await create_task(
         db=db, user_id=str(current_user.id),
@@ -211,7 +211,7 @@ async def detect_tampering_endpoint(
     file: UploadFile = File(...),
     options: str = Form(default="{}"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(check_quota),
+    current_user: User = Depends(require_quota("tampering")),
 ):
     """篡改检测 — Mask R-CNN + FFT + 噪声 三路融合"""
     import json
