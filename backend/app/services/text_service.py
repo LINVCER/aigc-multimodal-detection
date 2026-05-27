@@ -196,17 +196,18 @@ def _statistical_to_output(features: StatisticalFeatures) -> DetectionOutput:
 
     feature_rules = [
         # (value, midpoint, steepness, weight, direction) -1=低值→AI, +1=高值→AI
-        (features.slop_word_density, 0.3, 5.0, 0.30, +1),
-        (features.transition_word_density, 0.2, 6.0, 0.20, +1),
-        (features.idiom_density, 0.05, 50.0, 0.10, +1),
-        (features.bigram_repetition_rate, 0.05, 20.0, 0.08, +1),
-        (features.sentence_length_cv, 0.4, 8.0, 0.08, -1),
-        (features.burstiness, 0.3, 8.0, 0.07, -1),
-        (features.punctuation_entropy, 2.0, 2.0, 0.05, -1),
-        (features.unigram_entropy, 6.0, 1.5, 0.04, -1),
-        (features.zipf_deviation, 0.08, 30.0, 0.03, +1),
-        (features.hapax_ratio, 0.4, 4.0, 0.03, -1),
-        (features.yule_k, 100.0, 0.01, 0.02, +1),
+        # 降低slop词和过渡词权重，减少正常写作误判
+        (features.slop_word_density, 0.4, 5.0, 0.15, +1),
+        (features.transition_word_density, 0.3, 6.0, 0.10, +1),
+        (features.idiom_density, 0.05, 50.0, 0.08, +1),
+        (features.bigram_repetition_rate, 0.08, 20.0, 0.10, +1),
+        (features.sentence_length_cv, 0.4, 8.0, 0.12, -1),
+        (features.burstiness, 0.3, 8.0, 0.12, -1),
+        (features.punctuation_entropy, 2.0, 2.0, 0.08, -1),
+        (features.unigram_entropy, 6.0, 1.5, 0.08, -1),
+        (features.zipf_deviation, 0.08, 30.0, 0.05, +1),
+        (features.hapax_ratio, 0.4, 4.0, 0.06, -1),
+        (features.yule_k, 100.0, 0.01, 0.06, +1),
     ]
 
     total_signal = 0.0

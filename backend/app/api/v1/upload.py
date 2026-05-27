@@ -464,7 +464,7 @@ async def detect_thesis(
                 "is_reference": True,
             }
 
-        if len(para_text) < 30:
+        if len(para_text) < 50:
             return {
                 "index": i, "text": para_text, "length": p["length"],
                 "section": p["section"],
@@ -474,9 +474,27 @@ async def detect_thesis(
                 "excluded": True,
             }
 
+        # Q&A 访谈格式检测：问答体具有自然的口语化特征
+        is_qa = bool(re.match(r'^(问[：:]|答[：:]|Q[：:]|A[：:]|[一二三四五六七八九十]+[、．.])', para_text))
+        if is_qa and len(para_text) < 80:
+            return {
+                "index": i, "text": para_text, "length": p["length"],
+                "section": p["section"],
+                "confidence": 0.0, "is_ai_generated": False,
+                "suspicion": 0.0, "level": "low",
+                "reasons": ["Q&A短问答不纳入统计"],
+                "excluded": True,
+            }
+
         async with _semaphore:
             result = await do_detect(para_text[:1500], {"explain": False})
         conf = result.confidence
+        # 短文本置信度降低：50-200字段落统计特征不可靠
+        if len(para_text) < 200:
+            conf = conf * (0.5 + 0.5 * len(para_text) / 200)
+        # Q&A 访谈格式额外降低置信度
+        if is_qa:
+            conf = conf * 0.7
         feats = stat_ext.extract(para_text)
         return i, para_text, p, conf, feats
 
