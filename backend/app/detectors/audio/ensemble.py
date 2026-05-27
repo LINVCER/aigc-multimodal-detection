@@ -26,21 +26,28 @@ class AudioEnsemble:
     ) -> DetectionOutput:
         branches = []
 
-        # Wav2Vec2 (主力本地)
-        if wav2vec2_output and wav2vec2_output.metadata.get("status") != "model_load_error":
-            branches.append((0.50, wav2vec2_output.logit, "wav2vec2_xlsr", wav2vec2_output))
+        # Wav2Vec2 (主力本地) — NaN/死分支跳过
+        w2v_alive = (
+            wav2vec2_output
+            and wav2vec2_output.metadata.get("status") not in ("model_load_error", "nan_output")
+        )
+        if w2v_alive:
+            branches.append((0.50, wav2vec2_output.logit, "wav2vec2_xlsr_aigc", wav2vec2_output))
 
-        # Resemble API
+        # MiMo API (声学特征不够可靠，仅辅助)
         api_available = (
             resemble_output
             and resemble_output.metadata.get("status") != "api_unavailable"
         )
-        if api_available:
-            branches.append((0.35, resemble_output.logit, "resemble_api", resemble_output))
+        if api_available and w2v_alive:
+            branches.append((0.25, resemble_output.logit, "mimo_audio_analysis", resemble_output))
 
-        # RawNet2 (兜底)
-        if rawnet2_output and rawnet2_output.metadata.get("status") != "preprocessing_error":
-            branches.append((0.15, rawnet2_output.logit, "rawnet2", rawnet2_output))
+        # RawNet2 (主力，Wav2Vec2死后独占)
+        rn2_ok = rawnet2_output and rawnet2_output.metadata.get("status") != "preprocessing_error"
+        if rn2_ok and w2v_alive:
+            branches.append((0.25, rawnet2_output.logit, "rawnet2", rawnet2_output))
+        elif rn2_ok:
+            branches.append((1.0, rawnet2_output.logit, "rawnet2", rawnet2_output))
 
         if not branches:
             return DetectionOutput(
@@ -54,7 +61,7 @@ class AudioEnsemble:
 
         fused_logit = sum(w * l for w, l, _, _ in normalized)
         fused_prob = 1.0 / (1.0 + math.exp(-fused_logit))
-        is_ai = fused_prob > 0.25
+        is_ai = fused_prob > 0.45
 
         return DetectionOutput(
             is_ai_generated=is_ai,
