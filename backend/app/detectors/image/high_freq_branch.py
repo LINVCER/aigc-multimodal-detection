@@ -235,8 +235,8 @@ class HighFreqBranch(DetectionPipeline):
             logit = self._model(x).item()
             prob = torch.sigmoid(torch.tensor(logit)).item()
 
+        calibrated = 0.5 + (prob - 0.5) * 0.6
         return DetectionOutput(
-            calibrated = 0.5 + (prob - 0.5) * 0.6
             is_ai_generated=calibrated > 0.55,
             confidence=round(max(0.01, min(0.99, calibrated)), 4),
             logit=logit,
