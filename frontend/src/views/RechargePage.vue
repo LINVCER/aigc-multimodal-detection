@@ -20,7 +20,7 @@
             <el-radio :value="30" border>30 额度 — ¥30</el-radio>
             <el-radio :value="50" border>50 额度 — ¥50</el-radio>
             <el-radio :value="100" border>100 额度 — ¥100</el-radio>
-            <el-radio :value="custom" border>
+            <el-radio :value="'custom'" border>
               自定义
               <el-input-number v-model="customAmount" :min="1" :max="99999" size="small" style="margin-left:8px;width:120px" v-if="amount === 'custom'" />
             </el-radio>
@@ -47,7 +47,7 @@
         <div v-for="p in payments" :key="p.id" style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:6px">
           <span>¥{{ p.amount }}</span>
           <el-tag :type="p.status==='confirmed'?'success':p.status==='rejected'?'danger':'warning'" size="small">
-            {{ {pending:'等待确认',confirmed:'已到账',rejected:'已拒绝'}[p.status] }}
+            {{ ({pending:'等待确认',confirmed:'已到账',rejected:'已拒绝'} as Record<string,string>)[p.status] }}
           </el-tag>
           <span style="font-size:12px;color:#a0aec0">{{ p.created_at }}</span>
         </div>
