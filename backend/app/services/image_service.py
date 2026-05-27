@@ -79,7 +79,7 @@ async def detect_image(image_data: bytes, options: dict | None = None) -> Detect
         # MiMo 分支只有在可用时才加入
         if mimo_output.metadata.get("status") != "model_not_loaded":
             branches_info.append(
-                {"name": "MiMo-VL视觉语言", "confidence": mimo_output.confidence,
+                {"name": "AI视觉模型", "confidence": mimo_output.confidence,
                  "is_ai": mimo_output.is_ai_generated}
             )
 

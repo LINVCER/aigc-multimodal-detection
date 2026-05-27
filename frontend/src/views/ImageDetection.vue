@@ -1,7 +1,7 @@
 <template>
   <div class="image-detect">
     <h1>图像检测</h1>
-    <p style="color:#718096;margin-top:0">检测图像是否由 AI 模型生成 — 三路融合: 高频噪声CNN + CLIP-ViT + MiMo-VL</p>
+    <p style="color:#718096;margin-top:0">检测图像是否由 AI 模型生成 — 三路融合: 高频噪声CNN + CLIP-ViT + AI视觉模型</p>
 
     <!-- 上传区域 -->
     <el-card>
