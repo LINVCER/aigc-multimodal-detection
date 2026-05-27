@@ -159,8 +159,9 @@ class MiMoVLBranch(DetectionPipeline):
         )
 
     def _parse_response(self, text: str) -> tuple[float, str]:
-        """从 MiMo-VL 响应中解析 confidence 和 reasoning"""
-        # 尝试直接解析 JSON
+        """从 MiMo-VL 响应中解析 confidence 和 reasoning（支持中文自然语言）"""
+        import re
+        # 尝试 JSON
         try:
             obj = json.loads(text.strip())
             return float(obj.get("confidence", 0.5)), obj.get("reasoning", "")
@@ -168,16 +169,30 @@ class MiMoVLBranch(DetectionPipeline):
             pass
 
         # 尝试从文本中提取 JSON 块
-        import re
         match = re.search(r'\{[^}]*"confidence"\s*:\s*([\d.]+)[^}]*\}', text)
         if match:
-            confidence = float(match.group(1))
-            reasoning_match = re.search(r'"reasoning"\s*:\s*"([^"]*)"', text)
-            reasoning = reasoning_match.group(1) if reasoning_match else ""
-            return confidence, reasoning
+            return float(match.group(1)), text[:300]
 
-        logger.warning(f"[MiMoVL] Failed to parse response: {text[:200]}")
-        return 0.5, "无法解析模型响应"
+        # 中文自然语言解析: 找置信度数值或关键词
+        conf = 0.5
+        # 匹配 "置信度: 0.85" / "confidence: 0.85" / "置信度 85%" / "85%"
+        pct_match = re.search(r'置信度[：:]\s*([\d.]+)\s*%?|confidence[：:]\s*([\d.]+)', text, re.IGNORECASE)
+        if pct_match:
+            val = float(pct_match.group(1) or pct_match.group(2))
+            conf = val / 100 if val > 1 else val
+        # 关键词判断
+        elif any(w in text.lower() for w in ['ai生成', 'ai 生成', '人工智能生成', 'is ai-generated', 'is ai generated']):
+            conf = 0.8
+        elif any(w in text.lower() for w in ['真实照片', '真实图像', '人类拍摄', '真实拍摄', 'is real', 'is authentic', 'not ai']):
+            conf = 0.2
+        # 找 "likely" / "probably" 类词
+        elif 'probably' in text.lower() or 'likely' in text.lower() or '可能' in text:
+            if 'ai' in text.lower() or '生成' in text:
+                conf = 0.65
+            elif 'real' in text.lower() or '真实' in text or '人类' in text:
+                conf = 0.35
+
+        return round(max(0.05, min(0.95, conf)), 4), text[:300]
 
     async def explain(self, input_data: Image.Image, output: DetectionOutput) -> dict:
         reasoning = output.metadata.get("mimo_reasoning", "")
