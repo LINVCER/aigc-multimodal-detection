@@ -107,8 +107,20 @@ def _generate_pdf(elements: list[dict], title: str = "document") -> bytes:
     pdf.set_auto_page_break(auto=True, margin=20)
     page_w = pdf.w - pdf.l_margin - pdf.r_margin
 
-    # Use built-in Helvetica (no Chinese font needed for basic PDF)
+    # Use Chinese font if available, fallback to Helvetica
     cn = "Helvetica"
+    font_dirs = [
+        "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
+        "/usr/share/fonts/opentype/wqy/wqy-zenhei.ttc",
+        "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf",
+        "/usr/share/fonts/truetype/arphic/uming.ttc",
+    ]
+    for fp in font_dirs:
+        if os.path.exists(fp):
+            pdf.add_font("CN", "", fp)
+            pdf.add_font("CN", "B", fp)
+            cn = "CN"
+            break
 
     # Title
     pdf.set_font(cn, "B", 16)
