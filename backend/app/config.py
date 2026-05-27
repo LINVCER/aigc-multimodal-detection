@@ -88,7 +88,10 @@ class Settings(BaseSettings):
     debug: bool = False
     log_level: str = "INFO"
 
-    # 数据库 MySQL
+    # 数据库 — DATABASE_URL 优先，否则用独立字段拼装
+    database_url: str = ""
+
+    # 数据库独立字段 (MySQL 模式下使用)
     db_host: str = "localhost"
     db_port: int = 3306
     db_name: str = "image_nious"
@@ -96,7 +99,9 @@ class Settings(BaseSettings):
     db_password: str = "root"
 
     @property
-    def database_url(self) -> str:
+    def database_url_resolved(self) -> str:
+        if self.database_url:
+            return self.database_url
         return (
             f"mysql+aiomysql://{self.db_user}:{self.db_password}"
             f"@{self.db_host}:{self.db_port}/{self.db_name}"
@@ -104,6 +109,8 @@ class Settings(BaseSettings):
 
     @property
     def database_url_sync(self) -> str:
+        if self.database_url:
+            return self.database_url.replace("+aiosqlite", "+pysqlite").replace("sqlite+aiosqlite:///", "sqlite+pysqlite:///")
         return (
             f"mysql+pymysql://{self.db_user}:{self.db_password}"
             f"@{self.db_host}:{self.db_port}/{self.db_name}"

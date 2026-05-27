@@ -6,12 +6,12 @@ from app.config import get_settings
 settings = get_settings()
 
 engine = create_async_engine(
-    settings.database_url,
+    settings.database_url_resolved,
     pool_size=20,
     max_overflow=10,
     pool_pre_ping=False,
     echo=settings.debug,
-    connect_args={"charset": "utf8mb4"} if "mysql" in settings.database_url else {},
+    connect_args={"charset": "utf8mb4"} if "mysql" in settings.database_url_resolved else {},
 )
 
 async_session_factory = async_sessionmaker(
