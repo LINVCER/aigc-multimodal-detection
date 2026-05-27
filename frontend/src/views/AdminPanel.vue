@@ -473,12 +473,12 @@
             <el-table :data="members" v-loading="membersLoading" stripe class="custom-table">
               <el-table-column label="用户名" width="120"><template #default="{row}">{{ row.username }}</template></el-table-column>
               <el-table-column label="邮箱" min-width="180"><template #default="{row}">{{ row.email }}</template></el-table-column>
-              <el-table-column label="角色" width="80"><template #default="{row}"><el-tag size="small" :type="row.role==='admin'?'danger':'info'">{{ {admin:'管理员',student:'用户',teacher:'教师'}[row.role]||row.role }}</el-tag></template></el-table-column>
+              <el-table-column label="角色" width="80"><template #default="{row}"><el-tag size="small" :type="row.role==='admin'?'danger':'info'">{{ ({admin:'管理员',student:'用户',teacher:'教师'} as Record<string,string>)[row.role]||row.role }}</el-tag></template></el-table-column>
               <el-table-column label="额度" width="80"><template #default="{row}">{{ row.quota_remaining }}</template></el-table-column>
               <el-table-column label="月卡" width="130">
                 <template #default="{row}">
                   <template v-if="row.subscription_expiry">
-                    <el-tag size="small" type="success">{{ {monthly:'月卡',quarterly:'季卡',yearly:'年卡'}[row.subscription_type]||row.subscription_type }}</el-tag>
+                    <el-tag size="small" type="success">{{ ({monthly:'月卡',quarterly:'季卡',yearly:'年卡'} as Record<string,string>)[row.subscription_type]||row.subscription_type }}</el-tag>
                     <div style="font-size:11px;color:#a0aec0;margin-top:2px">到期:{{ row.subscription_expiry }}</div>
                   </template>
                   <span v-else style="color:#a0aec0;font-size:12px">未开通</span>
@@ -651,7 +651,8 @@ import { ref, onMounted } from "vue"
 import { useAuthStore } from "@/stores/auth"
 import { Loading } from "@element-plus/icons-vue"
 import api from "@/api"
-import { ElMessage } from "element-plus"
+import { ElMessage, ElMessageBox } from "element-plus"
+import { extractApiErrorMessage } from "@/utils/errors"
 
 const auth = useAuthStore()
 
@@ -1029,8 +1030,6 @@ async function handleDeleteUser(user: any) {
     fetchMembers()
   } catch {}
 }
-
-import { ElMessageBox } from "element-plus"
 
 onMounted(() => {
   fetchStats()
