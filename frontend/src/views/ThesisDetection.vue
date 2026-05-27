@@ -195,23 +195,38 @@
       </el-card>
     </div>
 
-    <!-- 近期检测结果 -->
-    <div v-if="cachedResults.length > 0" style="margin-top:24px">
-      <h3 style="margin-bottom:12px">近期检测结果</h3>
+    <!-- 论文检测任务列表 -->
+    <div style="margin-top:24px" v-if="taskList.length > 0">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h3 style="margin:0">论文检测任务列表</h3>
+        <el-button size="small" text @click="fetchTaskList">
+          <el-icon><Refresh /></el-icon> 刷新
+        </el-button>
+      </div>
       <div style="display:flex;flex-direction:column;gap:8px">
-        <div v-for="r in cachedResults" :key="r.id"
+        <div v-for="t in taskList" :key="t.task_id"
           style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:white;border-radius:8px;border:1px solid #e2e8f0;cursor:pointer"
-          @click="report = r.data; scrollToTop()">
-          <div>
-            <span style="font-weight:500">{{ r.title }}</span>
-            <span style="font-size:12px;color:#a0aec0;margin-left:8px">{{ r.timestamp }}</span>
+          :style="t.status === 'processing' ? 'border-color:#e6a23c;background:#fdf6ec' : ''"
+          @click="openTaskResult(t)">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+                {{ t.input_content || '论文检测' }}
+              </span>
+              <el-tag :type="t.status === 'completed' ? 'success' : t.status === 'failed' ? 'danger' : 'warning'" size="small">
+                {{ t.status === 'completed' ? '已完成' : t.status === 'failed' ? '失败' : '处理中' }}
+              </el-tag>
+            </div>
+            <span style="font-size:12px;color:#a0aec0">{{ t.created_at }}</span>
           </div>
-          <div style="display:flex;align-items:center;gap:12px">
-            <span style="font-size:13px;color:#718096">AI率 {{ r.data?.overall_score?.ai_rate || '?' }}%</span>
-            <el-tag :type="r.data?.overall_score?.is_ai_generated ? 'danger' : 'success'" size="small">
-              {{ r.data?.overall_score?.is_ai_generated ? 'AI' : '人' }}
+          <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;margin-left:16px">
+            <span v-if="t.status === 'completed'" style="font-size:13px;color:#718096">
+              AI率 {{ ((t.confidence || 0) * 100).toFixed(1) }}%
+            </span>
+            <el-tag v-if="t.status === 'completed'" :type="t.is_ai_generated ? 'danger' : 'success'" size="small">
+              {{ t.is_ai_generated ? 'AI' : '人' }}
             </el-tag>
-            <el-button size="small" text type="danger" @click.stop="resultsStore.remove(r.id)">×</el-button>
+            <el-icon v-if="t.status === 'processing'" class="is-loading"><Loading /></el-icon>
           </div>
         </div>
       </div>
@@ -220,10 +235,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue"
+import { ref, computed, onMounted } from "vue"
 import api from "@/api"
 import { ElMessage } from "element-plus"
-import { Document } from "@element-plus/icons-vue"
+import { Document, Refresh, Loading } from "@element-plus/icons-vue"
 import { useResultsStore } from "@/stores/results"
 import { usePollTask } from "@/composables/usePollTask"
 import { extractApiErrorMessage } from "@/utils/errors"
@@ -234,8 +249,45 @@ const report = ref<any>(null)
 const dragOver = ref(false)
 const fileInput = ref<HTMLInputElement>()
 const resultsStore = useResultsStore()
+const taskList = ref<any[]>([])
 const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
-const cachedResults = computed(() => resultsStore.getLatest("thesis").reverse())
+
+async function fetchTaskList() {
+  try {
+    const { data } = await api.get("/report/history/list", { params: { page: 1, size: 10 } })
+    taskList.value = (data.items || []).filter((t: any) => t.modality === "thesis")
+  } catch {}
+}
+
+async function openTaskResult(t: any) {
+  if (t.status === "processing") {
+    ElMessage.info("任务处理中，请稍后...")
+    // 自动轮询
+    try {
+      const { pollTask: pt } = usePollTask()
+      await pt(t.task_id, (resultData: any) => {
+        report.value = resultData
+        resultsStore.add("thesis", t.input_content || "论文", resultData)
+        fetchTaskList()
+      }, (errMsg: string) => {
+        ElMessage.error(errMsg)
+      })
+    } catch {}
+    return
+  }
+  if (t.status === "failed") return
+  try {
+    const { data } = await api.get(`/detect/result/${t.task_id}`)
+    if (data.overall_score || data.report_meta) {
+      report.value = data
+      scrollToTop()
+    }
+  } catch (e: any) {
+    ElMessage.error(extractApiErrorMessage(e, "获取结果失败"))
+  }
+}
+
+onMounted(() => fetchTaskList())
 const scoreColor = computed(() => {
   if (!report.value) return "#718096"
   const r = report.value.overall_score.ai_rate
