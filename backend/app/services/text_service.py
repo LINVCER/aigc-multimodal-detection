@@ -11,12 +11,14 @@ from app.detectors.text.statistical_features import (
 from app.detectors.text.roberta_detector import ChineseRobertaDetector
 from app.detectors.text.llm_logprob import LLMLogprobDetector
 from app.detectors.text.ensemble import TextEnsemble
+from app.detectors.text.deepseek_detector import DeepSeekDetector
 
 
 # 全局单例
 _stat_extractor = ChineseStatisticalExtractor()
 _roberta = ChineseRobertaDetector()
 _logprob = LLMLogprobDetector()
+_deepseek = DeepSeekDetector()
 _ensemble = TextEnsemble()
 
 # 长文本分块参数
@@ -51,28 +53,25 @@ async def detect_text(content: str, options: dict | None = None) -> DetectionOut
     else:
         roberta_output = await _roberta.detect(content)
 
-    # 3. LLM logprob 分支 (DeepSeek)
+    # 3. MiMo 分支 (Anthropic API)
     sample_text = content[:2000] if text_len > 2000 else content
     logprob_output = await _logprob.detect(sample_text)
     logprob_output.metadata["sampled"] = text_len > 2000
 
-    # 4. 按文本长度调整融合权重 (MiMo 高权重)
+    # 4. DeepSeek 分支 (OpenAI API logprobs)
+    deepseek_output = await _deepseek.detect(sample_text)
+    deepseek_output.metadata["sampled"] = text_len > 2000
+
+    # 5. 按文本长度调整融合权重
     roberta_ok = roberta_output.metadata.get("status") != "model_load_error"
     if not roberta_ok:
-        if text_len < 50:
-            _ensemble.set_weights(stat=0.55, roberta=0.0, logprob=0.45)
-        elif text_len < 300:
-            _ensemble.set_weights(stat=0.35, roberta=0.0, logprob=0.65)
-        else:
-            _ensemble.set_weights(stat=0.15, roberta=0.0, logprob=0.85)
-    elif text_len < 50:
-        _ensemble.set_weights(stat=0.55, roberta=0.15, logprob=0.30)
+        _ensemble.set_weights(stat=0.40, roberta=0.0, logprob=0.35, deepseek=0.25)
     elif text_len < 300:
-        _ensemble.set_weights(stat=0.30, roberta=0.30, logprob=0.40)
+        _ensemble.set_weights(stat=0.30, roberta=0.25, logprob=0.25, deepseek=0.20)
     else:
-        _ensemble.set_weights(stat=0.15, roberta=0.40, logprob=0.45)
+        _ensemble.set_weights(stat=0.15, roberta=0.30, logprob=0.30, deepseek=0.25)
 
-    fused = _ensemble.fuse(stat_output, roberta_output, logprob_output)
+    fused = _ensemble.fuse(stat_output, roberta_output, logprob_output, deepseek_output)
 
     # 5. 校准: 训练参数不适用于融合输出，直接使用原始置信度
     fused.calibrated_confidence = fused.confidence

@@ -142,10 +142,15 @@ class Settings(BaseSettings):
     jwt_access_token_expire_minutes: int = 60
     jwt_refresh_token_expire_days: int = 7
 
-    # LLM API (OpenAI 兼容接口，支持 DeepSeek/Qwen/Zhipu 等)
+    # LLM API — MiMo (Anthropic 兼容)
     llm_api_key: str = ""
-    llm_api_base: str = "https://api.deepseek.com/v1"
-    llm_model: str = "deepseek-chat"
+    llm_api_base: str = "https://token-plan-cn.xiaomimimo.com/anthropic"
+    llm_model: str = "mimo-v2.5-pro"
+
+    # DeepSeek API (OpenAI 兼容)
+    deepseek_api_key: str = ""
+    deepseek_api_base: str = "https://api.deepseek.com/v1"
+    deepseek_model: str = "deepseek-chat"
 
     # Resemble AI
     resemble_ai_api_key: str = ""
