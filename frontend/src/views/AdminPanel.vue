@@ -446,7 +446,113 @@
               @current-change="fetchDetections" @size-change="handleDetSizeChange" />
           </div>
         </el-tab-pane>
+
+        <!-- 会员管理 -->
+        <el-tab-pane name="members">
+          <template #label>
+            <div class="tab-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px">
+                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
+              </svg>
+              <span>会员管理</span>
+              <el-tag size="small" type="info">{{ memberTotal }}</el-tag>
+            </div>
+          </template>
+          <div class="toolbar">
+            <div class="toolbar-left">
+              <el-input v-model="memberSearch" placeholder="搜索用户名/邮箱" clearable class="filter-select" @change="fetchMembers(1)" />
+              <el-select v-model="memberRole" placeholder="角色" clearable class="filter-select" @change="fetchMembers(1)">
+                <el-option label="管理员" value="admin" />
+                <el-option label="普通用户" value="student" />
+                <el-option label="教师" value="teacher" />
+              </el-select>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <el-table :data="members" v-loading="membersLoading" stripe class="custom-table">
+              <el-table-column label="用户名" width="120"><template #default="{row}">{{ row.username }}</template></el-table-column>
+              <el-table-column label="邮箱" min-width="180"><template #default="{row}">{{ row.email }}</template></el-table-column>
+              <el-table-column label="角色" width="80"><template #default="{row}"><el-tag size="small" :type="row.role==='admin'?'danger':'info'">{{ {admin:'管理员',student:'用户',teacher:'教师'}[row.role]||row.role }}</el-tag></template></el-table-column>
+              <el-table-column label="额度" width="80"><template #default="{row}">{{ row.quota_remaining }}</template></el-table-column>
+              <el-table-column label="月卡" width="130">
+                <template #default="{row}">
+                  <template v-if="row.subscription_expiry">
+                    <el-tag size="small" type="success">{{ {monthly:'月卡',quarterly:'季卡',yearly:'年卡'}[row.subscription_type]||row.subscription_type }}</el-tag>
+                    <div style="font-size:11px;color:#a0aec0;margin-top:2px">到期:{{ row.subscription_expiry }}</div>
+                  </template>
+                  <span v-else style="color:#a0aec0;font-size:12px">未开通</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="状态" width="80">
+                <template #default="{row}">
+                  <el-tag size="small" :type="row.is_blocked?'danger':'success'">{{ row.is_blocked?'已禁用':'正常' }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="检测/命中" width="100">
+                <template #default="{row}">{{ row.task_count }} / {{ row.ai_detected_count }}</template>
+              </el-table-column>
+              <el-table-column label="注册时间" width="160"><template #default="{row}">{{ row.created_at }}</template></el-table-column>
+              <el-table-column label="操作" width="240" fixed="right">
+                <template #default="{row}">
+                  <el-button size="small" type="primary" text @click="openRecharge(row)">充值</el-button>
+                  <el-button size="small" type="warning" text @click="openMonthlyCard(row)">月卡</el-button>
+                  <el-button v-if="!row.is_blocked" size="small" type="danger" text @click="toggleBlock(row)">禁用</el-button>
+                  <el-button v-else size="small" type="success" text @click="toggleBlock(row)">解禁</el-button>
+                  <el-button v-if="row.role!=='admin'" size="small" type="danger" text @click="handleDeleteUser(row)">删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+          <div class="pagination-wrapper">
+            <el-pagination v-model:current-page="memberPage" :page-size="memberPageSize" :total="memberTotal"
+              layout="total, prev, pager, next" @current-change="fetchMembers" />
+          </div>
+        </el-tab-pane>
       </el-tabs>
+
+      <!-- 充值对话框 -->
+      <el-dialog v-model="rechargeVisible" title="充值额度" width="400px">
+        <el-form label-width="80px">
+          <el-form-item label="用户">{{ rechargeUser?.username }}</el-form-item>
+          <el-form-item label="当前额度">{{ rechargeUser?.quota_remaining }}</el-form-item>
+          <el-form-item label="充值数量">
+            <el-input-number v-model="rechargeAmount" :min="1" :max="99999" />
+          </el-form-item>
+          <el-form-item label="实付金额">
+            <span style="font-size:18px;font-weight:700;color:#409eff">¥{{ rechargeAmount }}</span>
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="rechargeVisible=false">取消</el-button>
+          <el-button type="primary" @click="doRecharge">确认充值</el-button>
+        </template>
+      </el-dialog>
+
+      <!-- 月卡对话框 -->
+      <el-dialog v-model="cardVisible" title="开通月卡" width="400px">
+        <el-form label-width="80px">
+          <el-form-item label="用户">{{ cardUser?.username }}</el-form-item>
+          <el-form-item label="当前到期">
+            <template v-if="cardUser?.subscription_expiry">{{ cardUser?.subscription_expiry }}</template>
+            <span v-else style="color:#a0aec0">未开通</span>
+          </el-form-item>
+          <el-form-item label="套餐">
+            <el-radio-group v-model="cardPlan">
+              <el-radio value="monthly" border>月卡 ¥30</el-radio>
+              <el-radio value="quarterly" border>季卡 ¥80</el-radio>
+              <el-radio value="yearly" border>年卡 ¥288</el-radio>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item label="赠送额度">
+            <span style="font-weight:600;color:#e6a23c">{{ {monthly:50,quarterly:200,yearly:1000}[cardPlan] }} 额度</span>
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="cardVisible=false">取消</el-button>
+          <el-button type="warning" @click="doMonthlyCard">确认开通</el-button>
+        </template>
+      </el-dialog>
     </div>
 
     <!-- 详情对话框 -->
@@ -841,6 +947,91 @@ async function exportDataset() {
   }
 }
 
+// ============ 会员管理 ============
+const members = ref<any[]>([])
+const membersLoading = ref(false)
+const memberPage = ref(1)
+const memberPageSize = ref(20)
+const memberTotal = ref(0)
+const memberSearch = ref("")
+const memberRole = ref("")
+const rechargeVisible = ref(false)
+const rechargeUser = ref<any>(null)
+const rechargeAmount = ref(10)
+const cardVisible = ref(false)
+const cardUser = ref<any>(null)
+const cardPlan = ref("monthly")
+
+async function fetchMembers(page?: number) {
+  if (page) memberPage.value = page
+  membersLoading.value = true
+  try {
+    const { data } = await api.get("/admin/users", {
+      params: {
+        page: memberPage.value, page_size: memberPageSize.value,
+        search: memberSearch.value || undefined,
+        role: memberRole.value || undefined,
+      }
+    })
+    members.value = data.users || []
+    memberTotal.value = data.total || 0
+  } catch {} finally { membersLoading.value = false }
+}
+
+function openRecharge(user: any) {
+  rechargeUser.value = user
+  rechargeAmount.value = 10
+  rechargeVisible.value = true
+}
+
+async function doRecharge() {
+  if (!rechargeUser.value) return
+  try {
+    await api.post(`/admin/users/${rechargeUser.value.id}/recharge?amount=${rechargeAmount.value}`)
+    ElMessage.success(`充值成功: +${rechargeAmount.value} 额度`)
+    rechargeVisible.value = false
+    fetchMembers()
+  } catch (e: any) { ElMessage.error(extractApiErrorMessage(e, "充值失败")) }
+}
+
+function openMonthlyCard(user: any) {
+  cardUser.value = user
+  cardPlan.value = "monthly"
+  cardVisible.value = true
+}
+
+async function doMonthlyCard() {
+  if (!cardUser.value) return
+  try {
+    await api.post(`/admin/users/${cardUser.value.id}/monthly-card?plan=${cardPlan.value}`)
+    ElMessage.success("月卡开通成功")
+    cardVisible.value = false
+    fetchMembers()
+  } catch (e: any) { ElMessage.error(extractApiErrorMessage(e, "开通失败")) }
+}
+
+async function toggleBlock(user: any) {
+  const action = user.is_blocked ? "unblock" : "block"
+  const msg = user.is_blocked ? "确定解禁该用户?" : "确定禁用该用户?"
+  try {
+    await ElMessageBox.confirm(msg, "确认", { type: "warning" })
+    await api.post(`/admin/users/${user.id}/${action}`)
+    ElMessage.success(user.is_blocked ? "已解禁" : "已禁用")
+    fetchMembers()
+  } catch {}
+}
+
+async function handleDeleteUser(user: any) {
+  try {
+    await ElMessageBox.confirm(`确定永久删除用户 "${user.username}"? 此操作不可恢复。`, "危险操作", { type: "error" })
+    await api.delete(`/admin/users/${user.id}`)
+    ElMessage.success("用户已删除")
+    fetchMembers()
+  } catch {}
+}
+
+import { ElMessageBox } from "element-plus"
+
 onMounted(() => {
   fetchStats()
   fetchTrend()
@@ -848,6 +1039,7 @@ onMounted(() => {
   fetchContents(1)
   fetchUsers(1)
   fetchDetections(1)
+  fetchMembers(1)
 })
 </script>
 

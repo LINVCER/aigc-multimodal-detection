@@ -326,12 +326,120 @@ async def list_users(
             "email": u.email,
             "role": u.role,
             "quota_remaining": u.quota_remaining,
+            "is_blocked": u.is_blocked,
+            "subscription_type": u.subscription_type,
+            "subscription_expiry": u.subscription_expiry.strftime("%Y-%m-%d") if u.subscription_expiry else None,
             "task_count": task_count,
             "ai_detected_count": ai_count,
             "created_at": u.created_at.strftime("%Y-%m-%d %H:%M:%S") if u.created_at else None,
         })
 
     return {"total": total, "page": page, "page_size": page_size, "users": user_list}
+
+
+# ============================================================
+# 会员管理
+# ============================================================
+
+@router.post("/users/{user_id}/recharge")
+async def recharge_user(
+    user_id: str,
+    amount: int = Query(ge=1, le=99999, description="充值额度"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin),
+):
+    """为指定用户充值额度"""
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    user.quota_remaining += amount
+    await db.commit()
+    return {"ok": True, "user_id": user_id, "quota_remaining": user.quota_remaining, "added": amount}
+
+
+@router.post("/users/{user_id}/monthly-card")
+async def activate_monthly_card(
+    user_id: str,
+    plan: str = Query(pattern="^(monthly|quarterly|yearly)$", description="套餐类型"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin),
+):
+    """为用户开通月卡/季卡/年卡"""
+    from datetime import datetime, timedelta
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+
+    now = datetime.now()
+    if user.subscription_expiry and user.subscription_expiry > now:
+        start = user.subscription_expiry
+    else:
+        start = now
+
+    days = {"monthly": 30, "quarterly": 90, "yearly": 365}[plan]
+    user.subscription_type = plan
+    user.subscription_expiry = start + timedelta(days=days)
+    # 月卡赠送基础额度
+    bonus = {"monthly": 50, "quarterly": 200, "yearly": 1000}[plan]
+    user.quota_remaining += bonus
+    await db.commit()
+    return {
+        "ok": True, "user_id": user_id, "plan": plan,
+        "expiry": user.subscription_expiry.strftime("%Y-%m-%d %H:%M:%S"),
+        "bonus_quota": bonus, "quota_remaining": user.quota_remaining,
+    }
+
+
+@router.post("/users/{user_id}/block")
+async def block_user(
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin),
+):
+    """拉黑/禁用用户"""
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    user.is_blocked = True
+    await db.commit()
+    return {"ok": True, "user_id": user_id, "is_blocked": True}
+
+
+@router.post("/users/{user_id}/unblock")
+async def unblock_user(
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin),
+):
+    """解除用户禁用"""
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    user.is_blocked = False
+    await db.commit()
+    return {"ok": True, "user_id": user_id, "is_blocked": False}
+
+
+@router.delete("/users/{user_id}")
+async def delete_user(
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin),
+):
+    """删除用户"""
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    if user.role == "admin":
+        raise HTTPException(status_code=400, detail="不能删除管理员")
+    await db.delete(user)
+    await db.commit()
+    return {"ok": True, "user_id": user_id, "deleted": True}
 
 
 @router.get("/detections")
