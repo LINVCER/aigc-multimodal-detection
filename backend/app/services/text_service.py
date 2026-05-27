@@ -56,22 +56,21 @@ async def detect_text(content: str, options: dict | None = None) -> DetectionOut
     logprob_output = await _logprob.detect(sample_text)
     logprob_output.metadata["sampled"] = text_len > 2000
 
-    # 4. 按文本长度调整融合权重
-    # RoBERTa 不可用时把权重分给 LLM
+    # 4. 按文本长度调整融合权重 (MiMo 高权重)
     roberta_ok = roberta_output.metadata.get("status") != "model_load_error"
     if not roberta_ok:
         if text_len < 50:
-            _ensemble.set_weights(stat=0.70, roberta=0.0, logprob=0.30)
+            _ensemble.set_weights(stat=0.55, roberta=0.0, logprob=0.45)
         elif text_len < 300:
-            _ensemble.set_weights(stat=0.45, roberta=0.0, logprob=0.55)
+            _ensemble.set_weights(stat=0.35, roberta=0.0, logprob=0.65)
         else:
-            _ensemble.set_weights(stat=0.25, roberta=0.0, logprob=0.75)
+            _ensemble.set_weights(stat=0.15, roberta=0.0, logprob=0.85)
     elif text_len < 50:
-        _ensemble.set_weights(stat=0.65, roberta=0.20, logprob=0.15)
+        _ensemble.set_weights(stat=0.55, roberta=0.15, logprob=0.30)
     elif text_len < 300:
-        _ensemble.set_weights(stat=0.40, roberta=0.40, logprob=0.20)
+        _ensemble.set_weights(stat=0.30, roberta=0.30, logprob=0.40)
     else:
-        _ensemble.set_weights(stat=0.20, roberta=0.55, logprob=0.25)
+        _ensemble.set_weights(stat=0.15, roberta=0.40, logprob=0.45)
 
     fused = _ensemble.fuse(stat_output, roberta_output, logprob_output)
 
