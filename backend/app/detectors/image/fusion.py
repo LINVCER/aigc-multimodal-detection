@@ -25,10 +25,10 @@ class ImageFusion:
 
     def __init__(
         self,
-        high_freq_weight: float = 0.30,
-        vit_weight: float = 0.35,
-        mimo_weight: float = 0.35,
-        sensitivity: float = 0.25,
+        high_freq_weight: float = 0.35,
+        vit_weight: float = 0.45,
+        mimo_weight: float = 0.20,
+        sensitivity: float = 0.20,
     ):
         self.high_freq_weight = high_freq_weight
         self.vit_weight = vit_weight
@@ -73,28 +73,28 @@ class ImageFusion:
         total_weight = sum(w for w, _, _, _ in branches)
         normalized = [(w / total_weight, l, n, o) for w, l, n, o in branches]
 
-        confidences = [o.confidence for _, _, _, o in normalized]
+        confidences = [min(o.confidence, 0.75) for _, _, _, o in normalized]
         max_conf = max(confidences)
         min_conf = min(confidences)
         conf_spread = max_conf - min_conf
 
-        if len(branches) >= 2 and conf_spread > 0.5:
+        # 分支之间分歧过大时，降低极端分支权重
+        if len(branches) >= 2 and conf_spread > 0.4:
             adaptive_weights = []
             for w, l, name, o in normalized:
-                if o.confidence > 0.7 or o.confidence < 0.3:
-                    adaptive_weights.append((w * 1.3, l, name, o))
+                capped_conf = min(o.confidence, 0.75)
+                if capped_conf > 0.7:
+                    adaptive_weights.append((w * 0.5, l, name, o))
+                elif capped_conf < 0.3:
+                    adaptive_weights.append((w * 0.7, l, name, o))
                 else:
-                    adaptive_weights.append((w * 0.8, l, name, o))
+                    adaptive_weights.append((w, l, name, o))
             total_aw = sum(aw for aw, _, _, _ in adaptive_weights)
-            normalized = [(aw / total_aw, l, n, o) for aw, l, n, o in adaptive_weights]
+            if total_aw > 0:
+                normalized = [(aw / total_aw, l, n, o) for aw, l, n, o in adaptive_weights]
 
         fused_logit = sum(w * l for w, l, _, _ in normalized)
-        fused_logit += self.logit_bias
         fused_prob = 1.0 / (1.0 + math.exp(-fused_logit))
-
-        if self.sensitivity > 0.5:
-            sharpen_factor = 1.0 + (self.sensitivity - 0.5) * 0.8
-            fused_prob = pow(fused_prob, 1.0 / sharpen_factor)
 
         is_ai = fused_prob > self.decision_threshold
 
