@@ -120,12 +120,16 @@ class ViTBranch(DetectionPipeline):
             vision_outputs = self._model(x, output_hidden_states=True)
             cls_feature = vision_outputs.last_hidden_state[:, 0]
             logit = self._linear_head(cls_feature).squeeze(-1).item()
-            prob = torch.sigmoid(torch.tensor(logit)).item()
+
+        # 温度校准 (Platt参数异常暂不使用)
+        calibrated_logit = logit / max(self.temperature, 1.0)
+        prob = torch.sigmoid(torch.tensor(calibrated_logit)).item()
+        prob = max(0.01, min(0.99, prob))
 
         return DetectionOutput(
-            is_ai_generated=prob > 0.5,
+            is_ai_generated=prob > 0.55,
             confidence=round(prob, 4),
-            logit=logit,
+            logit=calibrated_logit,
         )
 
     async def explain(self, input_data: Image.Image, output: DetectionOutput) -> dict:
