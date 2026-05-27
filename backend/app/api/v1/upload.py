@@ -338,28 +338,59 @@ async def detect_thesis(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    论文 AIGC 检测 — 对标知网/Turnitin 标准, 智能自适应阈值
+    论文 AIGC 检测 — 异步后台处理
 
-    功能: 章节识别 → 段落分析 → 三色标注 → 疑似原因 → 判定建议
-    阈值: 根据文档置信度分布自动计算 (中位数 + 标准差调整)
+    提交后返回 task_id，前端轮询 GET /detect/result/{task_id} 获取结果
     """
+    from app.services.detection_service import create_task, update_task_status, save_detection_result
+
+    task = await create_task(
+        db=db, user_id=str(current_user.id), modality="thesis",
+    )
+    task_id = str(task.id)
+    # 暂存原始数据供后台使用
+    raw_bytes = await file.read()
+    filename = file.filename
+    await update_task_status(db, task_id, "processing")
+    await db.commit()
+
+    # 后台异步执行检测
+    import asyncio as _asyncio
+    _asyncio.create_task(_run_thesis_background(task_id, filename, raw_bytes, current_user.id))
+
+    return {
+        "task_id": task_id,
+        "status": "processing",
+        "modality": "thesis",
+        "message": f"论文检测已提交: {filename}",
+    }
+
+
+async def _run_thesis_background(task_id: str, filename: str, content: bytes, user_id):
+    """后台执行论文检测"""
     from app.utils.document_parser import parse_document
     from app.services.text_service import detect_text as do_detect
     from app.detectors.text.statistical_features import ChineseStatisticalExtractor
+    from app.db.session import async_session_factory
+    from app.services.detection_service import update_task_status, save_detection_result, get_task
     import re
     from datetime import datetime
 
     stat_ext = ChineseStatisticalExtractor()
 
-    # 解析文档 (带大小限制)
-    content = await file.read()
-    if len(content) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=400, detail="文件超过 20MB 限制")
-    validate_file_bytes(file.filename, content)
+    # 解析文档
     try:
-        text = parse_document(file.filename, content)
+        if len(content) > MAX_FILE_SIZE:
+            async with async_session_factory() as s:
+                await update_task_status(s, task_id, "failed", "文件超过 20MB 限制")
+                await s.commit()
+            return
+        text = parse_document(filename, content)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=f"文档解析失败: {e}")
+        async with async_session_factory() as s:
+            await update_task_status(s, task_id, "failed", f"文档解析失败: {e}")
+            await s.commit()
+        return
 
     # ============================================================
     # Step 1: 分段 — 信任 document_parser 的 \n\n 结构, 不修改原文
@@ -654,11 +685,9 @@ async def detect_thesis(
     optimization_data["risk_factors"] = thesis_report.risk_factors
     optimization_data["human_indicators"] = thesis_report.human_indicators
 
-    await deduct_quota("thesis", db, current_user)
-
-    return {
+    full_result = {
         "report_meta": {
-            "filename": file.filename,
+            "filename": filename,
             "detection_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "algorithm_version": "AIGC--多模态检测 v4.0 — 学科自适应 + 全局优化",
             "adaptive_threshold": adpt_threshold,
@@ -692,3 +721,16 @@ async def detect_thesis(
             "weighted_ai_rate": overall_ai_rate,
         },
     }
+
+    # 存入数据库供 GET /detect/result/{task_id} 查询
+    risk = "high" if overall_ai_rate > 30 else ("medium" if overall_ai_rate > 15 else "low")
+    async with async_session_factory() as session:
+        await save_detection_result(
+            db=session, task_id=task_id, modality="thesis",
+            is_ai_generated=overall_ai_rate > adpt_threshold,
+            confidence=round(overall_ai_rate / 100, 4),
+            risk_level=risk,
+            raw_scores=full_result,
+        )
+        await update_task_status(session, task_id, "completed")
+        await session.commit()

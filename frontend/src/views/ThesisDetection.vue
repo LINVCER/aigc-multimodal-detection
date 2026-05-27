@@ -225,6 +225,7 @@ import api from "@/api"
 import { ElMessage } from "element-plus"
 import { Document } from "@element-plus/icons-vue"
 import { useResultsStore } from "@/stores/results"
+import { usePollTask } from "@/composables/usePollTask"
 import { extractApiErrorMessage } from "@/utils/errors"
 
 const file = ref<File | null>(null)
@@ -263,15 +264,29 @@ function handleDrop(e: DragEvent) {
   if (e.dataTransfer?.files?.length) { file.value = e.dataTransfer.files[0]; report.value = null }
 }
 
+const { pollTask: pollThesis } = usePollTask()
+
 async function handleDetect() {
   if (!file.value) return
   detecting.value = true; report.value = null
   try {
     const fd = new FormData(); fd.append("file", file.value)
     const { data } = await api.post("/detect/thesis", fd, {
-      timeout: 300000,
+      timeout: 30000,
     })
-    if (data.overall_score) {
+    if (data.task_id) {
+      ElMessage.success("论文检测任务已提交: " + data.task_id)
+      await pollThesis(
+        data.task_id,
+        (resultData: any) => {
+          report.value = resultData
+          resultsStore.add("thesis", file.value?.name || "论文", resultData)
+        },
+        (errMsg: string) => {
+          ElMessage.error(errMsg)
+        },
+      )
+    } else if (data.overall_score) {
       report.value = data
       resultsStore.add("thesis", file.value?.name || "论文", data)
     } else {

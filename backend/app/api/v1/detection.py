@@ -373,6 +373,13 @@ async def get_detection_result_api(
     if not detection:
         raise HTTPException(status_code=404, detail="检测结果不存在")
 
+    # 论文检测: 从 raw_scores 直接返回完整结果
+    if detection.modality == "thesis":
+        raw = detection.raw_scores or {}
+        raw["task_id"] = str(task.id)
+        raw["status"] = task.status
+        return raw
+
     # 篡改检测: 从 raw_scores 提取 tampering 数据返回
     if detection.modality == "tampering":
         raw = detection.raw_scores or {}
