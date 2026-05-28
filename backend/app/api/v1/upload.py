@@ -698,9 +698,8 @@ async def _run_thesis_background(task_id: str, filename: str, content: bytes, us
     valid_paras = [p for p in para_results if not p.get("excluded")]
     total_paras = len(valid_paras)
     ai_paras = sum(1 for p in valid_paras if p.get("is_ai_generated"))
-    total_weight = sum(p["length"] for p in valid_paras)
-    weighted_rate = sum(p["suspicion"] * p["length"] for p in valid_paras) / total_weight if total_weight > 0 else 0
-    overall_ai_rate = round(weighted_rate, 1)
+    # 简单平均: 所有有效段落的置信度求均值
+    overall_ai_rate = round(sum(p["suspicion"] for p in valid_paras) / total_paras, 1) if total_paras > 0 else 0
 
     if overall_ai_rate <= 15:
         recommendation, rec_detail = "建议通过", "整体AI疑似度在安全范围内，可直接提交"
@@ -837,7 +836,7 @@ async def _run_thesis_background(task_id: str, filename: str, content: bytes, us
             "high_risk_count": sum(1 for p in valid_paras if p["level"] == "high"),
             "medium_risk_count": sum(1 for p in valid_paras if p["level"] == "medium"),
             "low_risk_count": sum(1 for p in valid_paras if p["level"] == "low"),
-            "weighted_ai_rate": overall_ai_rate,
+            "ai_rate": overall_ai_rate,
         },
     }
 
