@@ -354,9 +354,24 @@ async def detect_thesis(
     await update_task_status(db, task_id, "processing")
     await db.commit()
 
-    # 后台异步执行检测
+    # 后台异步执行检测（总超时 300s）
     import asyncio as _asyncio
-    _asyncio.create_task(_run_thesis_background(task_id, filename, raw_bytes, current_user.id))
+    from app.db.session import async_session_factory
+    async def _run_with_timeout():
+        try:
+            await _asyncio.wait_for(
+                _run_thesis_background(task_id, filename, raw_bytes, current_user.id),
+                timeout=300,
+            )
+        except _asyncio.TimeoutError:
+            async with async_session_factory() as s:
+                await update_task_status(s, task_id, "failed", "检测超时（超过5分钟）")
+                await s.commit()
+        except Exception as e:
+            async with async_session_factory() as s:
+                await update_task_status(s, task_id, "failed", f"检测异常: {str(e)[:100]}")
+                await s.commit()
+    _asyncio.create_task(_run_with_timeout())
 
     return {
         "task_id": task_id,
@@ -613,7 +628,17 @@ async def _run_thesis_background(task_id: str, filename: str, content: bytes, us
             }
 
         async with _semaphore:
-            result = await do_detect(para_text[:1500], {"explain": False})
+            try:
+                result = await asyncio.wait_for(do_detect(para_text[:1500], {"explain": False}), timeout=30)
+            except asyncio.TimeoutError:
+                return {
+                    "index": i, "text": para_text, "length": p["length"],
+                    "section": p["section"],
+                    "confidence": 0.5, "is_ai_generated": False,
+                    "suspicion": 50.0, "level": "medium",
+                    "reasons": ["检测超时，使用默认置信度"],
+                    "excluded": True,
+                }
         conf = result.confidence
         # 短文本置信度降低：50-200字段落统计特征不可靠
         if len(para_text) < 200:
