@@ -230,6 +230,7 @@
               {{ t.is_ai_generated ? 'AI' : '人' }}
             </el-tag>
             <el-icon v-if="t.status === 'processing'" class="is-loading"><Loading /></el-icon>
+            <el-button v-if="t.status === 'processing' || t.status === 'pending'" type="danger" size="small" plain @click.stop="cancelTask(t)">取消</el-button>
           </div>
         </div>
       </div>
@@ -291,6 +292,16 @@ async function openTaskResult(t: any) {
 }
 
 onMounted(() => fetchTaskList())
+
+async function cancelTask(t: any) {
+  try {
+    await api.post(`/detect/cancel/${t.task_id}`)
+    t.status = "cancelled"
+    ElMessage.success("已取消")
+  } catch (e: any) {
+    ElMessage.error(extractApiErrorMessage(e, "取消失败"))
+  }
+}
 const scoreColor = computed(() => {
   if (!report.value) return "#718096"
   const r = report.value.overall_score.ai_rate

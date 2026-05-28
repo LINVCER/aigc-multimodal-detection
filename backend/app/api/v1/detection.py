@@ -317,6 +317,23 @@ async def get_detection_status(
     }
 
 
+@router.post("/cancel/{task_id}")
+async def cancel_detection(
+    task_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """取消检测任务"""
+    task = await get_task(db, task_id)
+    if not task or str(task.user_id) != str(current_user.id):
+        raise HTTPException(status_code=404, detail="任务不存在")
+    if task.status not in ("processing", "pending"):
+        raise HTTPException(status_code=400, detail=f"任务状态为 {task.status}，无法取消")
+    await update_task_status(db, task_id, "cancelled")
+    await db.commit()
+    return {"task_id": task_id, "status": "cancelled"}
+
+
 @router.post("/multimodal", response_model=DetectionTaskResponse)
 async def detect_multimodal(
     text_content: str | None = Form(None),
