@@ -35,7 +35,7 @@ async def _run_detection(task_id: str, file_path: str, options: dict | None = No
         with open(file_path, "rb") as f:
             image_data = f.read()
 
-    detection_output = await detect_image(image_data, options)
+    detection_output = await asyncio.wait_for(detect_image(image_data, options), timeout=90)
 
     # 生成频谱图
     spectrum_bytes = await generate_spectrum_visualization(image_data)

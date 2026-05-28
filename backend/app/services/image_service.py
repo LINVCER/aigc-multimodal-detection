@@ -38,20 +38,32 @@ async def detect_image(image_data: bytes, options: dict | None = None) -> Detect
     if fmt not in ("JPEG", "PNG", "WEBP", "BMP"):
         image = image.convert("RGB")
 
-    # 三分支并行检测 (ViT 内存不足时自动跳过)
+    # 三分支并行检测 (ViT 内存不足时自动跳过，总超时 50s)
     vit_output = DetectionOutput(is_ai_generated=False, confidence=0.5, logit=0.0,
                                  metadata={"status": "memory_error", "note": "4GB内存不足，跳过ViT"})
     try:
-        hf_output, vit_output, mimo_output = await asyncio.gather(
-            _hf_branch.detect(image),
-            _vit_branch.detect(image),
-            _mimo_branch.detect(image),
+        hf_output, vit_output, mimo_output = await asyncio.wait_for(
+            asyncio.gather(
+                _hf_branch.detect(image),
+                _vit_branch.detect(image),
+                _mimo_branch.detect(image),
+            ),
+            timeout=50,
         )
-    except Exception:
-        hf_output, mimo_output = await asyncio.gather(
-            _hf_branch.detect(image),
-            _mimo_branch.detect(image),
-        )
+    except (asyncio.TimeoutError, Exception):
+        try:
+            hf_output, mimo_output = await asyncio.wait_for(
+                asyncio.gather(
+                    _hf_branch.detect(image),
+                    _mimo_branch.detect(image),
+                ),
+                timeout=30,
+            )
+        except asyncio.TimeoutError:
+            hf_output = DetectionOutput(is_ai_generated=False, confidence=0.5, logit=0.0,
+                                        metadata={"status": "timeout"})
+            mimo_output = DetectionOutput(is_ai_generated=False, confidence=0.5, logit=0.0,
+                                          metadata={"status": "model_not_loaded", "reason": "timeout"})
 
     # 融合
     fused = _fusion.fuse(hf_output, vit_output, mimo_output)
