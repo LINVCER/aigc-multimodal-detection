@@ -244,7 +244,7 @@ async def iterative_paraphrase(
         current_conf = rounds[-1]["confidence"]
 
         # 如果已经低于阈值，停止
-        if current_conf < 0.45:
+        if current_conf < 0.3:
             break
 
         # 构建反馈 prompt
@@ -379,12 +379,8 @@ async def reduce_aigc(
 # ============================================================
 
 class ThesisReduceRequest(BaseModel):
-    content: str = Field(min_length=50, max_length=8000)
+    content: str = Field(min_length=50, max_length=50000)
     max_iterations: int = Field(default=3, ge=1, le=5)
-
-
-async def _do_thesis_reduce(text: str, max_iter: int) -> dict:
-    """核心降 AI 逻辑"""
 
 
 @router.post("/thesis-reduce/file")
@@ -410,8 +406,8 @@ async def thesis_reduce_file(
     if len(text) < 50:
         raise HTTPException(400, "文档内容过短（至少 50 字）")
 
-    # Call the core logic
-    req = ThesisReduceRequest(content=text[:8000], max_iterations=max_iterations)
+    # Call the core logic（不再截断，由后端分段处理）
+    req = ThesisReduceRequest(content=text, max_iterations=max_iterations)
     return await thesis_reduce_aigc(req, current_user)
 
 
@@ -461,7 +457,7 @@ async def thesis_reduce_aigc(
     })
 
     # Step 2: DeepSeek 论文专属改写
-    if s.llm_api_key and result.confidence > 0.25:
+    if s.llm_api_key and result.confidence > 0.3:
         try:
             import httpx
             from openai import OpenAI
@@ -476,7 +472,7 @@ async def thesis_reduce_aigc(
 
             for i in range(max_iter):
                 current_conf = best_conf
-                if current_conf < 0.25:
+                if current_conf < 0.3:
                     break
 
                 if current_conf > 0.5:
@@ -490,20 +486,42 @@ async def thesis_reduce_aigc(
                         f"请微调文本，加入个人观点和具体表述。"
                     )
 
-                r = client.chat.completions.create(
-                    model=s.llm_model,
-                    messages=[
-                        {"role": "system", "content": (
-                            "你是学术论文写作优化助手。将AI生成的学术文本改写为人类写作风格。"
-                            "要求：1)保持学术严谨性 2)删除AI标志词 3)加入具体数据和文献引用格式 "
-                            "4)句式多样化 5)加入适度的个人观点表达 6)段落结构有起伏。直接输出改写文本。"
-                        )},
-                        {"role": "user", "content": f"{instruction}\n\n原文：{best_text[:3000]}"},
-                    ],
-                    max_tokens=2000, temperature=0.8 + i * 0.1, timeout=30,
-                )
-                rewritten = r.choices[0].message.content.strip()
+                # 分段处理长文本（每段最多3000字）
+                if len(best_text) > 3000:
+                    chunks = _split_text_chunks(best_text, max_chunk=3000)
+                    rewritten_chunks = []
+                    for chunk in chunks:
+                        r = client.chat.completions.create(
+                            model=s.llm_model,
+                            messages=[
+                                {"role": "system", "content": (
+                                    "你是学术论文写作优化助手。将AI生成的学术文本改写为人类写作风格。"
+                                    "要求：1)保持学术严谨性 2)删除AI标志词 3)句式多样化 "
+                                    "4)加入适度的个人观点表达 5)段落结构有起伏。直接输出改写文本。"
+                                )},
+                                {"role": "user", "content": f"{instruction}\n\n原文：{chunk}"},
+                            ],
+                            max_tokens=2000, temperature=0.8 + i * 0.1, timeout=30,
+                        )
+                        rewritten_chunks.append(r.choices[0].message.content.strip())
+                    rewritten = "\n".join(rewritten_chunks)
+                else:
+                    r = client.chat.completions.create(
+                        model=s.llm_model,
+                        messages=[
+                            {"role": "system", "content": (
+                                "你是学术论文写作优化助手。将AI生成的学术文本改写为人类写作风格。"
+                                "要求：1)保持学术严谨性 2)删除AI标志词 3)句式多样化 "
+                                "4)加入适度的个人观点表达 5)段落结构有起伏。直接输出改写文本。"
+                            )},
+                            {"role": "user", "content": f"{instruction}\n\n原文：{best_text}"},
+                        ],
+                        max_tokens=2000, temperature=0.8 + i * 0.1, timeout=30,
+                    )
+                    rewritten = r.choices[0].message.content.strip()
+
                 if len(rewritten) < 30:
+                    steps_log.append({"step": f"DeepSeek改写-第{i+1}轮", "error": "改写结果过短，跳过"})
                     break
 
                 result = await do_detect(rewritten, {"explain": False})
@@ -517,10 +535,15 @@ async def thesis_reduce_aigc(
                     "delta": round(current_conf - result.confidence, 4),
                 })
 
-                if result.confidence < 0.25:
+                if result.confidence < 0.3:
                     break
         except Exception as e:
-            steps_log.append({"step": "DeepSeek改写", "error": str(e)})
+            from loguru import logger
+            logger.error(f"DeepSeek改写失败: {e}")
+            steps_log.append({
+                "step": "DeepSeek改写",
+                "error": f"API调用失败: {str(e)[:100]}。本地预处理结果仍可用。",
+            })
 
     # Final result
     final = await do_detect(best_text, {"explain": False})
@@ -621,16 +644,33 @@ def _build_report_document(
     return "\n".join(lines)
 
 
+def _split_text_chunks(text: str, max_chunk: int = 3000) -> list[str]:
+    """按段落边界分段，每段不超过 max_chunk 字符"""
+    paragraphs = text.split("\n")
+    chunks = []
+    current = ""
+    for p in paragraphs:
+        if len(current) + len(p) + 1 > max_chunk and current:
+            chunks.append(current.strip())
+            current = p
+        else:
+            current = current + "\n" + p if current else p
+    if current.strip():
+        chunks.append(current.strip())
+    return chunks if chunks else [text]
+
+
 def _reduce_academic_specific(text: str) -> str:
-    """论文专项优化: 添加引用格式标记, 具体化表述"""
-    import re, random
-    # 替换模糊表述为具体学术表述
+    """论文专项优化: 将模糊表述替换为更具体的学术表述（不生成虚假数据）"""
+    import random
     vague_to_specific = {
-        "取得较好的效果": f"F1-score达到{random.randint(88,96)}.{random.randint(1,9)}%",
-        "显著提升": f"相比基线模型提升了{random.randint(8,20)}.{random.randint(1,9)}个百分点",
-        "大幅提高": f"提升了约{random.randint(15,40)}.{random.randint(1,9)}%",
-        "具有较强的": "表现出稳健的",
+        "取得较好的效果": "在实验中取得了可量化的改进",
+        "显著提升": "实现了可观测的性能提升",
+        "大幅提高": "表现出明显的改善趋势",
+        "具有较强的": "展现出稳健的",
         "具有重要意义": "对相关领域研究具有参考价值",
+        "取得了显著成果": "在多个评估指标上呈现正向变化",
+        "效果显著": "效果可被实验数据支撑",
     }
     result = text
     for vague, specific in vague_to_specific.items():
