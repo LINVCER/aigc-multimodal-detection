@@ -435,6 +435,27 @@ async def thesis_reduce_aigc(
 
     original = await do_detect(text, {"explain": False})
 
+    # 如果原始 AI 率已经低于阈值，无需优化
+    if original.confidence < 0.3:
+        return {
+            "original_confidence": original.confidence,
+            "original_is_ai": original.is_ai_generated,
+            "final_confidence": original.confidence,
+            "final_is_ai": False,
+            "reduction_rate": 0.0,
+            "original_text": text,
+            "optimized_text": text,
+            "steps": [{"step": "检测", "confidence": original.confidence, "delta": 0}],
+            "changes": [],
+            "verdict": f"文本已是人类写作风格（AI率{original.confidence:.1%}），无需优化",
+            "report_document": _build_report_document(
+                original_text=text, optimized_text=text, changes=[],
+                original_conf=original.confidence, final_conf=original.confidence,
+                reduction=0, steps=[{"step": "检测", "confidence": original.confidence, "delta": 0}],
+                verdict="无需优化",
+            ),
+        }
+
     steps_log = []
     best_text = text
     best_conf = original.confidence
@@ -1052,8 +1073,10 @@ def _generate_docx(
 
 
 def _verdict_text(reduction: float, final_conf: float) -> str:
-    if final_conf < 0.3:
+    if final_conf < 0.3 and reduction > 5:
         return f"优化成功：AI置信度降至{final_conf:.0%}，通过检测阈值（<30%）"
+    elif final_conf < 0.3 and reduction <= 0:
+        return f"文本已是人类风格（AI率{final_conf:.0%}），优化无显著变化"
     elif reduction > 30:
         return f"大幅降低{reduction:.0f}%，但AI率仍偏高（{final_conf:.0%}），建议进一步人工改写"
     elif reduction > 15:
@@ -1061,7 +1084,7 @@ def _verdict_text(reduction: float, final_conf: float) -> str:
     elif reduction > 0:
         return f"小幅降低{reduction:.0f}%，当前文本AI痕迹较重，建议重写核心段落"
     else:
-        return "未能有效降低，建议重新构思内容"
+        return "未能有效降低AI率，建议重新构思内容或人工改写核心段落"
 
 
 def _reduce_synonym(text: str) -> str:
