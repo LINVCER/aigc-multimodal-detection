@@ -460,7 +460,7 @@ async def thesis_reduce_aigc(
     best_text = text
     best_conf = original.confidence
 
-    # Step 1: 本地预处理
+    # Step 1: 本地预处理（如果反而升高则回滚）
     processed = _reduce_remove_slop(text)
     processed = _reduce_sentence_restructure(processed)
     processed = _reduce_synonym(processed)
@@ -470,12 +470,19 @@ async def thesis_reduce_aigc(
     if result.confidence < best_conf:
         best_conf = result.confidence
         best_text = processed
-
-    steps_log.append({
-        "step": "本地预处理", "confidence": result.confidence,
-        "delta": round(original.confidence - result.confidence, 4),
-        "methods": ["删除AI标志词", "句式重构", "同义词替换", "学术专项优化"],
-    })
+        steps_log.append({
+            "step": "本地预处理", "confidence": result.confidence,
+            "delta": round(original.confidence - result.confidence, 4),
+            "methods": ["删除AI标志词", "句式重构", "同义词替换", "学术专项优化"],
+        })
+    else:
+        # 预处理反而升高，回滚到原始文本
+        steps_log.append({
+            "step": "本地预处理", "confidence": result.confidence,
+            "delta": round(original.confidence - result.confidence, 4),
+            "methods": ["删除AI标志词", "句式重构", "同义词替换", "学术专项优化"],
+            "note": "预处理后AI率升高，已回滚到原始文本",
+        })
 
     # Step 2: DeepSeek 论文专属改写
     if s.llm_api_key and result.confidence > 0.3:
