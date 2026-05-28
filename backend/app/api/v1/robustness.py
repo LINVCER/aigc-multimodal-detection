@@ -406,7 +406,7 @@ async def thesis_reduce_file(
     if len(text) < 50:
         raise HTTPException(400, "文档内容过短（至少 50 字）")
 
-    # Call the core logic（不再截断，由后端分段处理）
+    # Call the core logic（使用新的特征感知系统）
     req = ThesisReduceRequest(content=text, max_iterations=max_iterations)
     return await thesis_reduce_aigc(req, current_user)
 
@@ -417,195 +417,56 @@ async def thesis_reduce_aigc(
     current_user: User = Depends(get_current_user),
 ):
     """
-    一键论文降 AIGC — 智能方法组合 + 迭代优化
+    一键论文降 AIGC — 特征感知的对抗生成系统
 
     策略:
-      1. 检测原始文本 AI 率
-      2. 本地预处理: 删除slop词 + 句式重构 + 同义词替换
-      3. DeepSeek 论文专属改写 (保持学术风格, 降低AI痕迹)
-      4. 重新检测, 如果仍超标则迭代
-      5. 返回优化后文本 + 降幅报告
+      1. 检测原始文本 → 获取 StatisticalFeatures + AI 置信度
+      2. FeatureGapAnalyzer 分析特征差距，确定优化方向
+      3. 结构扰动 (句长/节奏/过渡词/重复率) + 每步检测 + 回滚
+      4. 局部人类化 (过程描述/冗余/非线性) + 每步检测 + 回滚
+      5. LLM 特征感知改写 (动态 prompt / 温度递增)
+      6. 返回优化后文本 + 特征分析 + 降幅报告
     """
-    from app.services.text_service import detect_text as do_detect
     from app.config import get_settings
+    from app.services.thesis_reducer import reduce_thesis_chapter_aware
 
     s = get_settings()
     text = req.content
-    max_iter = req.max_iterations
 
-    original = await do_detect(text, {"explain": False})
-
-    # 如果原始 AI 率已经低于阈值，无需优化
-    if original.confidence < 0.3:
-        return {
-            "original_confidence": original.confidence,
-            "original_is_ai": original.is_ai_generated,
-            "final_confidence": original.confidence,
-            "final_is_ai": False,
-            "reduction_rate": 0.0,
-            "original_text": text,
-            "optimized_text": text,
-            "steps": [{"step": "检测", "confidence": original.confidence, "delta": 0}],
-            "changes": [],
-            "verdict": f"文本已是人类写作风格（AI率{original.confidence:.1%}），无需优化",
-            "report_document": _build_report_document(
-                original_text=text, optimized_text=text, changes=[],
-                original_conf=original.confidence, final_conf=original.confidence,
-                reduction=0, steps=[{"step": "检测", "confidence": original.confidence, "delta": 0}],
-                verdict="无需优化",
-            ),
-        }
-
-    steps_log = []
-    best_text = text
-    best_conf = original.confidence
-
-    # Step 1: 本地预处理（如果反而升高则回滚）
-    processed = _reduce_remove_slop(text)
-    processed = _reduce_sentence_restructure(processed)
-    processed = _reduce_synonym(processed)
-    processed = _reduce_academic_specific(processed)
-
-    result = await do_detect(processed, {"explain": False})
-    if result.confidence < best_conf:
-        best_conf = result.confidence
-        best_text = processed
-        steps_log.append({
-            "step": "本地预处理", "confidence": result.confidence,
-            "delta": round(original.confidence - result.confidence, 4),
-            "methods": ["删除AI标志词", "句式重构", "同义词替换", "学术专项优化"],
-        })
-    else:
-        # 预处理反而升高，回滚到原始文本
-        steps_log.append({
-            "step": "本地预处理", "confidence": result.confidence,
-            "delta": round(original.confidence - result.confidence, 4),
-            "methods": ["删除AI标志词", "句式重构", "同义词替换", "学术专项优化"],
-            "note": "预处理后AI率升高，已回滚到原始文本",
-        })
-
-    # Step 2: DeepSeek 论文专属改写
-    if s.llm_api_key and result.confidence > 0.3:
-        try:
-            import httpx
-            from openai import OpenAI
-            # 清除代理
-            for key in list(os.environ.keys()):
-                if key.upper() in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"):
-                    os.environ.pop(key, None)
-            client = OpenAI(
-                api_key=s.llm_api_key, base_url=s.llm_api_base,
-                http_client=httpx.Client(proxy=None, timeout=60.0),
-            )
-
-            for i in range(max_iter):
-                current_conf = best_conf
-                if current_conf < 0.3:
-                    break
-
-                if current_conf > 0.5:
-                    instruction = (
-                        f"当前AI检测置信度为{current_conf:.0%}（高度疑似AI生成）。"
-                        f"请大幅改写以下论文段落，使其更像人类学术写作。"
-                    )
-                else:
-                    instruction = (
-                        f"当前AI检测置信度为{current_conf:.0%}（中度疑似）。"
-                        f"请微调文本，加入个人观点和具体表述。"
-                    )
-
-                # 分段处理长文本（每段最多3000字）
-                if len(best_text) > 3000:
-                    chunks = _split_text_chunks(best_text, max_chunk=3000)
-                    rewritten_chunks = []
-                    for chunk in chunks:
-                        r = client.chat.completions.create(
-                            model=s.llm_model,
-                            messages=[
-                                {"role": "system", "content": (
-                                    "你是学术论文写作优化助手。将AI生成的学术文本改写为人类写作风格。"
-                                    "要求：1)保持学术严谨性 2)删除AI标志词 3)句式多样化 "
-                                    "4)加入适度的个人观点表达 5)段落结构有起伏。直接输出改写文本。"
-                                )},
-                                {"role": "user", "content": f"{instruction}\n\n原文：{chunk}"},
-                            ],
-                            max_tokens=2000, temperature=0.8 + i * 0.1, timeout=30,
-                        )
-                        rewritten_chunks.append(r.choices[0].message.content.strip())
-                    rewritten = "\n".join(rewritten_chunks)
-                else:
-                    r = client.chat.completions.create(
-                        model=s.llm_model,
-                        messages=[
-                            {"role": "system", "content": (
-                                "你是学术论文写作优化助手。将AI生成的学术文本改写为人类写作风格。"
-                                "要求：1)保持学术严谨性 2)删除AI标志词 3)句式多样化 "
-                                "4)加入适度的个人观点表达 5)段落结构有起伏。直接输出改写文本。"
-                            )},
-                            {"role": "user", "content": f"{instruction}\n\n原文：{best_text}"},
-                        ],
-                        max_tokens=2000, temperature=0.8 + i * 0.1, timeout=30,
-                    )
-                    rewritten = r.choices[0].message.content.strip()
-
-                if len(rewritten) < 30:
-                    steps_log.append({"step": f"DeepSeek改写-第{i+1}轮", "error": "改写结果过短，跳过"})
-                    break
-
-                result = await do_detect(rewritten, {"explain": False})
-                if result.confidence < best_conf:
-                    best_conf = result.confidence
-                    best_text = rewritten
-
-                steps_log.append({
-                    "step": f"DeepSeek改写-第{i+1}轮",
-                    "confidence": result.confidence,
-                    "delta": round(current_conf - result.confidence, 4),
-                })
-
-                if result.confidence < 0.3:
-                    break
-        except Exception as e:
-            from loguru import logger
-            logger.error(f"DeepSeek改写失败: {e}")
-            steps_log.append({
-                "step": "DeepSeek改写",
-                "error": f"API调用失败: {str(e)[:100]}。本地预处理结果仍可用。",
-            })
-
-    # Final result
-    final = await do_detect(best_text, {"explain": False})
-    reduction = round(
-        max(0, original.confidence - final.confidence) / max(original.confidence, 0.01) * 100, 1
+    report = await reduce_thesis_chapter_aware(
+        text=text,
+        max_llm_iterations=req.max_iterations,
+        api_key=s.llm_api_key,
+        api_base=s.llm_api_base,
+        model=s.llm_model,
     )
 
-    # 生成改写摘要
-    changes = _diff_changes(text, best_text)
+    # 生成文本报表
+    report_doc = report.to_text_report()
 
-    # 生成改良版优化文档
-    from datetime import datetime
-    report_doc = _build_report_document(
-        original_text=text,
-        optimized_text=best_text,
-        changes=changes,
-        original_conf=original.confidence,
-        final_conf=final.confidence,
-        reduction=reduction,
-        steps=steps_log,
-        verdict=_verdict_text(reduction, final.confidence),
-    )
-
+    # 兼容旧版 response 格式
     return {
-        "original_confidence": original.confidence,
-        "original_is_ai": original.is_ai_generated,
-        "final_confidence": final.confidence,
-        "final_is_ai": final.confidence > 0.3,
-        "reduction_rate": reduction,
-        "original_text": text,
-        "optimized_text": best_text,
-        "steps": steps_log,
-        "changes": changes,
-        "verdict": _verdict_text(reduction, final.confidence),
+        "original_confidence": report.original_confidence,
+        "original_is_ai": report.original_confidence > 0.5,
+        "final_confidence": report.final_confidence,
+        "final_is_ai": report.final_confidence > 0.3,
+        "reduction_rate": report.reduction_rate,
+        "original_text": report.original_text,
+        "optimized_text": report.optimized_text,
+        "steps": [
+            {
+                "step": s.step_name,
+                "confidence": s.after.ai_confidence,
+                "delta": s.delta,
+                "rolled_back": s.rolled_back,
+                "error": s.error,
+                "changes": [{"description": c.description} for c in s.changes],
+            }
+            for s in report.steps
+        ],
+        "feature_gaps": report.feature_gaps,
+        "changes": _diff_changes(text, report.optimized_text),
+        "verdict": report.verdict,
         "report_document": report_doc,
     }
 
@@ -746,6 +607,7 @@ class DocxPdfRequest(BaseModel):
     verdict: str
     changes: list[dict] = []
     steps: list[dict] = []
+    feature_gaps: list[dict] = []
 
 
 class DocxRequest(BaseModel):
@@ -757,6 +619,7 @@ class DocxRequest(BaseModel):
     verdict: str
     changes: list[dict] = []
     steps: list[dict] = []
+    feature_gaps: list[dict] = []
 
 
 @router.post("/thesis-reduce/docx")

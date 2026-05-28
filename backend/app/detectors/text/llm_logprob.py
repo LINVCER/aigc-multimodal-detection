@@ -162,7 +162,8 @@ class LLMLogprobDetector(DetectionPipeline):
             if no_logprob is None:
                 no_logprob = -10.0
 
-            return math.exp(yes_logprob) / (math.exp(yes_logprob) + math.exp(no_logprob))
+            ai_prob = math.exp(yes_logprob) / (math.exp(yes_logprob) + math.exp(no_logprob))
+            return ai_prob, yes_logprob, no_logprob
         except Exception:
             return None
 
@@ -175,11 +176,18 @@ class LLMLogprobDetector(DetectionPipeline):
                 metadata={"status": "api_unavailable", "note": "LLM API Key 未配置"},
             )
 
+        yes_lp = None
+        no_lp = None
+
         try:
             if _is_anthropic_api():
                 ai_score = await asyncio.wait_for(self._call_anthropic(input_data), timeout=30)
             else:
-                ai_score = await asyncio.wait_for(self._call_openai(input_data), timeout=15)
+                result = await asyncio.wait_for(self._call_openai(input_data), timeout=15)
+                if result is not None:
+                    ai_score, yes_lp, no_lp = result
+                else:
+                    ai_score = None
         except (asyncio.TimeoutError, Exception):
             ai_score = None
 
@@ -192,15 +200,21 @@ class LLMLogprobDetector(DetectionPipeline):
         ai_score = max(0.05, min(0.95, ai_score))
         logit = math.log(ai_score / (1 - ai_score)) if 0 < ai_score < 1 else 0.0
 
+        meta = {
+            "ai_probability": round(ai_score, 4),
+            "model_used": settings.llm_model,
+            "method": "anthropic_zero_shot" if _is_anthropic_api() else "openai_logprob",
+        }
+        if yes_lp is not None and no_lp is not None:
+            meta["yes_logprob"] = round(yes_lp, 4)
+            meta["no_logprob"] = round(no_lp, 4)
+            meta["margin"] = round(abs(yes_lp - no_lp), 4)
+
         return DetectionOutput(
             is_ai_generated=ai_score > 0.3,
             confidence=round(ai_score, 4),
             logit=round(logit, 6),
-            metadata={
-                "ai_probability": round(ai_score, 4),
-                "model_used": settings.llm_model,
-                "method": "anthropic_zero_shot" if _is_anthropic_api() else "openai_logprob",
-            },
+            metadata=meta,
         )
 
     async def explain(self, input_data: str, output: DetectionOutput) -> dict:

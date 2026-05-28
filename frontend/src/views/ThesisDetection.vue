@@ -187,7 +187,7 @@
               <span v-if="p.section" style="font-size:12px;color:#718096;font-weight:500">{{ p.section }}</span>
               <span style="font-size:12px;color:#a0aec0">|</span>
               <span style="font-size:13px;color:#718096;margin-left:4px">原因:</span>
-              <el-tag v-for="r in p.reasons" :key="r" size="small" type="info" style="margin-left:2px">{{ r }}</el-tag>
+              <el-tag v-for="r in p.reasons" :key="r" size="small" :type="r.includes('AI信号')?'danger':r.includes('人类信号')?'success':'info'" style="margin-left:2px">{{ r }}</el-tag>
             </div>
             <div class="para-body">{{ p.text }}</div>
           </div>

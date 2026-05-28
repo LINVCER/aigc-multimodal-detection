@@ -373,8 +373,10 @@ class ThesisDetectionReport:
     # 章节级
     chapter_scores: list[dict]
 
-    # 一致性
+    # 一致性（辅助信号，不直接修改分数）
     consistency: ConsistencyReport | None
+    consistency_flag: str | None = None  # "high_consistency_elevated_content" | "high_consistency_low_content" | "natural_style_variation" | None
+    needs_human_review: bool = False
 
     # 段落级
     paragraph_count: int
@@ -454,21 +456,22 @@ async def detect_thesis(text: str) -> ThesisDetectionReport:
     # 3. 跨章节一致性
     consistency = analyze_cross_chapter_consistency(chapters)
 
-    # 4. 综合评分
+    # 4. 综合评分（一致性不参与算术修正，仅作为风险标记）
     if all_paragraph_scores:
         avg_content_score = statistics.mean(all_paragraph_scores)
-        # 一致性调整
-        consistency_penalty = 0
-        if consistency:
-            # 高一致性 + 中等内容分数 → 更可能是 AI
-            # 高一致性 + 低内容分数 → 可能是格式规范的人类论文
-            if consistency.overall_score > 0.6 and avg_content_score > 0.4:
-                consistency_penalty = 0.15  # 加分：太一致了
-            elif consistency.overall_score > 0.6 and avg_content_score <= 0.4:
-                consistency_penalty = -0.05  # 减分：人类规范性写作
+        overall = avg_content_score
 
-        overall = avg_content_score + consistency_penalty
-        overall = max(0.0, min(1.0, overall))
+        # 一致性作为独立的风险标记
+        consistency_flag = None
+        needs_human_review = False
+        if consistency:
+            if consistency.overall_score > 0.6 and avg_content_score > 0.4:
+                consistency_flag = "high_consistency_elevated_content"
+                needs_human_review = True
+            elif consistency.overall_score > 0.6 and avg_content_score <= 0.4:
+                consistency_flag = "high_consistency_low_content"
+            elif consistency.overall_score < 0.3:
+                consistency_flag = "natural_style_variation"
     else:
         overall = 0.5
 
@@ -488,6 +491,8 @@ async def detect_thesis(text: str) -> ThesisDetectionReport:
         risk_level=risk,
         chapter_scores=chapter_scores,
         consistency=consistency,
+        consistency_flag=consistency_flag,
+        needs_human_review=needs_human_review,
         paragraph_count=total_paras,
         ai_paragraph_count=total_ai_paras,
         suspicious_spans=[],

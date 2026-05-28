@@ -114,6 +114,7 @@ class DeepSeekDetector(DetectionPipeline):
                     "ai_probability": round(ai_prob, 4),
                     "yes_logprob": round(yes_lp, 4),
                     "no_logprob": round(no_lp, 4),
+                    "margin": round(abs(yes_lp - no_lp), 4),
                     "method": "deepseek_logprob",
                     "model": settings.deepseek_model,
                 },

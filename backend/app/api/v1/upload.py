@@ -434,40 +434,135 @@ async def _run_thesis_background(task_id: str, filename: str, content: bytes, us
         raise HTTPException(status_code=400, detail="文档内容过短")
 
     # ============================================================
-    # Step 2: 强化原因分析
+    # Step 2: 文档基线 + 证据级原因分析
     # ============================================================
 
-    def analyze_reasons(feats, conf: float) -> list[str]:
+    def _compute_document_baseline(para_results_list: list[dict]) -> dict | None:
+        """计算全文档各统计特征的均值和标准差，用于 z-score 证据级描述"""
+        import math as _math
+        feature_keys = ["slop", "trans", "cv", "burst", "bigram_e", "hapax"]
+        buckets = {k: [] for k in feature_keys}
+        for p in para_results_list:
+            sf = p.get("stat_features")
+            if not sf:
+                continue
+            for k in feature_keys:
+                v = sf.get(k)
+                if v is not None:
+                    buckets[k].append(v)
+        baseline = {}
+        for k, vals in buckets.items():
+            if len(vals) < 2:
+                continue
+            mean = sum(vals) / len(vals)
+            variance = sum((v - mean) ** 2 for v in vals) / len(vals)
+            std = _math.sqrt(variance) if variance > 0 else 0.001
+            baseline[k] = {"mean": mean, "std": max(std, 0.001), "count": len(vals)}
+        return baseline if baseline else None
+
+    def _z_score_evidence(feature_name: str, value: float, baseline: dict, higher_is_ai: bool) -> str | None:
+        """计算 z-score 并生成证据级描述"""
+        b = baseline.get(feature_name)
+        if not b:
+            return None
+        z = (value - b["mean"]) / b["std"]
+        direction = "高于" if z > 0 else "低于"
+        abs_z = abs(z)
+        if abs_z < 1.0:
+            return None  # 在正常范围内，不生成证据
+        # 特征描述映射
+        feature_labels = {
+            "slop": "AI标志词密度",
+            "trans": "过渡词密度",
+            "cv": "句长变异系数",
+            "burst": "段落节奏突发性",
+            "bigram_e": "二元组熵",
+            "hapax": "一次词比例",
+        }
+        label = feature_labels.get(feature_name, feature_name)
+        severity = "显著" if abs_z >= 2.0 else "轻微"
+        # 方向一致性检查：若 higher_is_ai 且 z > 0，或 lower_is_ai 且 z < 0，则为 AI 信号
+        is_ai_signal = (higher_is_ai and z > 0) or (not higher_is_ai and z < 0)
+        if is_ai_signal:
+            return f"{label}{direction}文档均值 {abs_z:.1f}σ（{severity}偏离，AI信号）"
+        else:
+            return f"{label}{direction}文档均值 {abs_z:.1f}σ（反向偏离，人类信号）"
+
+    def analyze_reasons(feats, conf: float, baseline: dict | None = None) -> list[str]:
         r = []
-        if feats.slop_word_density > 0.8:
-            r.append(f"AI标志词高频(d={feats.slop_word_density:.2f})")
-        elif feats.slop_word_density > 0.5:
-            r.append(f"含AI标志性短语(d={feats.slop_word_density:.2f})")
 
-        if feats.transition_word_density > 0.5:
-            r.append(f"过渡词过多(d={feats.transition_word_density:.2f})")
-        elif feats.transition_word_density > 0.3:
-            r.append(f"过渡词密度偏高(d={feats.transition_word_density:.2f})")
+        # 优先使用 z-score 证据级描述
+        if baseline:
+            # slop_word_density: 高 → AI
+            ev = _z_score_evidence("slop", feats.slop_word_density, baseline, higher_is_ai=True)
+            if ev:
+                r.append(ev)
+            elif feats.slop_word_density > 0.5:
+                r.append(f"含AI标志性短语(d={feats.slop_word_density:.2f})")
 
-        if feats.sentence_length_cv < 0.2:
-            r.append(f"句式高度均匀(CV={feats.sentence_length_cv:.2f})")
-        elif feats.sentence_length_cv < 0.35:
-            r.append(f"句式较为均匀(CV={feats.sentence_length_cv:.2f})")
+            # transition_word_density: 高 → AI
+            ev = _z_score_evidence("trans", feats.transition_word_density, baseline, higher_is_ai=True)
+            if ev:
+                r.append(ev)
+            elif feats.transition_word_density > 0.3:
+                r.append(f"过渡词密度偏高(d={feats.transition_word_density:.2f})")
 
-        if feats.burstiness < 0.15:
-            r.append(f"段落节奏异常一致(B={feats.burstiness:.3f})")
-        elif feats.burstiness < 0.25:
-            r.append(f"段落节奏偏均匀(B={feats.burstiness:.3f})")
+            # sentence_length_cv: 低 → AI (more uniform)
+            ev = _z_score_evidence("cv", feats.sentence_length_cv, baseline, higher_is_ai=False)
+            if ev:
+                r.append(ev)
+            elif feats.sentence_length_cv < 0.35:
+                r.append(f"句式较为均匀(CV={feats.sentence_length_cv:.2f})")
 
-        if feats.bigram_entropy < 3.0:
-            r.append(f"词语搭配单一(2-gram熵={feats.bigram_entropy:.2f})")
+            # burstiness: 低 → AI (more uniform)
+            ev = _z_score_evidence("burst", feats.burstiness, baseline, higher_is_ai=False)
+            if ev:
+                r.append(ev)
+            elif feats.burstiness < 0.25:
+                r.append(f"段落节奏偏均匀(B={feats.burstiness:.3f})")
+
+            # bigram_entropy: 低 → AI
+            ev = _z_score_evidence("bigram_e", feats.bigram_entropy, baseline, higher_is_ai=False)
+            if ev:
+                r.append(ev)
+
+            # hapax_ratio: 低 → AI
+            ev = _z_score_evidence("hapax", feats.hapax_ratio, baseline, higher_is_ai=False)
+            if ev:
+                r.append(ev)
+        else:
+            # 无基线时退化为绝对阈值
+            if feats.slop_word_density > 0.8:
+                r.append(f"AI标志词高频(d={feats.slop_word_density:.2f})")
+            elif feats.slop_word_density > 0.5:
+                r.append(f"含AI标志性短语(d={feats.slop_word_density:.2f})")
+
+            if feats.transition_word_density > 0.5:
+                r.append(f"过渡词过多(d={feats.transition_word_density:.2f})")
+            elif feats.transition_word_density > 0.3:
+                r.append(f"过渡词密度偏高(d={feats.transition_word_density:.2f})")
+
+            if feats.sentence_length_cv < 0.2:
+                r.append(f"句式高度均匀(CV={feats.sentence_length_cv:.2f})")
+            elif feats.sentence_length_cv < 0.35:
+                r.append(f"句式较为均匀(CV={feats.sentence_length_cv:.2f})")
+
+            if feats.burstiness < 0.15:
+                r.append(f"段落节奏异常一致(B={feats.burstiness:.3f})")
+            elif feats.burstiness < 0.25:
+                r.append(f"段落节奏偏均匀(B={feats.burstiness:.3f})")
+
+            if feats.bigram_entropy < 3.0:
+                r.append(f"词语搭配单一(2-gram熵={feats.bigram_entropy:.2f})")
+
+            if feats.hapax_ratio < 0.3:
+                r.append(f"一次性词汇偏少(Hapax={feats.hapax_ratio:.2f})")
+
+        # 通用补充（不受 baseline 影响）
         if feats.trigram_entropy < 2.5:
             r.append(f"三词组合重复(3-gram熵={feats.trigram_entropy:.2f})")
-
         if feats.zipf_deviation > 0.3:
             r.append(f"词频偏离自然语言(Zipf偏差={feats.zipf_deviation:.3f})")
-        if feats.hapax_ratio < 0.3:
-            r.append(f"一次性词汇偏少(Hapax={feats.hapax_ratio:.2f})")
 
         if conf > 0.6 and not r:
             r.append("深度语义模型综合判定为疑似AI生成")
@@ -534,8 +629,27 @@ async def _run_thesis_background(task_id: str, filename: str, content: bytes, us
         _detect_para(i, p) for i, p in enumerate(paragraphs)
     ])
 
-    # 组装结果 (保持原始顺序)
+    # Pass 1: 提取所有段落的统计特征，计算文档基线
+    _temp_features = []
+    for item in raw_results:
+        if isinstance(item, dict):
+            continue
+        i, para_text, p, conf, feats = item
+        _temp_features.append({
+            "slop": round(feats.slop_word_density, 3),
+            "trans": round(feats.transition_word_density, 3),
+            "cv": round(feats.sentence_length_cv, 3),
+            "burst": round(feats.burstiness, 3),
+            "bigram_e": round(feats.bigram_entropy, 2),
+            "hapax": round(feats.hapax_ratio, 3),
+        })
+    doc_baseline = _compute_document_baseline(
+        [{"stat_features": f} for f in _temp_features]
+    )
+
+    # Pass 2: 组装最终结果 (保持原始顺序，使用基线生成证据级原因)
     para_results = []
+    _feat_idx = 0
     for item in raw_results:
         if isinstance(item, dict):
             # skip_detection 或 short paragraph — 直接是最终结果
@@ -543,6 +657,8 @@ async def _run_thesis_background(task_id: str, filename: str, content: bytes, us
             continue
 
         i, para_text, p, conf, feats = item
+        sf = _temp_features[_feat_idx]
+        _feat_idx += 1
 
         para_results.append({
             "index": i, "text": para_text, "length": p["length"],
@@ -551,15 +667,8 @@ async def _run_thesis_background(task_id: str, filename: str, content: bytes, us
             "is_ai_generated": False,
             "suspicion": round(conf * 100, 1),
             "level": "low",
-            "reasons": analyze_reasons(feats, conf),
-            "stat_features": {
-                "slop": round(feats.slop_word_density, 3),
-                "trans": round(feats.transition_word_density, 3),
-                "cv": round(feats.sentence_length_cv, 3),
-                "burst": round(feats.burstiness, 3),
-                "bigram_e": round(feats.bigram_entropy, 2),
-                "hapax": round(feats.hapax_ratio, 3),
-            },
+            "reasons": analyze_reasons(feats, conf, baseline=doc_baseline),
+            "stat_features": sf,
         })
 
     # ============================================================
@@ -605,6 +714,8 @@ async def _run_thesis_background(task_id: str, filename: str, content: bytes, us
     chapters = parse_chapters(text)
     consistency = analyze_cross_chapter_consistency(chapters)
     consistency_data = None
+    consistency_interpretation = None
+    needs_human_review = False
     if consistency:
         consistency_data = {
             "overall_score": consistency.overall_score,
@@ -616,12 +727,19 @@ async def _run_thesis_background(task_id: str, filename: str, content: bytes, us
             "analyzed_count": consistency.analyzed_count,
             "details": consistency.details,
         }
-        # 一致性调整整体评分
+        # 一致性作为独立风险信号（不修改分数）
         if consistency.overall_score > 0.6 and overall_ai_rate > 20:
-            overall_ai_rate = min(100, overall_ai_rate + 10)
-            rec_detail += "；跨章节风格高度一致，AI典型特征"
+            consistency_interpretation = "跨章节风格高度一致且内容AI率偏高，双重风险信号，建议人工复核"
+            needs_human_review = True
+            rec_detail += "；跨章节风格高度一致，需人工复核"
         elif consistency.overall_score > 0.6 and overall_ai_rate <= 20:
-            rec_detail += "；注意：跨章节风格一致但AI率低，可能是格式规范的人类论文"
+            consistency_interpretation = "跨章节风格一致但内容AI率低，可能是格式规范的人类论文"
+            rec_detail += "；注意：跨章节风格一致但AI率低，可能是规范写作"
+        elif consistency.overall_score < 0.3:
+            consistency_interpretation = "各章节风格有自然变化，人类写作特征"
+    if consistency_data:
+        consistency_data["interpretation"] = consistency_interpretation
+        consistency_data["needs_human_review"] = needs_human_review
 
     # 取证分析: 引用验证 + 数据具体性
     from app.services.thesis_forensics import analyze_thesis_forensics
@@ -707,6 +825,7 @@ async def _run_thesis_background(task_id: str, filename: str, content: bytes, us
             "verdict": recommendation, "detail": rec_detail,
             "risk_level": "high" if overall_ai_rate > 30 else ("medium" if overall_ai_rate > 15 else "low"),
         },
+        "document_baseline": doc_baseline,
         "chapters": chapter_stats,
         "paragraphs": para_results,
         "summary": {
