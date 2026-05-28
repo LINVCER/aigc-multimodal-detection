@@ -1,7 +1,8 @@
 """
-文本检测服务编排 — 串联预处理 → 三路检测 → 融合 → 解释
+文本检测服务编排 — 并行预处理 → 三路检测 → 融合 → 解释
 支持长文本: 自动分块(RoBERTa) + 全文本(统计特征) + 采样(LLM)
 """
+import asyncio
 
 from app.detectors.base import DetectionOutput
 from app.detectors.text.statistical_features import (
@@ -47,20 +48,32 @@ async def detect_text(content: str, options: dict | None = None) -> DetectionOut
     stat_features = _stat_extractor.extract(content)
     stat_output = _statistical_to_output(stat_features)
 
-    # 2. RoBERTa 分支
-    if need_chunk:
-        roberta_output = await _detect_long_text_roberta(content)
-    else:
-        roberta_output = await _roberta.detect(content)
-
-    # 3. MiMo 分支 (Anthropic API)
+    # 2. 三分支并行: RoBERTa + MiMo + DeepSeek
     sample_text = content[:2000] if text_len > 2000 else content
-    logprob_output = await _logprob.detect(sample_text)
-    logprob_output.metadata["sampled"] = text_len > 2000
 
-    # 4. DeepSeek 分支 (OpenAI API logprobs)
-    deepseek_output = await _deepseek.detect(sample_text)
-    deepseek_output.metadata["sampled"] = text_len > 2000
+    async def _run_roberta():
+        if need_chunk:
+            return await _detect_long_text_roberta(content)
+        return await _roberta.detect(content)
+
+    async def _run_logprob():
+        out = await _logprob.detect(sample_text)
+        out.metadata["sampled"] = text_len > 2000
+        return out
+
+    async def _run_deepseek():
+        out = await _deepseek.detect(sample_text)
+        out.metadata["sampled"] = text_len > 2000
+        return out
+
+    try:
+        roberta_output, logprob_output, deepseek_output = await asyncio.wait_for(
+            asyncio.gather(_run_roberta(), _run_logprob(), _run_deepseek()),
+            timeout=45,
+        )
+    except (asyncio.TimeoutError, Exception):
+        # 超时或异常降级: 只用统计分支
+        return stat_output
 
     # 5. 按文本长度调整融合权重
     roberta_ok = roberta_output.metadata.get("status") != "model_load_error"
