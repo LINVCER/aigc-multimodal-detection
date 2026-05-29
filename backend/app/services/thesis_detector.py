@@ -381,14 +381,14 @@ class ThesisDetectionReport:
     ai_paragraph_count: int
     suspicious_spans: list[dict]
 
-    # 风险标记（带默认值的放最后）
-    consistency_flag: str | None = None  # "high_consistency_elevated_content" | "high_consistency_low_content" | "natural_style_variation" | None
-    needs_human_review: bool = False
-
     # 元数据
     total_chars: int
     chapter_count: int
     detection_method: str
+
+    # 风险标记（带默认值的放最后）
+    consistency_flag: str | None = None
+    needs_human_review: bool = False
 
 
 async def detect_thesis(text: str) -> ThesisDetectionReport:
