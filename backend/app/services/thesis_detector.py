@@ -375,13 +375,15 @@ class ThesisDetectionReport:
 
     # 一致性（辅助信号，不直接修改分数）
     consistency: ConsistencyReport | None
-    consistency_flag: str | None = None  # "high_consistency_elevated_content" | "high_consistency_low_content" | "natural_style_variation" | None
-    needs_human_review: bool = False
 
     # 段落级
     paragraph_count: int
     ai_paragraph_count: int
     suspicious_spans: list[dict]
+
+    # 风险标记（带默认值的放最后）
+    consistency_flag: str | None = None  # "high_consistency_elevated_content" | "high_consistency_low_content" | "natural_style_variation" | None
+    needs_human_review: bool = False
 
     # 元数据
     total_chars: int
