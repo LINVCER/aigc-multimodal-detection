@@ -356,21 +356,34 @@ async def detect_thesis(
 
     # 后台异步执行检测（总超时 300s）
     import asyncio as _asyncio
+    from loguru import logger as _logger
     from app.db.session import async_session_factory
     async def _run_with_timeout():
         try:
+            _logger.info(f"[thesis] 开始检测: {task_id} ({filename})")
             await _asyncio.wait_for(
                 _run_thesis_background(task_id, filename, raw_bytes, current_user.id),
                 timeout=300,
             )
+            _logger.info(f"[thesis] 检测完成: {task_id}")
         except _asyncio.TimeoutError:
-            async with async_session_factory() as s:
-                await update_task_status(s, task_id, "failed", "检测超时（超过5分钟）")
-                await s.commit()
+            _logger.error(f"[thesis] 检测超时: {task_id}")
+            try:
+                async with async_session_factory() as s:
+                    await update_task_status(s, task_id, "failed", "检测超时（超过5分钟）")
+                    await s.commit()
+            except Exception as se:
+                _logger.error(f"[thesis] 更新超时状态失败: {se}")
         except Exception as e:
-            async with async_session_factory() as s:
-                await update_task_status(s, task_id, "failed", f"检测异常: {str(e)[:100]}")
-                await s.commit()
+            _logger.error(f"[thesis] 检测异常: {task_id} - {e}")
+            import traceback
+            traceback.print_exc()
+            try:
+                async with async_session_factory() as s:
+                    await update_task_status(s, task_id, "failed", f"检测异常: {str(e)[:100]}")
+                    await s.commit()
+            except Exception as se:
+                _logger.error(f"[thesis] 更新失败状态失败: {se}")
     _asyncio.create_task(_run_with_timeout())
 
     return {
@@ -390,8 +403,10 @@ async def _run_thesis_background(task_id: str, filename: str, content: bytes, us
     from app.services.detection_service import update_task_status, save_detection_result, get_task
     import re
     from datetime import datetime
+    from loguru import logger as _log
 
     stat_ext = ChineseStatisticalExtractor()
+    _log.info(f"[thesis:bg] 开始: {task_id}")
 
     # 解析文档
     try:
@@ -650,9 +665,11 @@ async def _run_thesis_background(task_id: str, filename: str, content: bytes, us
         return i, para_text, p, conf, feats
 
     # 并行执行所有段落检测
+    _log.info(f"[thesis:bg] 开始检测 {len(paragraphs)} 个段落: {task_id}")
     raw_results = await asyncio.gather(*[
         _detect_para(i, p) for i, p in enumerate(paragraphs)
     ])
+    _log.info(f"[thesis:bg] 段落检测完成: {task_id}")
 
     # Pass 1: 提取所有段落的统计特征，计算文档基线
     _temp_features = []
@@ -867,6 +884,7 @@ async def _run_thesis_background(task_id: str, filename: str, content: bytes, us
 
     # 存入数据库供 GET /detect/result/{task_id} 查询
     risk = "high" if overall_ai_rate > 30 else ("medium" if overall_ai_rate > 15 else "low")
+    _log.info(f"[thesis:bg] 保存结果: {task_id} (AI率={overall_ai_rate}%)")
     async with async_session_factory() as session:
         await save_detection_result(
             db=session, task_id=task_id, modality="thesis",
@@ -877,3 +895,4 @@ async def _run_thesis_background(task_id: str, filename: str, content: bytes, us
         )
         await update_task_status(session, task_id, "completed")
         await session.commit()
+    _log.info(f"[thesis:bg] 完成: {task_id}")
