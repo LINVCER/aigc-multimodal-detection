@@ -43,6 +43,10 @@
         <el-card class="score-card" style="flex:1">
           <div class="big-score" :style="{color: scoreColor}">{{ report.overall_score.ai_rate }}%</div>
           <div class="big-label">全文 AI 疑似率</div>
+          <div v-if="report.overall_score.paragraph_avg_rate !== undefined"
+               style="font-size:12px;color:#a0aec0;margin-top:4px">
+            段落平均: {{ report.overall_score.paragraph_avg_rate }}%
+          </div>
           <div style="margin-top:12px">
             <el-tag :type="report.overall_score.is_ai_generated ? 'danger' : 'success'" size="large">
               {{ report.overall_score.is_ai_generated ? '整体判定: AI 参与生成' : '整体判定: 人类写作为主' }}

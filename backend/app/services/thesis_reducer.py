@@ -15,6 +15,10 @@
 
 from __future__ import annotations
 
+import asyncio
+import hashlib
+import time
+
 from loguru import logger
 
 from app.services.reducer.feature_analyzer import analyze_features, FeatureGap
@@ -43,7 +47,11 @@ from app.services.reducer.diff_reporter import (
 async def _detect_full(text: str) -> tuple[float, dict]:
     """全 4 路检测 — 用于初始/最终/LLM 前的关键检查点 (~2-5s)"""
     from app.services.text_service import detect_text as do_detect
-    result = await do_detect(text, {"explain": True})
+    try:
+        result = await asyncio.wait_for(do_detect(text, {"explain": True}), timeout=90)
+    except asyncio.TimeoutError:
+        logger.warning("[reducer] Full detection timed out (90s), falling back to fast")
+        return await _detect_fast(text)
     features = {}
     if hasattr(result, "explanation_data") and isinstance(result.explanation_data, dict):
         features = result.explanation_data.get("statistical_features", {})
@@ -55,6 +63,24 @@ async def _detect_fast(text: str) -> tuple[float, dict]:
     from app.services.reducer.fast_detect import detect_statistical_only
     result = detect_statistical_only(text)
     return result.confidence, {}
+
+
+# 结果缓存: 避免重复检测相同文本
+_detection_cache: dict[str, tuple[float, dict, float]] = {}
+_CACHE_TTL = 600  # 10 分钟
+
+
+async def _detect_full_cached(text: str) -> tuple[float, dict]:
+    """带缓存的全 4 路检测，相同时限内相同文本直接返回缓存结果"""
+    key = hashlib.sha256(text.encode()).hexdigest()[:16]
+    now = time.time()
+    if key in _detection_cache:
+        conf, feat, ts = _detection_cache[key]
+        if now - ts < _CACHE_TTL:
+            return conf, feat
+    result = await _detect_full(text)
+    _detection_cache[key] = (result[0], result[1], now)
+    return result
 
 
 # 默认检测函数：用 fast 做回滚判断
@@ -165,7 +191,7 @@ async def reduce_thesis(
         ReduceReport 完整报告
     """
     # 初始检测 (全 4 路 — 关键检查点)
-    orig_conf, orig_feat = await _detect_full(text)
+    orig_conf, orig_feat = await _detect_full_cached(text)
     orig_snap = _make_snapshot(orig_conf, orig_feat)
 
     # 特征分析
@@ -238,7 +264,7 @@ async def reduce_thesis(
                 break
 
             # 重新分析特征差距，动态生成 prompt (全 4 路 — LLM 前关键检查)
-            conf, feat = await _detect_full(current_text)
+            conf, feat = await _detect_full_cached(current_text)
             gaps = analyze_features(feat)
 
             async def llm_transform(t: str):
@@ -256,7 +282,7 @@ async def reduce_thesis(
                 break
 
     # 最终检测 (全 4 路 — 关键检查点)
-    final_conf, final_feat = await _detect_full(current_text)
+    final_conf, final_feat = await _detect_full_cached(current_text)
     final_snap = _make_snapshot(final_conf, final_feat)
 
     return ReduceReport(
@@ -406,8 +432,8 @@ async def reduce_thesis_chapter_aware(
     style_check = _check_style_variation(pre_vectors, post_vectors)
 
     # 全文最终检测
-    final_conf, final_feat = await _detect_full(optimized_text)
-    orig_conf, orig_feat = await _detect_full(text)
+    final_conf, final_feat = await _detect_full_cached(optimized_text)
+    orig_conf, orig_feat = await _detect_full_cached(text)
 
     return ReduceReport(
         original_text=text,

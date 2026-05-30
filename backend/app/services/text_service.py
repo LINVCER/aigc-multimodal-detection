@@ -66,25 +66,42 @@ async def detect_text(content: str, options: dict | None = None) -> DetectionOut
         out.metadata["sampled"] = text_len > 2000
         return out
 
-    try:
-        roberta_output, logprob_output, deepseek_output = await asyncio.wait_for(
-            asyncio.gather(_run_roberta(), _run_logprob(), _run_deepseek()),
-            timeout=45,
-        )
-    except (asyncio.TimeoutError, Exception):
-        # 超时或异常降级: 只用统计分支
+    # 三分支并行检测，部分失败时降级而非全部丢弃
+    results = await asyncio.gather(
+        _run_roberta(), _run_logprob(), _run_deepseek(),
+        return_exceptions=True,
+    )
+    roberta_output = results[0] if not isinstance(results[0], Exception) else None
+    logprob_output = results[1] if not isinstance(results[1], Exception) else None
+    deepseek_output = results[2] if not isinstance(results[2], Exception) else None
+
+    # 全部失败 → 纯统计分支
+    if roberta_output is None and logprob_output is None and deepseek_output is None:
         return stat_output
 
-    # 5. 按文本长度调整融合权重
-    roberta_ok = roberta_output.metadata.get("status") != "model_load_error"
-    if not roberta_ok:
-        _ensemble.set_weights(stat=0.40, roberta=0.0, logprob=0.35, deepseek=0.25)
-    elif text_len < 300:
-        _ensemble.set_weights(stat=0.30, roberta=0.25, logprob=0.25, deepseek=0.20)
-    else:
-        _ensemble.set_weights(stat=0.15, roberta=0.30, logprob=0.30, deepseek=0.25)
+    # 5. 按文本长度 + 成功分支动态调整融合权重
+    roberta_ok = roberta_output is not None and roberta_output.metadata.get("status") != "model_load_error"
+    logprob_ok = logprob_output is not None
+    deepseek_ok = deepseek_output is not None
 
-    fused = _ensemble.fuse(stat_output, roberta_output, logprob_output, deepseek_output)
+    if not roberta_ok and not logprob_ok and not deepseek_ok:
+        _ensemble.set_weights(stat=1.0, roberta=0.0, logprob=0.0, deepseek=0.0)
+    elif not roberta_ok:
+        _ensemble.set_weights(stat=0.40, roberta=0.0, logprob=0.35 if logprob_ok else 0.0, deepseek=0.25 if deepseek_ok else 0.0)
+    elif text_len < 300:
+        _ensemble.set_weights(stat=0.30, roberta=0.25, logprob=0.25 if logprob_ok else 0.0, deepseek=0.20 if deepseek_ok else 0.0)
+    else:
+        _ensemble.set_weights(stat=0.15, roberta=0.30, logprob=0.30 if logprob_ok else 0.0, deepseek=0.25 if deepseek_ok else 0.0)
+
+    # 构造缺失分支的占位输出
+    from app.detectors.base import DetectionOutput as _DO
+    _placeholder = _DO(is_ai_generated=False, confidence=0.5, logit=0.0, explanation_data={}, metadata={"status": "unavailable"})
+    fused = _ensemble.fuse(
+        stat_output,
+        roberta_output or _placeholder,
+        logprob_output or _placeholder,
+        deepseek_output or _placeholder,
+    )
 
     # 5. 校准: 训练参数不适用于融合输出，直接使用原始置信度
     fused.calibrated_confidence = fused.confidence
@@ -95,7 +112,7 @@ async def detect_text(content: str, options: dict | None = None) -> DetectionOut
 
     # 6. 分块详情
     chunk_details = None
-    if need_chunk and "per_chunk_scores" in roberta_output.explanation_data:
+    if need_chunk and roberta_output is not None and "per_chunk_scores" in roberta_output.explanation_data:
         chunk_scores = roberta_output.explanation_data["per_chunk_scores"]
         chunk_size = CHUNK_SIZE
         chunk_stride = CHUNK_STRIDE
@@ -130,7 +147,7 @@ async def detect_text(content: str, options: dict | None = None) -> DetectionOut
                 "sampled": len(content) > 2000,
                 "sample_length": len(sample_text),
             },
-            "text_snippets": _extract_suspicious_spans(content, stat_features, logprob_output.metadata),
+            "text_snippets": _extract_suspicious_spans(content, stat_features, (logprob_output or _placeholder).metadata),
             "text_length": len(content),
             "chunk_details": chunk_details,
         }

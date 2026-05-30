@@ -664,11 +664,18 @@ async def _run_thesis_background(task_id: str, filename: str, content: bytes, us
         feats = stat_ext.extract(para_text)
         return i, para_text, p, conf, feats
 
-    # 并行执行所有段落检测
-    _log.info(f"[thesis:bg] 开始检测 {len(paragraphs)} 个段落: {task_id}")
+    # 并行执行: 段落检测 + 全文检测（全文用于 canonical 总分）
+    _log.info(f"[thesis:bg] 开始检测 {len(paragraphs)} 个段落 + 全文: {task_id}")
+    full_text_task = asyncio.create_task(do_detect(text, {"explain": False}))
     raw_results = await asyncio.gather(*[
         _detect_para(i, p) for i, p in enumerate(paragraphs)
     ])
+    try:
+        full_text_result = await asyncio.wait_for(full_text_task, timeout=90)
+        _log.info(f"[thesis:bg] 全文检测完成: confidence={full_text_result.confidence}")
+    except (asyncio.TimeoutError, Exception) as e:
+        _log.warning(f"[thesis:bg] 全文检测失败: {e}，使用段落平均")
+        full_text_result = None
     _log.info(f"[thesis:bg] 段落检测完成: {task_id}")
 
     # Pass 1: 提取所有段落的统计特征，计算文档基线
@@ -740,8 +747,13 @@ async def _run_thesis_background(task_id: str, filename: str, content: bytes, us
     valid_paras = [p for p in para_results if not p.get("excluded")]
     total_paras = len(valid_paras)
     ai_paras = sum(1 for p in valid_paras if p.get("is_ai_generated"))
-    # 简单平均: 所有有效段落的置信度求均值
-    overall_ai_rate = round(sum(p["suspicion"] for p in valid_paras) / total_paras, 1) if total_paras > 0 else 0
+    # 段落平均（辅助信息，不用于判定）
+    paragraph_avg_rate = round(sum(p["suspicion"] for p in valid_paras) / total_paras, 1) if total_paras > 0 else 0
+    # Canonical 总分: 使用全文 4-branch 融合结果（与文本检测一致）
+    if full_text_result is not None:
+        overall_ai_rate = round(full_text_result.confidence * 100, 1)
+    else:
+        overall_ai_rate = paragraph_avg_rate  # 降级: 全文检测失败时用段落平均
 
     if overall_ai_rate <= 15:
         recommendation, rec_detail = "建议通过", "整体AI疑似度在安全范围内，可直接提交"
@@ -857,6 +869,7 @@ async def _run_thesis_background(task_id: str, filename: str, content: bytes, us
         "optimization": optimization_data,
         "overall_score": {
             "ai_rate": overall_ai_rate,
+            "paragraph_avg_rate": paragraph_avg_rate,
             "is_ai_generated": overall_ai_rate > adpt_threshold,
             "confidence": round(sum(p["confidence"] for p in valid_paras) / len(valid_paras), 4) if valid_paras else 0.0,
             "total_chars": len(text),
@@ -879,6 +892,7 @@ async def _run_thesis_background(task_id: str, filename: str, content: bytes, us
             "medium_risk_count": sum(1 for p in valid_paras if p["level"] == "medium"),
             "low_risk_count": sum(1 for p in valid_paras if p["level"] == "low"),
             "ai_rate": overall_ai_rate,
+            "paragraph_avg_rate": paragraph_avg_rate,
         },
     }
 
