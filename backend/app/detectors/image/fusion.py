@@ -27,7 +27,7 @@ class ImageFusion:
         self,
         high_freq_weight: float = 0.40,
         vit_weight: float = 0.20,
-        mimo_weight: float = 0.40,
+        mimo_weight: float = 1.1,
         sensitivity: float = 0.15,
     ):
         self.high_freq_weight = high_freq_weight
@@ -48,6 +48,7 @@ class ImageFusion:
         high_freq_output: DetectionOutput,
         vit_output: DetectionOutput,
         mimo_output: DetectionOutput | None = None,
+        mimo_output2: DetectionOutput | None = None,
     ) -> DetectionOutput:
         branches = []
         hf_available = high_freq_output.metadata.get("status") != "model_not_loaded"
@@ -56,13 +57,18 @@ class ImageFusion:
             mimo_output is not None
             and mimo_output.metadata.get("status") != "model_not_loaded"
         )
+        mimo2_available = (
+            mimo_output2 is not None
+            and mimo_output2.metadata.get("status") != "model_not_loaded"
+        )
 
         if hf_available:
-            branches.append((self.high_freq_weight, high_freq_output.logit, "high_freq", high_freq_output))
+            branches.append((self.high_freq_weight, high_freq_output.logit, "CNN高频噪声", high_freq_output))
         if vit_available:
-            branches.append((self.vit_weight, vit_output.logit, "vit", vit_output))
-        if mimo_available:
-            # MiMo仅参与质感判定：与CNN+ViT均值偏差>0.4时大幅降权
+            branches.append((self.vit_weight, vit_output.logit, "ViT语义", vit_output))
+
+        # MiMo 两轮检测，各一票，权重 1.1
+        def _add_mimo(output: DetectionOutput, label: str):
             avg_cnn_vit = 0.5
             count = 0
             if hf_available:
@@ -71,11 +77,14 @@ class ImageFusion:
             if vit_available:
                 avg_cnn_vit = (avg_cnn_vit * count + vit_output.confidence) / (count + 1)
                 count += 1
-            mimo_dev = abs(mimo_output.confidence - avg_cnn_vit)
-            if mimo_dev > 0.4:
-                branches.append((self.mimo_weight * 0.3, mimo_output.logit, "mimo_vl", mimo_output))
-            else:
-                branches.append((self.mimo_weight, mimo_output.logit, "mimo_vl", mimo_output))
+            mimo_dev = abs(output.confidence - avg_cnn_vit)
+            w = self.mimo_weight * 0.3 if mimo_dev > 0.4 else self.mimo_weight
+            branches.append((w, output.logit, label, output))
+
+        if mimo_available:
+            _add_mimo(mimo_output, "AI模型-质感")
+        if mimo2_available:
+            _add_mimo(mimo_output2, "AI模型-细节")
 
         if not branches:
             return DetectionOutput(
@@ -111,13 +120,15 @@ class ImageFusion:
 
         is_ai = fused_prob > self.decision_threshold
 
-        # 三方投票判定
+        # 四方投票判定 (CNN + ViT + MiMo质感 + MiMo细节)
         votes_ai = sum(1 for _, _, _, o in normalized if o.is_ai_generated)
         votes_real = len(normalized) - votes_ai
-        if votes_ai >= 2:
+        total_votes = len(normalized)
+        majority = (total_votes // 2) + 1
+        if votes_ai >= majority:
             verdict = "AI生成"
             is_ai = True
-        elif votes_real >= 2:
+        elif votes_real >= majority:
             verdict = "真实图像"
             is_ai = False
         else:

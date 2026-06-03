@@ -1,6 +1,6 @@
 """
-图像检测服务编排 — 预处理 → 三分支检测 → 融合 → 解释
-三分支: 高频噪声CNN + CLIP-ViT + AI视觉模型
+图像检测服务编排 — 预处理 → 四路检测 → 融合 → 解释
+四路: 高频噪声CNN + CLIP-ViT + AI视觉模型(质感) + AI视觉模型(细节)
 """
 
 import asyncio
@@ -38,35 +38,44 @@ async def detect_image(image_data: bytes, options: dict | None = None) -> Detect
     if fmt not in ("JPEG", "PNG", "WEBP", "BMP"):
         image = image.convert("RGB")
 
-    # 三分支并行检测 (ViT 内存不足时自动跳过，总超时 50s)
+    # 四路并行检测: CNN + ViT + MiMo两轮 (ViT 内存不足时自动跳过)
+    empty_out = DetectionOutput(is_ai_generated=False, confidence=0.5, logit=0.0,
+                                metadata={"status": "model_not_loaded"})
     vit_output = DetectionOutput(is_ai_generated=False, confidence=0.5, logit=0.0,
                                  metadata={"status": "memory_error", "note": "4GB内存不足，跳过ViT"})
+    mimo_output = empty_out
+    mimo_output2 = empty_out
     try:
-        hf_output, vit_output, mimo_output = await asyncio.wait_for(
+        hf_result, vit_result, mimo_results = await asyncio.wait_for(
             asyncio.gather(
                 _hf_branch.detect(image),
                 _vit_branch.detect(image),
-                _mimo_branch.detect(image),
+                _mimo_branch.detect_two_rounds(image),
             ),
             timeout=50,
         )
+        hf_output = hf_result
+        vit_output = vit_result
+        mimo_output, mimo_output2 = mimo_results
     except (asyncio.TimeoutError, Exception):
         try:
-            hf_output, mimo_output = await asyncio.wait_for(
+            hf_result, mimo_results = await asyncio.wait_for(
                 asyncio.gather(
                     _hf_branch.detect(image),
-                    _mimo_branch.detect(image),
+                    _mimo_branch.detect_two_rounds(image),
                 ),
                 timeout=30,
             )
+            hf_output = hf_result
+            mimo_output, mimo_output2 = mimo_results
         except asyncio.TimeoutError:
             hf_output = DetectionOutput(is_ai_generated=False, confidence=0.5, logit=0.0,
                                         metadata={"status": "timeout"})
-            mimo_output = DetectionOutput(is_ai_generated=False, confidence=0.5, logit=0.0,
-                                          metadata={"status": "model_not_loaded", "reason": "timeout"})
+            mimo_output = empty_out
+            mimo_output2 = empty_out
 
-    # 融合
-    fused = _fusion.fuse(hf_output, vit_output, mimo_output)
+    # 融合 (4路: CNN + ViT + MiMo质感 + MiMo细节)
+    fused = _fusion.fuse(hf_output, vit_output, mimo_output, mimo_output2)
 
     # 校准
     fused = _hf_branch.calibrate_output(fused)
@@ -91,16 +100,21 @@ async def detect_image(image_data: bytes, options: dict | None = None) -> Detect
         mimo_explain = await _mimo_branch.explain(image, mimo_output)
 
         branches_info = [
-            {"name": "高频噪声CNN", "confidence": hf_output.confidence,
+            {"name": "CNN高频噪声", "confidence": hf_output.confidence,
              "is_ai": hf_output.is_ai_generated},
-            {"name": "CLIP-ViT语义", "confidence": vit_output.confidence,
+            {"name": "ViT语义", "confidence": vit_output.confidence,
              "is_ai": vit_output.is_ai_generated},
         ]
-        # MiMo 分支只有在可用时才加入
+        # MiMo 两轮检测
         if mimo_output.metadata.get("status") != "model_not_loaded":
             branches_info.append(
-                {"name": "AI视觉模型", "confidence": mimo_output.confidence,
+                {"name": "AI模型-质感", "confidence": mimo_output.confidence,
                  "is_ai": mimo_output.is_ai_generated}
+            )
+        if mimo_output2.metadata.get("status") != "model_not_loaded":
+            branches_info.append(
+                {"name": "AI模型-细节", "confidence": mimo_output2.confidence,
+                 "is_ai": mimo_output2.is_ai_generated}
             )
 
         fused.explanation_data = {
@@ -113,6 +127,7 @@ async def detect_image(image_data: bytes, options: dict | None = None) -> Detect
             "high_freq_explanation": hf_explain,
             "vit_explanation": vit_explain,
             "mimo_explanation": mimo_explain if mimo_output.metadata.get("status") != "model_not_loaded" else None,
+            "mimo_explanation2": await _mimo_branch.explain(image, mimo_output2) if mimo_output2.metadata.get("status") != "model_not_loaded" else None,
         }
 
     # 检测完成后释放 ViT 大模型内存（4GB小服务器优化）

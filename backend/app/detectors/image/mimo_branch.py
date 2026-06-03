@@ -25,19 +25,31 @@ from app.config import get_settings
 
 settings = get_settings()
 
-PROMPT = (
-    "你只负责分析这张图片的画面的物理异常，不要分析具体物体内容、文字含义。\n"
-    "仅检查以下三项：\n"
-    "1. 画面质感：是否有不自然的过度平滑（像塑料/油画）、或异常的颗粒噪点\n"
-    "2. 纹理连续性：相邻区域的纹理过渡是否自然，有无明显的纹理拼接痕迹\n"
-    "3. 扭曲变形异常：画面中是否有物体边缘扭曲、直线变弯曲、形状变形、\n"
-    "   透视异常（如人脸歪斜、建筑线条不直、圆形变椭圆等AI典型缺陷）\n\n"
-    "注意：\n"
-    "- 真实照片的噪点、虚化、反光、镜头畸变都是正常的\n"
-    "- 不要分析文字拼写、物体识别、光影逻辑、透视关系\n"
-    "- 只有上述三项明显异常时才给高confidence\n\n"
-    "只返回JSON：\n"
-    '{"confidence": 0.0到1.0之间的数值, "reasoning": "简短理由"}'
+PROMPT_ROUND1 = (
+    "你是一位专业的数字图像取证分析师，擅长通过视觉线索判断图片是否由人工智能生成。"
+    "请你仅根据图像内容，进行一次客观、细致的分析，而不是凭感觉猜测。\n\n"
+    "请按以下步骤观察并思考，用连贯的文字呈现：\n"
+    "1. 细节与解剖结构：检查人物的手部、手指、脚趾、耳朵、牙齿等细节，"
+    "看是否有扭曲、多余指节、错位、不对称或异常融合；留意毛发、皮肤纹理是否过于均匀光滑，"
+    "是否缺乏真实的毛孔、细纹或自然凌乱感。\n"
+    "2. 文字与符号：若包含文字、标志等，逐字检查是否清晰可辨，有无乱码、虚假字形。\n"
+    "3. 光影与反射：确认光源方向是否一致，阴影与高光是否吻合，反射是否与环境匹配。\n"
+    "4. 纹理与重复元素：观察是否有不自然的平滑区域、涂抹感、油画般笔触残留、重复纹理贴片。\n"
+    "5. 透视与空间逻辑：检查物体比例、透视是否正确，是否有多个消失点矛盾。\n"
+    "6. 语义合理性：判断场景中物体组合是否符合现实常识，有无AI常见的结构穿插错误。\n\n"
+    "分析完成后，只返回JSON格式：\n"
+    '{"confidence": 0.0到1.0, "reasoning": "20字内关键证据摘要"}'
+)
+
+PROMPT_ROUND2 = (
+    "你是图像真伪鉴别专家，请重新审视这张图片，重点关注以下三个方面：\n"
+    "1. 细节一致性：放大观察局部细节（毛发、皮肤纹理、布料褶皱），\n"
+    "   AI图像常在细节处出现不自然的重复或模糊\n"
+    "2. 边缘锐度：物体边缘是否自然，AI生成常有过度锐化或边缘模糊\n"
+    "3. 全局协调性：画面整体是否协调，有无局部与整体风格不一致的区域\n\n"
+    "注意：真实照片的噪点、虚化、反光、镜头畸变都是正常的，不要仅凭画面过于完美就下结论。\n"
+    "只返回JSON格式：\n"
+    '{"confidence": 0.0到1.0, "reasoning": "20字内关键证据摘要"}'
 )
 
 
@@ -71,7 +83,7 @@ class MiMoVLBranch(DetectionPipeline):
 
         try:
             result = await asyncio.wait_for(
-                self._call_api(input_data), timeout=15
+                self._call_api(input_data, PROMPT_ROUND1), timeout=15
             )
             return result
         except asyncio.TimeoutError:
@@ -87,7 +99,38 @@ class MiMoVLBranch(DetectionPipeline):
                 metadata={"status": "model_not_loaded", "reason": str(e)},
             )
 
-    async def _call_api(self, image: Image.Image) -> DetectionOutput:
+    async def detect_two_rounds(self, input_data: Image.Image) -> tuple[DetectionOutput, DetectionOutput]:
+        """两轮检测: 用不同prompt并发调用MiMo API，返回两个独立判定"""
+        self._ensure_client()
+
+        if not self._client:
+            empty = DetectionOutput(
+                is_ai_generated=False, confidence=0.5, logit=0.0,
+                metadata={"status": "model_not_loaded"},
+            )
+            return empty, empty
+
+        async def _round(prompt: str, label: str) -> DetectionOutput:
+            try:
+                return await asyncio.wait_for(
+                    self._call_api(input_data, prompt), timeout=15
+                )
+            except Exception as e:
+                logger.warning(f"[MiMoVL] {label} failed: {e}")
+                return DetectionOutput(
+                    is_ai_generated=False, confidence=0.5, logit=0.0,
+                    metadata={"status": "model_not_loaded", "reason": str(e)},
+                )
+
+        r1, r2 = await asyncio.gather(
+            _round(PROMPT_ROUND1, "round1"),
+            _round(PROMPT_ROUND2, "round2"),
+        )
+        r1.metadata["round"] = 1
+        r2.metadata["round"] = 2
+        return r1, r2
+
+    async def _call_api(self, image: Image.Image, prompt: str = PROMPT_ROUND1) -> DetectionOutput:
         # 编码图像为 base64 JPEG
         buffer = io.BytesIO()
         image.convert("RGB").save(buffer, format="JPEG", quality=95)
@@ -114,7 +157,7 @@ class MiMoVLBranch(DetectionPipeline):
                                 "data": b64_image,
                             },
                         },
-                        {"type": "text", "text": PROMPT},
+                        {"type": "text", "text": prompt},
                     ],
                 }
             ],
