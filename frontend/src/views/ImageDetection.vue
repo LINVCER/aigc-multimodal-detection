@@ -88,23 +88,25 @@
         </div>
       </div>
 
-      <!-- 提示信息 -->
-      <div v-if="result.is_ai_generated && result.confidence > 0.8" style="margin-top:16px">
-        <el-alert
-          title="该图像极可能由 AI 生成，建议人工复核"
-          type="warning"
-          show-icon
-          :closable="false"
-        />
-      </div>
-      <div v-else-if="!result.is_ai_generated && result.confidence < 0.3" style="margin-top:16px">
-        <el-alert
-          title="该图像大概率是真实拍摄的"
-          type="success"
-          show-icon
-          :closable="false"
-        />
-      </div>
+      <!-- 管理员可见提示 -->
+      <template v-if="authStore.user?.role === 'admin'">
+        <div v-if="result.is_ai_generated && result.confidence > 0.8" style="margin-top:16px">
+          <el-alert
+            title="该图像极可能由 AI 生成，建议人工复核"
+            type="warning"
+            show-icon
+            :closable="false"
+          />
+        </div>
+        <div v-else-if="!result.is_ai_generated && result.confidence < 0.3" style="margin-top:16px">
+          <el-alert
+            title="该图像大概率是真实拍摄的"
+            type="success"
+            show-icon
+            :closable="false"
+          />
+        </div>
+      </template>
     </el-card>
 
     <div v-if="cachedResults.length > 0" style="margin-top:16px">
