@@ -22,6 +22,7 @@ class DetectionTaskResponse(BaseModel):
     chunk_details: list[dict] | None = None
     explanation: dict | None = None
     arbitration_warning: str | None = None
+    metadata: dict | None = None
 
 
 class FeatureContribution(BaseModel):

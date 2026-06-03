@@ -70,12 +70,12 @@
       <!-- 判定结果 -->
       <div class="gauge-section">
         <div class="vote-result">
-          <div class="vote-header">三方投票判定</div>
-          <div class="vote-verdict" :style="{color: result.is_ai_generated ? '#dc2626' : result.metadata?.verdict === '不确定' ? '#e6a23c' : '#10b981'}">
-            {{ result.metadata?.verdict || (result.is_ai_generated ? 'AI生成' : '真实图像') }}
+          <div class="vote-header">AI 判定</div>
+          <div class="vote-verdict" :style="{color: verdictColor}">
+            {{ verdictText }}
           </div>
           <div class="vote-detail">
-            {{ result.metadata?.votes_ai || 0 }} 票AI : {{ result.metadata?.votes_real || 0 }} 票真实
+            {{ voteAi }} 票AI : {{ voteReal }} 票真实
           </div>
         </div>
 
@@ -116,24 +116,6 @@
           show-icon
           :closable="false"
         />
-      </div>
-    </el-card>
-
-    <!-- 分支详情 -->
-    <el-card v-if="result && branches.length" style="margin-top:16px">
-      <template #header><span style="font-weight:600">检测分支详情</span></template>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
-        <div v-for="b in branches" :key="b.name" class="branch-card">
-          <div style="font-weight:600;font-size:14px;margin-bottom:6px">{{ b.name }}</div>
-          <el-progress
-            :percentage="Math.round(b.confidence * 100)"
-            :color="b.confidence > 0.5 ? '#ef4444' : '#10b981'"
-            :stroke-width="8"
-          />
-          <div style="font-size:12px;color:#a0aec0;margin-top:4px">
-            判定: {{ b.is_ai ? 'AI生成' : '真实' }}
-          </div>
-        </div>
       </div>
     </el-card>
 
@@ -184,7 +166,17 @@ const cachedResults = computed(() => resultsStore.getLatest("image").reverse())
 const dragOver = ref(false)
 const fileInput = ref<HTMLInputElement>()
 
-const branches = computed(() => result.value?.explanation?.branches || [])
+const voteAi = computed(() => result.value?.metadata?.votes_ai ?? 0)
+const voteReal = computed(() => result.value?.metadata?.votes_real ?? 0)
+const verdictText = computed(() => {
+  const v = result.value?.metadata?.verdict
+  if (v) return v
+  return result.value?.is_ai_generated ? 'AI生成' : '真实图像'
+})
+const verdictColor = computed(() => {
+  if (verdictText.value === '不确定') return '#e6a23c'
+  return result.value?.is_ai_generated ? '#dc2626' : '#10b981'
+})
 
 const riskTagTypeComputed = computed(() => {
   const r = result.value?.risk_level
@@ -330,14 +322,6 @@ async function pollTask(taskId: string) {
 .risk-item { display: flex; flex-direction: column; gap: 4px; }
 .risk-label { font-size: 13px; color: #718096; }
 .risk-value { font-size: 18px; font-weight: 600; color: #1a202c; }
-
-.branch-card {
-  padding: 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  background: #f9fafb;
-  text-align: center;
-}
 
 .result-card { animation: fadeIn 0.4s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }

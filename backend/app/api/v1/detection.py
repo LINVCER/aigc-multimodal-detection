@@ -150,6 +150,7 @@ async def detect_image(
         calibrated_confidence=result.calibrated_confidence,
         risk_level=risk,
         explanation=img_explanation,
+        metadata=result.metadata,
     )
 
 
