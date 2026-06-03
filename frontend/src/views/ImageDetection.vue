@@ -75,7 +75,7 @@
           </div>
         </div>
 
-        <!-- 管理员可见概率 -->
+        <!-- 管理员可见详情 -->
         <div class="risk-info" v-if="authStore.user?.role === 'admin'">
           <div class="risk-item">
             <span class="risk-label">融合概率</span>
@@ -84,6 +84,10 @@
           <div class="risk-item">
             <span class="risk-label">风险等级</span>
             <el-tag :type="riskTagTypeComputed" size="large">{{ riskTextComputed }}</el-tag>
+          </div>
+          <div class="risk-item" v-if="result.metadata?.verdict">
+            <span class="risk-label">投票结果</span>
+            <span class="risk-value">{{ result.metadata.verdict }} (AI {{ result.metadata.votes_ai }} : {{ result.metadata.votes_real }} 真实)</span>
           </div>
         </div>
       </div>
@@ -107,6 +111,25 @@
           />
         </div>
       </template>
+    </el-card>
+
+    <!-- 管理员可见: 各分支详情 -->
+    <el-card v-if="result && authStore.user?.role === 'admin' && result.explanation?.branches?.length" style="margin-top:16px">
+      <template #header><span style="font-weight:600">各分支检测详情</span></template>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px">
+        <div v-for="b in result.explanation.branches" :key="b.name"
+          style="padding:12px;border:1px solid #e2e8f0;border-radius:8px;background:#f9fafb">
+          <div style="font-weight:600;font-size:14px;margin-bottom:6px">{{ b.name }}</div>
+          <el-progress
+            :percentage="Math.round(b.confidence * 100)"
+            :color="b.is_ai ? '#ef4444' : '#10b981'"
+            :stroke-width="8"
+          />
+          <div style="font-size:12px;color:#a0aec0;margin-top:4px">
+            判定: {{ b.is_ai ? 'AI生成' : '真实' }} | 置信度 {{ (b.confidence * 100).toFixed(1) }}%
+          </div>
+        </div>
+      </div>
     </el-card>
 
     <div v-if="cachedResults.length > 0" style="margin-top:16px">
