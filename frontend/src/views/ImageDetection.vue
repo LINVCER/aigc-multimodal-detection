@@ -119,12 +119,6 @@
       </div>
     </el-card>
 
-    <!-- MiMo-VL 分析 -->
-    <el-card v-if="result?.explanation?.mimo_explanation?.note" style="margin-top:12px">
-      <template #header><span style="font-weight:600">AI模型 视觉分析</span></template>
-      <p style="font-size:13px;color:#4a5568;margin:0">{{ result.explanation.mimo_explanation.note }}</p>
-    </el-card>
-
     <div v-if="cachedResults.length > 0" style="margin-top:16px">
       <h3 style="margin-bottom:8px;font-size:14px;color:#718096">近期检测</h3>
       <div v-for="r in cachedResults" :key="r.id"
