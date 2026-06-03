@@ -105,14 +105,6 @@
           :closable="false"
         />
       </div>
-      <div v-else style="margin-top:16px">
-        <el-alert
-          title="检测结果不确定，建议人工判断"
-          type="info"
-          show-icon
-          :closable="false"
-        />
-      </div>
     </el-card>
 
     <div v-if="cachedResults.length > 0" style="margin-top:16px">
