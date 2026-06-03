@@ -128,7 +128,7 @@ class ViTBranch(DetectionPipeline):
         prob = max(0.01, min(0.99, prob))
 
         return DetectionOutput(
-            is_ai_generated=prob > 0.55,
+            is_ai_generated=prob > 0.5,
             confidence=round(prob, 4),
             logit=calibrated_logit,
         )
