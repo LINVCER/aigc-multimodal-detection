@@ -120,15 +120,20 @@ class ImageFusion:
 
         is_ai = fused_prob > self.decision_threshold
 
-        # 四方投票判定 (CNN + ViT + MiMo质感 + MiMo细节)
-        votes_ai = sum(1 for _, _, _, o in normalized if o.is_ai_generated)
-        votes_real = len(normalized) - votes_ai
-        total_votes = len(normalized)
-        majority = (total_votes // 2) + 1
-        if votes_ai >= majority:
+        # 投票判定: CNN/ViT=1票, AI模型=1.5票
+        votes_ai = 0.0
+        votes_real = 0.0
+        for _, _, name, o in normalized:
+            weight = 1.5 if "AI模型" in name else 1.0
+            if o.is_ai_generated:
+                votes_ai += weight
+            else:
+                votes_real += weight
+        total_votes = votes_ai + votes_real
+        if votes_ai > total_votes / 2:
             verdict = "AI生成"
             is_ai = True
-        elif votes_real >= majority:
+        elif votes_real > total_votes / 2:
             verdict = "真实图像"
             is_ai = False
         else:

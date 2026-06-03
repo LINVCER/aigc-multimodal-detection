@@ -70,12 +70,8 @@
       <!-- 判定结果 -->
       <div class="gauge-section">
         <div class="vote-result">
-          <div class="vote-header">AI 判定</div>
-          <div class="vote-verdict" :style="{color: verdictColor}">
-            {{ verdictText }}
-          </div>
-          <div class="vote-detail">
-            {{ voteAi }} 票AI : {{ voteReal }} 票真实
+          <div class="vote-verdict" :style="{color: result.is_ai_generated ? '#dc2626' : '#10b981'}">
+            {{ result.is_ai_generated ? 'AI 生成' : '真实图像' }}
           </div>
         </div>
 
@@ -159,18 +155,6 @@ const { pollTask: pollTaskAsync } = usePollTask()
 const cachedResults = computed(() => resultsStore.getLatest("image").reverse())
 const dragOver = ref(false)
 const fileInput = ref<HTMLInputElement>()
-
-const voteAi = computed(() => result.value?.metadata?.votes_ai ?? 0)
-const voteReal = computed(() => result.value?.metadata?.votes_real ?? 0)
-const verdictText = computed(() => {
-  const v = result.value?.metadata?.verdict
-  if (v) return v
-  return result.value?.is_ai_generated ? 'AI生成' : '真实图像'
-})
-const verdictColor = computed(() => {
-  if (verdictText.value === '不确定') return '#e6a23c'
-  return result.value?.is_ai_generated ? '#dc2626' : '#10b981'
-})
 
 const riskTagTypeComputed = computed(() => {
   const r = result.value?.risk_level
@@ -280,9 +264,7 @@ async function pollTask(taskId: string) {
 }
 
 .vote-result { text-align: center; padding: 16px 24px; background: #f8fafc; border-radius: 12px; }
-.vote-header { font-size: 12px; color: #a0aec0; margin-bottom: 4px; }
 .vote-verdict { font-size: 28px; font-weight: 700; }
-.vote-detail { font-size: 13px; color: #718096; margin-top: 6px; }
 
 .gauge-ring {
   --pct: 50;
