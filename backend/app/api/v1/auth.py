@@ -19,6 +19,9 @@ router = APIRouter(prefix="/auth", tags=["认证"])
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(data: UserRegister, db: AsyncSession = Depends(get_db)):
+    if len(data.password) < 8:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="密码长度至少为8位")
+        
     # 检查用户名是否已存在
     result = await db.execute(select(User).where(User.username == data.username))
     if result.scalar_one_or_none():
@@ -109,5 +112,4 @@ async def checkin(current_user: User = Depends(get_current_user)):
 
 @router.post("/donate")
 async def donate(current_user: User = Depends(get_current_user)):
-    current_user.quota_remaining += 10
-    return {"reward": 10, "quota_remaining": current_user.quota_remaining}
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="此测试接口已在生产环境中禁用")

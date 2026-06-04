@@ -20,7 +20,10 @@ _stat_extractor = ChineseStatisticalExtractor()
 _roberta = ChineseRobertaDetector()
 _logprob = LLMLogprobDetector()
 _deepseek = DeepSeekDetector()
-_ensemble = TextEnsemble()
+
+# Preload jieba to avoid blocking on first request
+import jieba
+jieba.initialize()
 
 # 长文本分块参数
 CHUNK_SIZE = 450     # RoBERTa 最大 token 数预留余量
@@ -38,8 +41,8 @@ async def detect_text(content: str, options: dict | None = None) -> DetectionOut
 
     # 防御预处理: 同形字+零宽字符标准化
     from app.detectors.defense.homoglyph_normalizer import normalize_text, has_evasion_attempts
+    evasion_info = has_evasion_attempts(content)
     content, defense_warnings = normalize_text(content)
-    evasion_info = has_evasion_attempts(content) if defense_warnings else {}
 
     text_len = len(content)
     need_chunk = text_len > 1500
@@ -85,18 +88,18 @@ async def detect_text(content: str, options: dict | None = None) -> DetectionOut
     deepseek_ok = deepseek_output is not None
 
     if not roberta_ok and not logprob_ok and not deepseek_ok:
-        _ensemble.set_weights(stat=1.0, roberta=0.0, logprob=0.0, deepseek=0.0)
+        ensemble = TextEnsemble(stat_weight=1.0, roberta_weight=0.0, logprob_weight=0.0, deepseek_weight=0.0)
     elif not roberta_ok:
-        _ensemble.set_weights(stat=0.40, roberta=0.0, logprob=0.35 if logprob_ok else 0.0, deepseek=0.25 if deepseek_ok else 0.0)
+        ensemble = TextEnsemble(stat_weight=0.40, roberta_weight=0.0, logprob_weight=0.35 if logprob_ok else 0.0, deepseek_weight=0.25 if deepseek_ok else 0.0)
     elif text_len < 300:
-        _ensemble.set_weights(stat=0.30, roberta=0.25, logprob=0.25 if logprob_ok else 0.0, deepseek=0.20 if deepseek_ok else 0.0)
+        ensemble = TextEnsemble(stat_weight=0.30, roberta_weight=0.25, logprob_weight=0.25 if logprob_ok else 0.0, deepseek_weight=0.20 if deepseek_ok else 0.0)
     else:
-        _ensemble.set_weights(stat=0.15, roberta=0.30, logprob=0.30 if logprob_ok else 0.0, deepseek=0.25 if deepseek_ok else 0.0)
+        ensemble = TextEnsemble(stat_weight=0.15, roberta_weight=0.30, logprob_weight=0.30 if logprob_ok else 0.0, deepseek_weight=0.25 if deepseek_ok else 0.0)
 
     # 构造缺失分支的占位输出
     from app.detectors.base import DetectionOutput as _DO
     _placeholder = _DO(is_ai_generated=False, confidence=0.5, logit=0.0, explanation_data={}, metadata={"status": "unavailable"})
-    fused = _ensemble.fuse(
+    fused = ensemble.fuse(
         stat_output,
         roberta_output or _placeholder,
         logprob_output or _placeholder,

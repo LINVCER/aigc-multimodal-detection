@@ -161,7 +161,7 @@ def train_audio_detector(
     fake_dir: str = "../data/audio/fake",
     test_real_dir: str = "../data/audio/test_real",
     test_fake_dir: str = "../data/audio/test_fake",
-    model_dir: str = "../models/audio/wav2vec2-xls-r-300m",
+    model_dir: str = "../models/audio/wav2vec2-base",
     save_path: str = "../models/audio/aigc_audio_classifier.pth",
     epochs: int = 15,
     batch_size: int = 8,

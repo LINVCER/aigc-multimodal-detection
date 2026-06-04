@@ -308,17 +308,34 @@ async def list_users(
         query.order_by(desc(User.created_at)).offset(offset).limit(page_size)
     )
     users = result.scalars().all()
+    user_ids = [u.id for u in users]
+
+    task_counts = {}
+    ai_counts = {}
+    if user_ids:
+        # Batch query task counts
+        task_count_res = await db.execute(
+            select(Task.user_id, func.count(Task.id))
+            .where(Task.user_id.in_(user_ids))
+            .group_by(Task.user_id)
+        )
+        for uid, count in task_count_res.all():
+            task_counts[uid] = count
+            
+        # Batch query AI detection counts
+        ai_count_res = await db.execute(
+            select(Task.user_id, func.count(DetectionResult.id))
+            .join(Task, DetectionResult.task_id == Task.id)
+            .where(Task.user_id.in_(user_ids), DetectionResult.is_ai_generated == True)
+            .group_by(Task.user_id)
+        )
+        for uid, count in ai_count_res.all():
+            ai_counts[uid] = count
 
     user_list = []
     for u in users:
-        task_count = (await db.execute(
-            select(func.count(Task.id)).where(Task.user_id == u.id)
-        )).scalar()
-        ai_count = (await db.execute(
-            select(func.count(DetectionResult.id))
-            .join(Task, DetectionResult.task_id == Task.id)
-            .where(Task.user_id == u.id, DetectionResult.is_ai_generated == True)
-        )).scalar()
+        task_count = task_counts.get(u.id, 0)
+        ai_count = ai_counts.get(u.id, 0)
 
         user_list.append({
             "id": str(u.id),

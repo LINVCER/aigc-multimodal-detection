@@ -27,24 +27,35 @@ PROJECT_DIR = Path(__file__).parent
 BACKEND_DIR = PROJECT_DIR / "backend"
 FRONTEND_DIR = PROJECT_DIR / "frontend"
 ENV_FILE = BACKEND_DIR / ".env"
-REDIS_EXE = "D:/AAA/tools/redis/redis-server.exe"
-REDIS_CLI = "D:/AAA/tools/redis/redis-cli.exe"
-NODE_DIR = "C:/Program Files/nodejs"
+import shutil
+
+REDIS_EXE = shutil.which("redis-server") or "redis-server"
+REDIS_CLI = shutil.which("redis-cli") or "redis-cli"
+NPX_CMD = shutil.which("npx") or "npx"
+NPM_CMD = shutil.which("npm") or "npm"
 
 
 def kill_port(port: int):
     """强制释放指定端口上所有进程"""
-    r = subprocess.run(f"netstat -ano | findstr :{port}", shell=True,
-                       capture_output=True, text=True)
-    killed = set()
-    for line in r.stdout.split('\n'):
-        parts = line.strip().split()
-        if len(parts) >= 5 and 'LISTENING' in line:
-            pid = parts[-1]
-            if pid.isdigit() and pid not in killed and pid != "0":
-                killed.add(pid)
-                subprocess.run(f"taskkill /F /PID {pid}", shell=True,
-                              capture_output=True)
+    if os.name == 'nt':
+        r = subprocess.run(f"netstat -ano | findstr :{port}", shell=True, capture_output=True, text=True)
+        killed = set()
+        for line in r.stdout.split('\n'):
+            parts = line.strip().split()
+            if len(parts) >= 5 and 'LISTENING' in line:
+                pid = parts[-1]
+                if pid.isdigit() and pid not in killed and pid != "0":
+                    killed.add(pid)
+                    subprocess.run(f"taskkill /F /PID {pid}", shell=True, capture_output=True)
+    else:
+        # Ubuntu / Linux
+        r = subprocess.run(f"lsof -t -i:{port}", shell=True, capture_output=True, text=True)
+        killed = set()
+        for pid in r.stdout.split('\n'):
+            if pid.strip().isdigit():
+                killed.add(pid.strip())
+                subprocess.run(f"kill -9 {pid.strip()}", shell=True, capture_output=True)
+    
     if killed:
         print(f"[OK] 端口{port}已释放 (关闭{len(killed)}个进程)")
     time.sleep(1)
@@ -52,32 +63,35 @@ def kill_port(port: int):
 
 def kill_all():
     """关闭所有相关进程"""
-    for port in [9999, 8000, 5173, 3000]:
+    for port in [9999, 8000, 5173, 3000, 8001]:
         kill_port(port)
-    subprocess.run("taskkill /F /IM python.exe 2>nul", shell=True)
-    subprocess.run("taskkill /F /IM node.exe 2>nul", shell=True)
+    if os.name == 'nt':
+        subprocess.run("taskkill /F /IM python.exe 2>nul", shell=True)
+        subprocess.run("taskkill /F /IM node.exe 2>nul", shell=True)
+    else:
+        subprocess.run("pkill -f 'python -m uvicorn'", shell=True)
+        subprocess.run("pkill -f 'vite'", shell=True)
     print("[OK] 所有服务已关闭")
 
 
 def is_port_open(host: str, port: int) -> bool:
-    """用 netstat 检查端口，绕过系统代理"""
-    import subprocess
-    try:
-        result = subprocess.run(
-            f'netstat -ano | findstr ":{port} " | findstr "LISTENING"',
-            shell=True, capture_output=True, text=True, timeout=3,
-        )
-        return result.returncode == 0 and result.stdout.strip() != ""
-    except:
-        return False
+    """检查端口是否开放"""
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(1)
+        try:
+            s.connect((host, port))
+            return True
+        except (ConnectionRefusedError, socket.timeout, OSError):
+            return False
 
 
 def start_redis(port: int = 6379) -> bool:
     if is_port_open("localhost", port):
         print("[OK] Redis 已在运行")
         return True
-    if not Path(REDIS_EXE).exists():
-        print("[WARN] Redis 未安装")
+    if not shutil.which(REDIS_EXE):
+        print("[WARN] Redis 未安装或未在 PATH 中")
         return False
     subprocess.Popen([REDIS_EXE, "--port", str(port)],
                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -100,7 +114,8 @@ def start_backend(config: dict) -> subprocess.Popen | None:
         time.sleep(1)
 
     env = os.environ.copy()
-    env["HF_HOME"] = "D:/AAA/cache/huggingface"
+    # Use existing HF_HOME or default to local project cache for Ubuntu compatibility
+    env["HF_HOME"] = os.environ.get("HF_HOME", str(PROJECT_DIR / "cache" / "huggingface"))
     env["NO_PROXY"] = "localhost,127.0.0.1"  # 绕过系统代理
 
     # 使用正确的 Python 解释器
@@ -134,8 +149,8 @@ def start_frontend(config: dict) -> subprocess.Popen | None:
             break
         time.sleep(1)
 
-    npx = os.path.join(NODE_DIR, "npx.cmd")
-    npm = os.path.join(NODE_DIR, "npm.cmd")
+    npx = NPX_CMD
+    npm = NPM_CMD
 
     if not (FRONTEND_DIR / "node_modules").exists():
         print("[INFO] 安装前端依赖...")
@@ -208,10 +223,10 @@ DEFAULT_CONFIG = {
     "db_host": "localhost", "db_port": 3306, "db_name": "image_nious",
     "db_user": "root", "db_password": "123456",
     "redis_host": "localhost", "redis_port": 6379,
-    "llm_api_key": "sk-5fde2f682c194c8992f30fe91542fab9",
+    "llm_api_key": "",
     "llm_api_base": "https://api.deepseek.com/v1",
     "llm_model": "deepseek-chat",
-    "mimo_api_key": "tp-ckcc4ib4j528eudeqbu6qvqgm8bwbsm9qwp4wd4y9pes1zah",
+    "mimo_api_key": "",
     "mimo_api_base": "https://token-plan-cn.xiaomimimo.com/anthropic",
     "mimo_model": "mimo-v2.5-pro",
 }

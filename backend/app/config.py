@@ -137,7 +137,7 @@ class Settings(BaseSettings):
     minio_secure: bool = False
 
     # JWT
-    jwt_secret_key: str = "change-me-in-production"
+    jwt_secret_key: str = "change-me-in-production"  # IMPORTANT: override in .env for production
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 60
     jwt_refresh_token_expire_days: int = 7
@@ -163,6 +163,7 @@ class Settings(BaseSettings):
 
     # 模型路径 (HuggingFace model ID, 首次使用自动下载缓存)
     model_dir: str = "../models"
+    hf_cache_dir: str = "" # 可通过环境变量 HF_HOME 设置，不在此强制，保留以供兼容
     text_model_path: str = "hfl/chinese-roberta-wwm-ext"
     text_detector_checkpoint: str = "text/aigc_detector_v3_thesis.pth"
     text_detection_threshold: float = 0.25  # 最优 F1 阈值 (val set tuned)

@@ -35,8 +35,9 @@ class ChineseRobertaDetector(DetectionPipeline):
 
         model_path = settings.text_model_path
         # 尝试从本地缓存路径加载
-        local_cache = "/root/.cache/huggingface/hub/models--hfl--chinese-roberta-wwm-ext"
         import os
+        hf_home = getattr(settings, "hf_cache_dir", "") or os.environ.get("HF_HOME", "/root/.cache/huggingface")
+        local_cache = os.path.join(hf_home, "hub/models--hfl--chinese-roberta-wwm-ext")
         if os.path.isdir(local_cache) and os.path.exists(os.path.join(local_cache, "config.json")):
             model_path = local_cache
         try:
@@ -124,7 +125,7 @@ class ChineseRobertaDetector(DetectionPipeline):
 
         try:
             embedding = await asyncio.wait_for(
-                asyncio.get_event_loop().run_in_executor(None, self._encode, input_data),
+                asyncio.to_thread(self._encode, input_data),
                 timeout=15,
             )
         except (asyncio.TimeoutError, Exception):

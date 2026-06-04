@@ -12,7 +12,9 @@ _engine_kwargs = {}
 if _use_mysql:
     _engine_kwargs["pool_size"] = 20
     _engine_kwargs["max_overflow"] = 10
-    _engine_kwargs["pool_pre_ping"] = False
+    _engine_kwargs["pool_pre_ping"] = True
+    _engine_kwargs["pool_recycle"] = 3600
+    _engine_kwargs["pool_timeout"] = 30
 
 engine = create_async_engine(
     _db_url,

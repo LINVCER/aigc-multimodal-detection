@@ -33,7 +33,6 @@ async def upload_document(
 # ============================================================
 # 批量检测 — 企业级实现: 并行处理 + 进度追踪 + 历史管理
 # ============================================================
-import asyncio
 import uuid as _uuid
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
@@ -152,6 +151,8 @@ async def batch_progress(
     state = _batch_store.get(batch_id)
     if not state:
         raise HTTPException(status_code=404, detail="批次不存在或已过期")
+    if state.user_id != str(current_user.id):
+        raise HTTPException(status_code=403, detail="无权访问该批次")
     return {
         "batch_id": state.batch_id,
         "status": state.status,
@@ -173,6 +174,8 @@ async def batch_cancel(
     state = _batch_store.get(batch_id)
     if not state:
         raise HTTPException(status_code=404, detail="批次不存在")
+    if state.user_id != str(current_user.id):
+        raise HTTPException(status_code=403, detail="无权操作该批次")
     if state.status not in ("processing", "pending"):
         raise HTTPException(status_code=400, detail="批次已结束，无法取消")
     state.cancelled = True
@@ -190,6 +193,8 @@ async def batch_report(
     state = _batch_store.get(batch_id)
     if not state:
         raise HTTPException(status_code=404, detail="批次不存在")
+    if state.user_id != str(current_user.id):
+        raise HTTPException(status_code=403, detail="无权访问该批次")
 
     results = state.results
     valid = [r for r in results if "confidence" in r]

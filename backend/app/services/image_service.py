@@ -17,13 +17,12 @@ from app.detectors.image.fusion import ImageFusion
 _hf_branch = HighFreqBranch()
 _vit_branch = ViTBranch()
 _mimo_branch = MiMoVLBranch()
-_fusion = ImageFusion()
 
 
 async def detect_image(image_data: bytes, options: dict | None = None) -> DetectionOutput:
     do_explain = options.get("explain", True) if options else True
     sensitivity = options.get("sensitivity", 0.6) if options else 0.6
-    _fusion.set_sensitivity(sensitivity)
+    fusion = ImageFusion(sensitivity=sensitivity)
 
     try:
         image = Image.open(io.BytesIO(image_data))
@@ -75,7 +74,7 @@ async def detect_image(image_data: bytes, options: dict | None = None) -> Detect
             mimo_output2 = empty_out
 
     # 融合 (4路: CNN + ViT + MiMo质感 + MiMo细节)
-    fused = _fusion.fuse(hf_output, vit_output, mimo_output, mimo_output2)
+    fused = fusion.fuse(hf_output, vit_output, mimo_output, mimo_output2)
 
     # 校准
     fused = _hf_branch.calibrate_output(fused)
@@ -130,8 +129,7 @@ async def detect_image(image_data: bytes, options: dict | None = None) -> Detect
             "mimo_explanation2": await _mimo_branch.explain(image, mimo_output2) if mimo_output2.metadata.get("status") != "model_not_loaded" else None,
         }
 
-    # 检测完成后释放 ViT 大模型内存（4GB小服务器优化）
-    _vit_branch.unload()
+    # (已优化: 保留 ViT 模型在内存中，不调用 unload，以加速后续请求)
 
     return fused
 
