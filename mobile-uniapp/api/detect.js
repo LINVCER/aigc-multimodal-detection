@@ -1,0 +1,91 @@
+import { http, MOCK_MODE } from '@/utils/request'
+
+// ---- mock 数据（未配 VITE_API_BASE 时启用，供离线 UI 联调）----
+
+const mockTasks = [
+  { id: 1, paperTitle: '基于深度学习的中文文本情感分析研究', status: 'DONE',    aiRate: 26.4, degreeType: 'MASTER',   threshold: 15, createdAt: '2026-09-16 14:20' },
+  { id: 2, paperTitle: '乡村振兴背景下农产品电商发展路径研究', status: 'RUNNING', aiRate: null, degreeType: 'BACHELOR', threshold: 20, createdAt: '2026-09-17 09:12' },
+  { id: 3, paperTitle: '双碳目标下制造业绿色转型机制研究',   status: 'DONE',    aiRate: 8.1,  degreeType: 'PHD',      threshold: 10, createdAt: '2026-09-15 18:44' },
+]
+
+const mockDetail = {
+  ...mockTasks[0],
+  sourceLabels: { qwen: 0.42, gpt: 0.31, human: 0.27 },
+  paragraphs: [
+    {
+      paragraphIdx: 0,
+      text: '随着人工智能技术的快速发展，深度学习在自然语言处理领域的应用日益广泛。值得注意的是，情感分析作为其中的重要分支，已经成为学术界和工业界共同关注的焦点。',
+      aiProb: 0.91, calibratedProb: 0.88, sourceLabel: 'qwen',
+      sentences: [
+        { sentenceIdx: 0, text: '随着人工智能技术的快速发展，深度学习在自然语言处理领域的应用日益广泛。', aiProb: 0.93 },
+        { sentenceIdx: 1, text: '值得注意的是，情感分析作为其中的重要分支，已经成为学术界和工业界共同关注的焦点。', aiProb: 0.89 },
+      ],
+    },
+    {
+      paragraphIdx: 1,
+      text: '我们在实验中发现，当训练数据里混入大量口语化评论时，模型在正式文本上的表现反而下降了两个点，这个现象起初让我们很困惑。',
+      aiProb: 0.12, calibratedProb: 0.09, sourceLabel: 'human',
+      sentences: [
+        { sentenceIdx: 0, text: '我们在实验中发现，当训练数据里混入大量口语化评论时，模型在正式文本上的表现反而下降了两个点，这个现象起初让我们很困惑。', aiProb: 0.12 },
+      ],
+    },
+  ],
+}
+
+// ---- API ----
+
+export function listTasks() {
+  if (MOCK_MODE) return Promise.resolve(mockTasks)
+  return http({ url: '/api/v1/mobile/detect/tasks' })
+}
+
+export function getTaskDetail(id) {
+  if (MOCK_MODE) return Promise.resolve({ ...mockDetail, id })
+  return http({ url: `/api/v1/mobile/detect/tasks/${id}` })
+}
+
+/**
+ * 上传论文
+ * @param {string} filePath 本地文件路径（uni.chooseMessageFile / uni.chooseImage 拿到）
+ * @param {string} name 文件名
+ * @param {string} degreeType BACHELOR|MASTER|PHD
+ */
+export function uploadPaper(filePath, name, degreeType) {
+  if (MOCK_MODE) {
+    return Promise.resolve({
+      id: Date.now(), paperTitle: name, status: 'PENDING', aiRate: null,
+      degreeType, threshold: 20, createdAt: new Date().toISOString(),
+    })
+  }
+  return new Promise((resolve, reject) => {
+    const token = uni.getStorageSync('access_token')
+    uni.uploadFile({
+      url: '/api/v1/mobile/detect/upload',
+      filePath,
+      name: 'file',
+      formData: { degreeType },
+      header: token ? { Authorization: `Bearer ${token}` } : {},
+      success: (res) => {
+        try {
+          const body = JSON.parse(res.data)
+          if (body.code !== 0 && body.code !== 200) return reject(new Error(body.msg))
+          resolve(body.data)
+        } catch (e) { reject(e) }
+      },
+      fail: reject,
+    })
+  })
+}
+
+export function requestHumanize(taskId, paragraphIdx) {
+  if (MOCK_MODE) {
+    return Promise.resolve(
+      '人工智能近年来发展得很快，深度学习也因此被越来越多地用在自然语言处理上。情感分析是其中一个重要方向，学界和产业界都很关注它。'
+    )
+  }
+  return http({
+    url: '/api/v1/mobile/humanize',
+    method: 'POST',
+    data: { taskId, paragraphIdx },
+  }).then((d) => d.rewrittenText)
+}

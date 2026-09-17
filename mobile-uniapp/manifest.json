@@ -1,0 +1,61 @@
+{
+  "name": "论文AIGC检测",
+  "appid": "__UNI__PAPERAIGC",
+  "description": "教育部 2026 新规 · 学位论文 AI 率检测",
+  "versionName": "0.1.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "app-plus": {
+    "usingComponents": true,
+    "nvueStyleCompiler": "uni-app",
+    "compilerVersion": 3,
+    "splashscreen": {
+      "alwaysShowBeforeRender": true,
+      "waiting": true,
+      "autoclose": true,
+      "delay": 0
+    },
+    "modules": {},
+    "distribute": {
+      "android": { "permissions": [] },
+      "ios": {},
+      "sdkConfigs": {}
+    }
+  },
+  "quickapp": {},
+  "mp-weixin": {
+    "appid": "wx5dede2e8d33e3f15",
+    "setting": {
+      "urlCheck": false,
+      "es6": true,
+      "postcss": true,
+      "minified": true
+    },
+    "usingComponents": true,
+    "permission": {
+      "scope.camera": { "desc": "用于拍照上传论文附图（可选）" }
+    }
+  },
+  "mp-alipay": { "usingComponents": true },
+  "mp-baidu":  { "usingComponents": true },
+  "mp-toutiao":{ "usingComponents": true },
+  "uniStatistics": { "enable": false },
+  "vueVersion": "3",
+  "h5": {
+    "title": "论文AIGC检测",
+    "router": {
+      "mode": "hash",
+      "base": "/"
+    },
+    "devServer": {
+      "port": 5175,
+      "https": false,
+      "proxy": {
+        "/api": {
+          "target": "http://localhost:8080",
+          "changeOrigin": true
+        }
+      }
+    }
+  }
+}
