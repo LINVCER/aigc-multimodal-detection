@@ -9,6 +9,8 @@ backend/.playwright-cli/
 .env
 .env.local
 .env.*.local
+legacy/backend.env
+legacy/test-assets/
 *.key
 *.pem
 *.p12

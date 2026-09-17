@@ -1,1 +1,0 @@
-# Adversarial text humanization modules
