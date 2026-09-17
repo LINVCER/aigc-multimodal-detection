@@ -103,6 +103,9 @@ frontend/components.d.ts
 *.safetensors
 *.msc
 *.mv
+*.tar
+*.tar.gz
+*.zip
 
 # ======== 数据集 ========
 data/

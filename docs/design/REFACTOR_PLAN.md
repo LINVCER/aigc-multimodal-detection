@@ -30,8 +30,8 @@
 
 **`.env.example` 明文泄露两个疑似真实 API key**：
 
-- 第 34 行：`LLM_API_KEY=sk-5fde2f682c194c8992f30fe91542fab9`（DeepSeek 格式）
-- 第 52 行：`MIMO_API_KEY=tp-ckcc4ib4j528eudeqbu6qvqgm8bwbsm9qwp4wd4y9pes1zah`（MiMo 授权凭证格式）
+- 第 34 行：`LLM_API_KEY=sk-xxx...`（DeepSeek 格式，现已替换为占位符）
+- 第 52 行：`MIMO_API_KEY=tp-xxx...`（MiMo 授权凭证格式，现已替换为占位符）
 
 在公开 GitHub 仓库 3+ 个月，几乎必然已泄露。**PR 前先私下联系 LINVCER**：
 1. 立即在 DeepSeek / MiMo 后台 **revoke** 这两个 key
