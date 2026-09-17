@@ -180,3 +180,10 @@ celerybeat.pid
 *~
 \#*\#
 .#*
+
+# ======== Expo 预构建生成的原生工程 ========
+mobile-app/android/
+mobile-app/ios/
+
+# ======== 本机开发启动脚本(含绝对路径,不入库) ========
+start-dev.bat
