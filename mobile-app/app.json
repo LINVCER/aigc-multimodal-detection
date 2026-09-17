@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "论文AIGC检测",
+    "slug": "paper-aigc-detect",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "paperaigc",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "backgroundColor": "#1a56db"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.paperaigc.mobile"
+    },
+    "android": {
+      "package": "com.paperaigc.mobile"
+    },
+    "plugins": ["expo-router", "expo-secure-store"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

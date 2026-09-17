@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package paperaigc.inference.v1;
+
+option java_multiple_files = true;
+option java_package = "com.paperaigc.inference.grpc";
+option java_outer_classname = "DetectionProto";
+
+// 检测推理服务：Java 后端 → Python 推理层（FastAPI gRPC gateway / Triton）
+service DetectionService {
+  // 单段检测
+  rpc DetectParagraph(DetectParagraphRequest) returns (DetectParagraphResponse);
+  // 批量检测（服务端 dynamic batching）
+  rpc DetectBatch(DetectBatchRequest) returns (DetectBatchResponse);
+  // 灰区白盒双检（Fast-DetectGPT + Binoculars，慢路径）
+  rpc DetectWhitebox(DetectWhiteboxRequest) returns (DetectWhiteboxResponse);
+  // 降 AIGC 改写（流式返回）
+  rpc HumanizeStream(HumanizeRequest) returns (stream HumanizeChunk);
+  // 溯源
+  rpc AttributeSource(AttributeRequest) returns (AttributeResponse);
+}
+
+message DetectParagraphRequest {
+  string text = 1;
+  string model_version = 2;   // 空 = 当前 Production 版本
+  bool return_calibrated = 3;
+  bool return_sentences = 4;  // 是否返回句子级打分
+}
+
+message ConfidenceInterval {
+  double lower = 1;
+  double upper = 2;
+}
+
+message SentenceScore {
+  int32 sentence_idx = 1;
+  int32 offset_start = 2;
+  int32 offset_end = 3;
+  double ai_prob = 4;
+}
+
+message DetectParagraphResponse {
+  double ai_prob = 1;              // 主分类头原始概率
+  double calibrated_prob = 2;      // Temperature + Platt 校准后
+  ConfidenceInterval interval = 3;
+  string risk_level = 4;           // low | medium | high
+  string warning = 5;              // 冲突或降级告警，空串表示无
+  map<string, double> branch_scores = 6;  // 各分支细分得分
+  repeated SentenceScore sentences = 7;
+  string model_version = 8;        // 实际使用的模型版本（审计）
+}
+
+message DetectBatchRequest {
+  repeated DetectParagraphRequest items = 1;
+}
+
+message DetectBatchResponse {
+  repeated DetectParagraphResponse items = 1;
+}
+
+message DetectWhiteboxRequest {
+  string text = 1;
+}
+
+message DetectWhiteboxResponse {
+  double fast_detectgpt_score = 1;
+  double binoculars_score = 2;
+  bool is_ai_generated = 3;
+  double fused_prob = 4;
+}
+
+message HumanizeRequest {
+  string text = 1;
+  string style = 2;            // academic | formal | casual
+  string model_version = 3;
+}
+
+message HumanizeChunk {
+  string delta = 1;            // 增量文本
+  bool done = 2;
+  double quality_score = 3;    // done=true 时返回整体质量分
+}
+
+message AttributeRequest {
+  string text = 1;
+}
+
+message AttributeResponse {
+  // human / gpt / claude / qwen / deepseek / glm / kimi / ernie / other
+  map<string, double> source_probs = 1;
+  string top_source = 2;
+}

@@ -1,0 +1,27 @@
+version: "3.9"
+
+# MLOps 基础设施：MLflow Tracking Server
+# 依赖主 compose 的 mysql/minio（同一 docker network 或映射到宿主端口）
+# 用法: docker compose -f training/docker-compose.mlops.yml up -d
+
+services:
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.18.0
+    container_name: paperaigc-mlflow
+    ports:
+      - "5000:5000"
+    environment:
+      MLFLOW_S3_ENDPOINT_URL: ${MLFLOW_S3_ENDPOINT:-http://host.docker.internal:9000}
+      AWS_ACCESS_KEY_ID: ${MINIO_ACCESS_KEY:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri mysql+pymysql://${MYSQL_USER:-root}:${MYSQL_PASSWORD:-change-me}@host.docker.internal:3306/mlflow
+      --artifacts-destination s3://paperaigc-mlflow-artifacts
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  # Airflow 在 Phase 2 引入，当前用 cron / 手动触发训练即可

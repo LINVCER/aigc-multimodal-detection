@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <!-- 挂载到 RuoYi-Vue-Plus 后，parent 为其 ruoyi-modules 聚合模块（版本随主工程调整） -->
+    <parent>
+        <groupId>org.dromara</groupId>
+        <artifactId>ruoyi-modules</artifactId>
+        <version>5.2.3</version>
+    </parent>
+
+    <artifactId>ruoyi-detect</artifactId>
+    <description>论文 AIGC 检测业务模块：任务编排 / 状态机 / 文本抽取分块</description>
+
+    <dependencies>
+        <!-- RuoYi-Vue-Plus 公共能力（R / 异常 / MyBatis-Plus / Sa-Token 注解 / OSS / 操作日志） -->
+        <dependency>
+            <groupId>org.dromara</groupId>
+            <artifactId>ruoyi-common-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.dromara</groupId>
+            <artifactId>ruoyi-common-mybatis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.dromara</groupId>
+            <artifactId>ruoyi-common-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.dromara</groupId>
+            <artifactId>ruoyi-common-oss</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.dromara</groupId>
+            <artifactId>ruoyi-common-log</artifactId>
+        </dependency>
+
+        <!-- 平台内部：推理网关 -->
+        <dependency>
+            <groupId>org.dromara</groupId>
+            <artifactId>ruoyi-inference</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- 文本抽取 -->
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-core</artifactId>
+            <version>2.9.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-parsers-standard-package</artifactId>
+            <version>2.9.2</version>
+        </dependency>
+    </dependencies>
+</project>
