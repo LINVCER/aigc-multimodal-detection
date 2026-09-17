@@ -1,0 +1,221 @@
+version: "3.9"
+
+# 全栈一键部署（单机 / 开发 / 小规模生产）
+# 用法:
+#   cd deploy
+#   cp .env.example .env      # 按需改密码
+#   docker compose up -d --build
+#
+# 访问入口（通过 Nginx 统一入口 http://localhost/）:
+#   /              → 用户端 Web
+#   /admin/        → 管理端 Web (plus-ui)
+#   /api/          → Java 后端
+#   /minio/        → MinIO Console (可选)
+# 直连端口（用于调试）:
+#   :8080 Java API   :5173 用户端   :8090 管理端   :8000 Python 推理   :9001 MinIO Console
+
+services:
+
+  # ============ 数据层 ============
+  mysql:
+    image: mysql:8.0
+    container_name: paperaigc-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      TZ: Asia/Shanghai
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ../docs/sql/init.sql:/docker-entrypoint-initdb.d/10-business.sql:ro
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_0900_ai_ci --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: paperaigc-redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    container_name: paperaigc-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # 一次性初始化 MinIO bucket
+  minio-init:
+    image: minio/mc:latest
+    container_name: paperaigc-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY} &&
+      mc mb -p local/${MINIO_BUCKET} 2>/dev/null || true &&
+      mc anonymous set download local/${MINIO_BUCKET} &&
+      echo 'MinIO bucket ready'
+      "
+    restart: "no"
+
+  # ============ Python 推理服务（Phase 0 stub） ============
+  inference:
+    build:
+      context: ./inference-python
+      dockerfile: Dockerfile
+    container_name: paperaigc-inference
+    ports:
+      - "8000:8000"
+    environment:
+      LOG_LEVEL: INFO
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ============ Java 后端（若依基座 + 业务模块） ============
+  backend:
+    build:
+      context: ..
+      dockerfile: deploy/backend-java/Dockerfile
+      args:
+        RUOYI_GIT_URL: ${RUOYI_GIT_URL:-https://gitee.com/dromara/RuoYi-Vue-Plus.git}
+        RUOYI_BRANCH: ${RUOYI_BRANCH:-5.X}
+    container_name: paperaigc-backend
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      inference:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?useUnicode=true&characterEncoding=utf8mb4&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET: ${MINIO_BUCKET}
+      INFERENCE_HOST: inference
+      INFERENCE_PORT: 8000
+      JWT_SECRET: ${JWT_SECRET}
+      JAVA_TOOL_OPTIONS: "-Xms512m -Xmx1536m -XX:+UseZGC"
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+    restart: unless-stopped
+
+  # ============ Web 用户端 ============
+  frontend:
+    build:
+      context: ..
+      dockerfile: deploy/frontend/Dockerfile
+      args:
+        VITE_API_BASE: ""
+    container_name: paperaigc-frontend
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+    restart: unless-stopped
+
+  # ============ Web 管理端（plus-ui） ============
+  admin:
+    build:
+      context: ./admin-web
+      dockerfile: Dockerfile
+      args:
+        PLUS_UI_GIT_URL: ${PLUS_UI_GIT_URL:-https://gitee.com/JavaLionLi/plus-ui.git}
+        PLUS_UI_BRANCH: ${PLUS_UI_BRANCH:-master}
+        VITE_APP_BASE_API: /admin-api
+    container_name: paperaigc-admin
+    depends_on:
+      - backend
+    ports:
+      - "8090:80"
+    restart: unless-stopped
+
+  # ============ Nginx 统一入口 ============
+  gateway:
+    image: nginx:1.27-alpine
+    container_name: paperaigc-gateway
+    depends_on:
+      - backend
+      - frontend
+      - admin
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    restart: unless-stopped
+
+  # ============ MLflow（可选，启动加 --profile mlops） ============
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.18.0
+    container_name: paperaigc-mlflow
+    profiles: ["mlops"]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+    environment:
+      MLFLOW_S3_ENDPOINT_URL: http://minio:9000
+      AWS_ACCESS_KEY_ID: ${MINIO_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_SECRET_KEY}
+    command: >
+      sh -c "pip install pymysql boto3 &&
+             mlflow server --host 0.0.0.0 --port 5000
+             --backend-store-uri mysql+pymysql://root:${MYSQL_ROOT_PASSWORD}@mysql:3306/mlflow?charset=utf8mb4
+             --artifacts-destination s3://mlflow-artifacts"
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  redis_data:
+  minio_data:
