@@ -1,116 +1,152 @@
-# TEAM ROLES · 5 人实施期分工
+# TEAM ROLES · 5 人课题组分工
 
-> 项目当前状态：架构方案 / 骨架 / 训练环境 / 数据集清单已齐，进入实施期。本文档定 5 人纯技术团队分工与阶段产出。
-> 参考：[ENTERPRISE_ARCHITECTURE.md](ENTERPRISE_ARCHITECTURE.md) §11 · [MODEL_UPGRADE_PLAN.md](MODEL_UPGRADE_PLAN.md) §4 阶段路线
+> 项目定位：**课题研究项目**（本科毕设 / 硕士课题 / 大创 / 挑战杯级别），不做商用不接客户。
+> 目标：技术验证 + 学术产出（论文 / 报告）+ 可演示 demo。
+> 参考：[ENTERPRISE_ARCHITECTURE.md](ENTERPRISE_ARCHITECTURE.md) · [MODEL_UPGRADE_PLAN.md](MODEL_UPGRADE_PLAN.md) · [DATASETS.md](DATASETS.md)
 
 ---
 
 ## 0. 前提
 
-- **不含专职 PM**：需求 / 客户对接由项目发起人或 R1 兼
-- **收费功能不做**（P0-P3 全阶段）：credit_account / credit_transaction / payment_order 三张表暂不启用，`ruoyi-billing` 模块不建；未来商业化再启用
-- **移动端 P1 同步上线**：R5 从 P0 就启动，与 Web 同步交付
-- **DevOps 不独立成岗**：归 R2 兼；P2 以后产品上量再考虑拆独立岗
+- **课题组 5 人**（学生），隐含 1 位指导老师
+- **交付定义**：能跑通的原型 + 评测数字 + 论文/毕设章节 + 结题演示
+- **明确不做**：客户对接 / 售前 / 收费 / 上架 / 私有化 / 等保 / 网信办备案 / 白标定制 / 商务运营
+- **时间线**：一学年（约 2 学期，8-10 个月）或分阶段短课题（4-6 个月）
+- **每人的"课题产出"** = 一个可讲的技术贡献点，可写进毕设或独立论文的章节
 
 ---
 
-## 1. 五人职责总览
+## 1. 五人角色总览
 
-| 角色 | 主战场 | 关键 owner |
-|---|---|---|
-| **R1 · Java 后端 Lead + 架构** | 若依基座落地 + `ruoyi-detect` 检测编排 + `ruoyi-inference` gRPC 网关融合层 + DBA + 接口治理 | 系统架构、接口签字、model_version 灰度、跨模块协作 |
-| **R2 · Java 后端 + 合规/报告 + DevOps** | 审计日志 / 报告 PDF/Excel / 电子签 / SSO CAS-OIDC / 私有化部署 / K8s / CI/CD | 教育部合规报告模板、私有化交付手册、发布流水线 |
-| **R3 · Python 算法 + MLOps** | 训练脚本改造（mDeBERTa / Qwen LoRA）+ MLflow / DVC / Airflow + 6 套 evals + Triton/vLLM 部署 + 校准/仲裁接线 | 模型效果指标、evals 数字、Model Registry 状态流转 |
-| **R4 · 全栈前端** | 现有 `frontend/` 8 个公共组件抽取 + 句子级 diff 视图 + AdminPanel 拆分 5 子页 + plus-ui 二次开发 | Web UI 完成度、国标红黄绿视觉规范、跨浏览器兼容 |
-| **R5 · 移动端 + Python 推理胶水** | `mobile-app/` RN 全链路 + Python 推理 stub 到真实模型的胶水层 + Chrome 扩展（选做，引流） | Mobile 交付、gRPC/HTTP 客户端稳定性、推理服务对外契约 |
-
----
-
-## 2. 阶段产出（对齐 UPGRADE_PLAN Phase 0-3）
-
-| Phase | R1 | R2 | R3 | R4 | R5 |
-|---|---|---|---|---|---|
-| **P0 骨架**（2026 Q4） | 若依落地 + gRPC 编排骨架 + `docker-compose` 全栈起 | 审计日志表 + 基础 CI/CD + 数据备份策略 | 训练环境 + MLflow + HC3-Chinese 首基线 | 现有 frontend 联调 + AdminPanel 首拆 | RN 登录/上传/详情联调（mock 走通） |
-| **P1 首版**（2027 Q1） | 检测状态机全流程 + gRPC 融合 + 报告服务 | 报告 PDF/Excel 模板 + SSO 骨架 | mDeBERTa 首版 + 溯源头 + 6 套 evals 建成 | 句子级高亮 + 降 AIGC UI + plus-ui 集成 | Mobile MVP 完整交付 |
-| **P2 加固**（2027 Q2） | 灰度 / 熔断 / 限流 / 高可用 | K8s 上线 + 私有化脚本 + 电子签 PDF | 白盒双检（Fast-DetectGPT + Binoculars） + RADAR 对抗 + Airflow 全流水线 | 前端组件库 v2 + i18n + AdminPanel 完整 | 推送 + 离线草稿 + 报告分享 + 生物识别 |
-| **P3 商用**（2027 Q3） | 万方 / 知网 API 对接 + OpenAPI | 等保三级 / 网信办备案 + 客户定制主题 | Qwen 2.5-7B LoRA humanizer + 学术图特化（P3.5 若延） | 定制主题 + 白标能力 | App Store / Google Play 上架 |
+| 角色 | 学术贡献点（个人课题） | 系统贡献 | 可产出 |
+|---|---|---|---|
+| **S1 · 系统架构与集成** | 「基于 Java + Python 微服务的多模态检测平台架构设计」 | 若依基座 + gRPC 网关 + `ruoyi-detect` 检测编排 + Docker 部署 | 毕设/技术报告一章：系统架构；开源 GitHub 仓库 |
+| **S2 · 主检测模型研究** | 「基于 DeBERTa-v3 的中文论文 AIGC 检测方法」 | 主分类器训练 + 校准 + 溯源头 + 6 套 evals | 论文 1 篇（会议/期刊）；模型 checkpoint 开源 |
+| **S3 · 对抗鲁棒与白盒检测** | 「白盒双检 + 对抗改写鲁棒的中文 AIGC 检测」 | Fast-DetectGPT / Binoculars 中文集成 + RADAR 对抗训练 + DIPPER 数据增强 | 论文 1 篇；对抗数据集开源 |
+| **S4 · 降 AIGC 生成研究 + 前端 demo** | 「基于 Qwen LoRA 的学术文本降 AIGC 改写方法」 | Qwen 2.5-7B LoRA humanizer 训练 + Web demo（现有 frontend 完善 + 句子级 diff 视图） | 论文 1 篇 or 毕设章节；Web demo 演示 |
+| **S5 · 数据构建与移动端演示** | 「面向论文场景的多域中文 AIGC 数据集构建方法」 | 100K 自建训练集 pipeline + DVC 数据管理 + 移动端 demo（RN + Expo） | 数据集论文/技术报告；数据集开源；App demo |
 
 ---
 
-## 3. 关键 owner 与协作机制
+## 2. 阶段推进（按学期节奏）
 
-### 3.1 单点决策 owner（争议时最终拍板人）
+以一学年为例（可按实际学期长度伸缩）：
+
+### 学期 1 · 前 3 个月（基础建设 + 数据）
+
+| S1 | S2 | S3 | S4 | S5 |
+|---|---|---|---|---|
+| 若依基座落地 + Docker 全栈起 + gRPC proto 编排通 | 环境搭建 + 现有 `train_text_detector.py` 跑通 baseline（RoBERTa on HC3） | 调研 Fast-DetectGPT / Binoculars 中文可行性，跑 1 组 spot 测试 | 用现有 frontend 熟悉架构 + 调研 Qwen LoRA humanizer 现有工作 | 拉 HC3-Chinese + CHEAT + M4 入 DVC，跑通训练数据管道 |
+
+**中期检查（第 3 个月末）**：全栈 `docker compose up` 起来，Web 能上传拿到 stub 结果；第一份 baseline val_acc 出来。
+
+### 学期 1 · 后 3 个月（模型主线 + demo 雏形）
+
+| S1 | S2 | S3 | S4 | S5 |
+|---|---|---|---|---|
+| 检测状态机全流程 + 报告生成 + 校准/仲裁接线 | mDeBERTa-v3-base 训练 + 溯源头 8-way + 6 套 evals 建成 | Fast-DetectGPT 中文集成 + 灰区触发接线 | Qwen 2.5-7B LoRA humanizer 首版训练（用 HF warm start） + Web demo 完善 | 自建 30-50K 论文域样本（前 3 家 LLM） + 开始扩到 100K |
+
+**学期 1 结题**：完整技术 demo（Web 端跑通 上传 → 检测 → 降 AIGC 全流程），第一份评测报告，学期报告/中期答辩材料。
+
+### 学期 2 · 前 3 个月（对抗鲁棒 + 论文写作）
+
+| S1 | S2 | S3 | S4 | S5 |
+|---|---|---|---|---|
+| 系统稳定性 + 消融实验平台支持 | 论文实验 + 消融 + 论文初稿 | RADAR 对抗训练 + DIPPER-style 中文增强 + 论文实验 | Qwen LoRA 提升迭代 + Web 前端精修 | 数据集 100K 完成 + 开始移动端 RN demo |
+
+### 学期 2 · 后 3 个月（论文投稿 + 结题）
+
+| S1 | S2 | S3 | S4 | S5 |
+|---|---|---|---|---|
+| 系统集成 demo 精修 + 开源 repo 整理 | 论文投稿（CCL / NLPCC / EMNLP short）+ 毕设 | 论文投稿 + 毕设 | 论文/毕设 + Web demo 上线（演示用） | 移动端 demo 完成 + 数据集论文/开源 + 毕设 |
+
+**结题（学期 2 末）**：全员毕设通过；至少 2 篇论文投稿或收录；开源 GitHub 仓库达到 100+ star（次要目标）。
+
+---
+
+## 3. 关键协作与 owner
 
 | 事项 | Owner |
 |---|---|
-| Java-Python gRPC proto 变更 | R1 签字 |
-| 任何模型改动上 Staging / Production | R3 签字（必须先跑完 6 套 evals） |
-| CI/CD 流水线变更 | R2（P0-P1）→ R3（P2 起随 MLOps 移交） |
-| 数据合规（论文加密 / 过期 / 审计） | R2 |
-| UI 视觉规范 / 组件设计 | R4（RN 侧 R5 复用其规范） |
-| 数据集变更（DVC 加删） | R3 |
+| 系统接口（gRPC proto / REST API） | S1 |
+| 主分类器指标（Model Registry Staging） | S2 |
+| 白盒 / 对抗方法有效性论证 | S3 |
+| 降 AIGC 效果评估（人工 + 自动） | S4 |
+| 数据集质量与均衡（防 label 噪声） | S5 |
+| 论文写作时间表 | 全员各自负责自己论文 + S2 牵头合作论文 |
+| 开源仓库整理与文档 | S1（README / 架构图）+ S5（数据集 README） |
 
-### 3.2 周协作节奏
-
-- 周一：**evals 数字复盘**（R3 主讲，全员到；未达门槛的模型不上）
-- 周二：**sprint review**（R1 主持，讲下周投入产出）
-- 周五：**跨模块联调时间**（R1+R3 对齐 gRPC 契约 / R4+R5 对齐 UI 组件 / R2 汇报部署与合规进展）
-- 全员：日常异步（企业微信 / 飞书），代码 review 24h SLA
-
-### 3.3 交叉备份
-
-- R1 出差 → R2 顶架构 review
-- R3 出差 → R1 兜 evals 数字读取（不做训练）
-- R4 出差 → R5 顶 Web 小 bug fix
-- R2 出差 → R1 顶部署与 CI 应急
+**协作节奏**（课题组适用）：
+- 每周一次组会：轮流讲进展 + 老师 review + 定下周工作
+- 每月一次跨方向对齐：S1 系统 + S2/S3/S4 模型 + S5 数据 联调
+- 论文投稿高峰期：老师主导，全员配合复现实验
 
 ---
 
-## 4. 招聘画像（外招用）
+## 4. 明确不做（课题级负向清单）
 
-| 角色 | 技能硬门槛 | 加分项 |
-|---|---|---|
-| R1 | Java 8+ 年，Spring Boot 3 + gRPC + K8s + 若依（RuoYi-Vue-Plus）经验，能独立设计跨服务架构 | 有 SaaS 后端架构落地经验，做过多租户 |
-| R2 | Java 5+ 年，做过合规/报告/文件处理，熟悉 Nginx / Docker / K8s，懂 SSO(CAS/OIDC) | 有教育行业交付经验（等保 / 网信办备案） |
-| R3 | Python + PyTorch 3+ 年 + HuggingFace fine-tuning 履历 + 至少一次落地过 NLP 项目 | 会 vLLM/Triton 部署，做过 MLflow/DVC 全流水线 |
-| R4 | Vue 3 + TS 3+ 年，做过复杂后台管理系统，会自己抽组件设计 | 熟悉若依 plus-ui 或类似基座，懂 i18n / a11y |
-| R5 | React Native 2+ 年 或 Vue → RN 转型，懂 Python 基础 | 有 App Store / Google Play 上架经验 |
-
----
-
-## 5. 明确不做（本团队规模的负向清单）
-
-- ❌ **付费/账单/发票/微信支付宝对接** —— 用户已确认收费功能先不做
-- ❌ 视频检测 / 音频检测 / deepfake 换脸 —— 场景无关
-- ❌ 自训 backbone 大模型（10B+）—— 不在 5 人能力范围
-- ❌ 多语言（英/日/韩）—— P0-P3 只做中文
-- ❌ 专职测试 QA —— 每人对自己代码负责，R1 抽查
-- ❌ 数据标注团队 —— 训练数据靠 LLM 自动生成 + spot check，标注量控制在 5% 以内
-- ❌ 独立 UI 设计师 —— R4 出组件规范，实在需要精修再找外包
+- ❌ 客户对接 / 售前 / 商务 / 收费
+- ❌ 上架 App Store / Google Play（demo 只跑 Expo 预览就够）
+- ❌ 私有化部署 / 等保 / 网信办备案
+- ❌ 高可用 / 灰度发布 / 熔断限流（demo 单机跑即可）
+- ❌ K8s 集群部署（docker-compose 单机足够）
+- ❌ 微信 / 支付宝 / SSO 集成
+- ❌ 白标 / 主题定制
+- ❌ 万方 / 知网 API 对接（无授权且不必要）
+- ❌ App 推送 / 生物识别 / 深链
+- ❌ 视频 / 音频 / deepfake 换脸检测（超范围）
+- ❌ 自训 backbone 大模型（10B+，算力不允许）
+- ❌ 商业英文 / 多语言 UI
 
 ---
 
-## 6. 数据模型调整（收费砍除对应）
+## 5. 数据模型调整（对应课题定位）
 
-原 `docs/sql/init.sql` 里以下三张表标记为 **P2+ 未启用**（DDL 保留、代码不引用）：
+原 `docs/sql/init.sql` 中以下表 **不启用**（DDL 保留作参考，代码不引用）：
 
 ```sql
-credit_account         -- 额度账户
-credit_transaction     -- 额度流水
-payment_order          -- 支付订单
+credit_account         -- 无收费
+credit_transaction     -- 无流水
+payment_order          -- 无支付
+sys_org (COLLEGE/DEPARTMENT/CLASS 层级) -- 课题 demo 用简单 org 或直接 flat 用户
 ```
 
-对应 `platform-billing` Maven 模块 **不建**。前端「充值」入口 **不加**。
-
-未来商业化重启时，从 DDL 直接激活即可（表结构本身合理）。
+前端「充值 / 支付 / SSO 登录」入口 **不加**。用最简单的账号密码登录即可。
 
 ---
 
-## 7. 里程碑（团队级）
+## 6. 里程碑（学术级）
 
-| 时间 | 里程碑 | 验收人 |
+| 时间 | 里程碑 | 验收 |
 |---|---|---|
-| 2026-12 底 | P0：docker compose up 全栈起，Web+App 登录 + 上传 + stub 检测结果 | 全员 |
-| 2027-03 底 | P1：内测 1 客户跑通「上传 → AI 率报告 + 段落定位 + 降 AIGC」 | R1 + R3 |
-| 2027-06 底 | P2：DIPPER 中文攻击后 F1 > 0.7；新 LLM 零样本 F1 > 0.85；3-5 家 pilot | R3 |
-| 2027-09 底 | P3：等保三级 + 网信办备案通过；私有化一键部署验收；行业客户 20+ | R2 |
+| 第 3 个月末 | 中期：全栈起 + baseline 数字出 | 老师 review |
+| 学期 1 结题 | 完整 demo + 第一份技术报告 | 学院答辩 / 组会 |
+| 学期 2 中期 | 论文初稿 + 对抗鲁棒实验 | 老师 review |
+| 学期 2 结题 | 全员毕设通过 + 至少 2 篇论文投稿 + 开源仓库 | 答辩委员会 |
+
+---
+
+## 7. 论文选题与投稿建议
+
+| 学生 | 潜在选题 | 目标会议/期刊 |
+|---|---|---|
+| S2 | 「基于 DeBERTa-v3 的中文论文 AIGC 检测：融合多分支与置信度校准」 | CCL 2027 / NLPCC 2027 / 中文信息学报 |
+| S3 | 「面向对抗改写攻击的中文 AIGC 文本检测研究」 | EMNLP-short / COLING / 中文信息学报 |
+| S4 | 「基于 Qwen-LoRA 的学术文本人性化改写方法」 | CCL / NLPCC / 计算机学报 |
+| S5 | 「面向论文场景的多域中文 AIGC 检测数据集构建与评测基线」 | LREC / 中文信息学报 |
+| S1 | 系统类论文难独立发表，可作为毕设章节；或与 S2 合作出「系统 + 方法」应用型论文 | 软件学报应用短文 / 毕设 |
+
+**首选投稿窗口**：CCL 一般 5-7 月投稿，10 月见刊 —— 与学期 2 结题时间线契合。
+
+---
+
+## 8. 与商用架构文档的关系
+
+`ENTERPRISE_ARCHITECTURE.md` 和 `MODEL_UPGRADE_PLAN.md` 里的**技术方案**（Java 后端结构、模型选型、Python 推理架构、MLOps）在课题版**照搬**——都是学术方案层面成立的。
+
+**只砍**：
+- 商业化章节（客户、计费、合规、私有化、SSO）
+- 团队规模（8-12 人 → 5 学生）
+- 时间线（12 个月 商业 → 一学年学术）
+
+未来如果课题结项后想商业化，**架构不用动，只需要把砍的商业化能力补回来**——这也是「课题当种子孵化商业」的常见路径。
