@@ -75,7 +75,6 @@ const navItems = [
   { name: "音频检测", path: "/detect/audio" },
   { name: "论文检测", path: "/detect/thesis" },
   { name: "降AIGC", path: "/detect/reduce" },
-  { name: "AI助手", path: "/assistant" },
 ]
 
 onMounted(() => {

@@ -50,12 +50,6 @@ const routes: RouteRecordRaw[] = [
         meta: { title: "论文检测" },
       },
       {
-        path: "assistant",
-        name: "AIAssistant",
-        component: () => import("@/views/AIAssistant.vue"),
-        meta: { title: "AI助手" },
-      },
-      {
         path: "detect/reduce",
         name: "ReduceAIGC",
         component: () => import("@/views/ReduceAIGC.vue"),
@@ -72,12 +66,6 @@ const routes: RouteRecordRaw[] = [
         name: "History",
         component: () => import("@/views/History.vue"),
         meta: { title: "检测历史" },
-      },
-      {
-        path: "standards",
-        name: "StandardsCompliance",
-        component: () => import("@/views/StandardsCompliance.vue"),
-        meta: { title: "标准合规" },
       },
       {
         path: "report/:taskId",

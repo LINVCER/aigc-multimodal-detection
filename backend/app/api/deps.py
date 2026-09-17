@@ -55,7 +55,6 @@ QUOTA_COSTS = {
     "tampering": 2,
     "thesis": 2,
     "multimodal": 3,
-    "assistant": 0,
 }
 
 

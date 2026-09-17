@@ -262,14 +262,6 @@ const modules = [
     gradient: "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)",
     iconBg: "rgba(139, 92, 246, 0.1)"
   },
-  {
-    name: "AI助手",
-    desc: "智能写作辅助工具",
-    path: "/assistant",
-    emoji: "?",
-    gradient: "linear-gradient(135deg, #ec4899 0%, #be185d 100%)",
-    iconBg: "rgba(236, 72, 153, 0.1)"
-  },
 ]
 
 function getResultClass(r: any): string {

@@ -50,18 +50,14 @@ from app.api.v1.detection import router as detection_router
 from app.api.v1.report import router as report_router
 from app.api.v1.admin import router as admin_router
 from app.api.v1.upload import router as upload_router
-from app.api.v1.identifier import router as identifier_router
 from app.api.v1.robustness import router as robustness_router
-from app.api.v1.assistant import router as assistant_router
 
 v1_router.include_router(auth_router)
 v1_router.include_router(detection_router)
 v1_router.include_router(report_router)
 v1_router.include_router(admin_router)
 v1_router.include_router(upload_router)
-v1_router.include_router(identifier_router)
 v1_router.include_router(robustness_router)
-v1_router.include_router(assistant_router)
 app.include_router(v1_router)
 
 
