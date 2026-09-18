@@ -4,7 +4,7 @@ import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd())
-  const apiTarget = env.VITE_API_TARGET || 'http://localhost:8080'
+  const apiTarget = env.VITE_API_TARGET || 'http://localhost:18080'   // 对齐 backend-java 默认端口
 
   return {
     plugins: [vue()],

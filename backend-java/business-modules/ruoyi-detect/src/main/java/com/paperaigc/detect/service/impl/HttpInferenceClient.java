@@ -29,7 +29,7 @@ public class HttpInferenceClient implements IInferenceClient {
     @Value("${platform.inference.host:localhost}")
     private String host;
 
-    @Value("${platform.inference.port:8000}")
+    @Value("${platform.inference.port:18000}")   // 对齐 deploy/inference-python 本地默认监听端口
     private int port;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
