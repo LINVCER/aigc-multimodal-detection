@@ -33,15 +33,20 @@ const mockDetail = {
 }
 
 // ---- API ----
+// 路径遵循 docs/design/API_CONTRACT.md（§3-§4），移除 /mobile 前缀，与 Web 端共用
 
 export function listTasks() {
   if (MOCK_MODE) return Promise.resolve(mockTasks)
-  return http({ url: '/api/v1/mobile/detect/tasks' })
+  // §3.2 分页响应 { total, rows }，request.js 已剥出 data，这里再取 rows
+  return http({
+    url: '/api/v1/detect/tasks',
+    data: { pageNum: 1, pageSize: 50 },
+  }).then((d) => d.rows || d)
 }
 
 export function getTaskDetail(id) {
   if (MOCK_MODE) return Promise.resolve({ ...mockDetail, id })
-  return http({ url: `/api/v1/mobile/detect/tasks/${id}` })
+  return http({ url: `/api/v1/detect/tasks/${id}` })
 }
 
 /**
@@ -60,7 +65,8 @@ export function uploadPaper(filePath, name, degreeType) {
   return new Promise((resolve, reject) => {
     const token = uni.getStorageSync('access_token')
     uni.uploadFile({
-      url: '/api/v1/mobile/detect/upload',
+      // §3.1 上传端点从 /upload 改为 /submit
+      url: '/api/v1/detect/submit',
       filePath,
       name: 'file',
       formData: { degreeType },
@@ -84,7 +90,7 @@ export function requestHumanize(taskId, paragraphIdx) {
     )
   }
   return http({
-    url: '/api/v1/mobile/humanize',
+    url: '/api/v1/humanize',
     method: 'POST',
     data: { taskId, paragraphIdx },
   }).then((d) => d.rewrittenText)

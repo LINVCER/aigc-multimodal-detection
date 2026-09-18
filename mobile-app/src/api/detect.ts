@@ -70,15 +70,18 @@ const mockDetail: TaskDetail = {
 
 // ---- API ----
 
+// 路径遵循 docs/design/API_CONTRACT.md（§3-§4），移除 /mobile 前缀，与 Web 端共用
+
 export async function listTasks(): Promise<DetectTask[]> {
   if (MOCK_MODE) return mockTasks;
-  const resp = await http.get('/api/v1/mobile/detect/tasks');
-  return resp.data.data;
+  // §3.2 返回 { total, rows } 分页体，只取 rows
+  const resp = await http.get('/api/v1/detect/tasks', { params: { pageNum: 1, pageSize: 50 } });
+  return resp.data.data.rows;
 }
 
 export async function getTaskDetail(id: number): Promise<TaskDetail> {
   if (MOCK_MODE) return { ...mockDetail, id };
-  const resp = await http.get(`/api/v1/mobile/detect/tasks/${id}`);
+  const resp = await http.get(`/api/v1/detect/tasks/${id}`);
   return resp.data.data;
 }
 
@@ -90,7 +93,8 @@ export async function uploadPaper(file: { uri: string; name: string; mimeType?: 
   // @ts-expect-error RN FormData file 结构
   form.append('file', { uri: file.uri, name: file.name, type: file.mimeType ?? 'application/octet-stream' });
   form.append('degreeType', degreeType);
-  const resp = await http.post('/api/v1/mobile/detect/upload', form, {
+  // §3.1 上传端点从 /upload 改为 /submit
+  const resp = await http.post('/api/v1/detect/submit', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return resp.data.data;
@@ -100,6 +104,6 @@ export async function requestHumanize(taskId: number, paragraphIdx: number): Pro
   if (MOCK_MODE) {
     return '人工智能近年来发展得很快，深度学习也因此被越来越多地用在自然语言处理上。情感分析是其中一个重要方向，学界和产业界都很关注它。';
   }
-  const resp = await http.post(`/api/v1/mobile/humanize`, { taskId, paragraphIdx });
+  const resp = await http.post(`/api/v1/humanize`, { taskId, paragraphIdx });
   return resp.data.data.rewrittenText;
 }
