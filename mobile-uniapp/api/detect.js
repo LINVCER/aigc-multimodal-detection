@@ -50,13 +50,14 @@ export function getTaskDetail(id) {
 }
 
 /**
- * 上传论文（W3.b · 参数由 degreeType 改为 scenario）
- * @param {string} filePath 本地文件路径（uni.chooseMessageFile / uni.chooseImage 拿到）
+ * 上传论文（W3.b · scenario；W3.c 前透传 userId 供后台 topUsers/userLabel 归属）
+ * @param {string} filePath 本地文件路径
  * @param {string} name 文件名
  * @param {string} scenario academic_bachelor|academic_master|academic_phd|job_report|self_media|other
- * @returns { id, paperTitle, status, createdAt } — id 已从契约 taskId 归一
+ * @param {number|string} [userId] 登录用户 ID（未登录可空）
+ * @returns { id, paperTitle, status, createdAt }
  */
-export function uploadPaper(filePath, name, scenario) {
+export function uploadPaper(filePath, name, scenario, userId) {
   if (MOCK_MODE) {
     return Promise.resolve({
       id: Date.now(),
@@ -69,12 +70,14 @@ export function uploadPaper(filePath, name, scenario) {
   }
   return new Promise((resolve, reject) => {
     const token = uni.getStorageSync('access_token')
+    const formData = { scenario }
+    if (userId != null && userId !== '') formData.userId = String(userId)
     uni.uploadFile({
       // §3.1 上传端点从 /upload 改为 /submit
       url: '/api/v1/detect/submit',
       filePath,
       name: 'file',
-      formData: { scenario },
+      formData,
       header: token ? { Authorization: `Bearer ${token}` } : {},
       success: (res) => {
         try {

@@ -2,6 +2,9 @@
 import { ref, computed } from 'vue'
 import { uploadPaper, detectTextDirect } from '@/api/detect'
 import { SCENARIO_MAP, paragraphRisk } from '@/utils/constants'
+import { useAuth } from '@/store/auth'
+
+const auth = useAuth()
 
 // W3.b · 使用场景预设（取代原学位红线）
 const SCENARIOS = [
@@ -73,7 +76,7 @@ async function submit() {
   // 大文件上传给全屏遮罩，避免用户在等待时误触其它按钮
   uni.showLoading({ title: '上传中…', mask: true })
   try {
-    const task = await uploadPaper(file.value.path, file.value.name, scenario.value)
+    const task = await uploadPaper(file.value.path, file.value.name, scenario.value, auth.userId)
     uni.hideLoading()
     if (!task?.id) {
       throw new Error('提交成功但未拿到任务号')

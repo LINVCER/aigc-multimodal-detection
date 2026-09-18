@@ -5,30 +5,31 @@ export const useAuth = defineStore('auth', {
   state: () => ({
     token: '',
     username: '',
+    userId: '',       // 后端 mock login 返回 user.id；W3.c 接入 Sa-Token 后从 /me 拉
+    role: '',         // USER / OPS_ADMIN
     loading: false,
   }),
 
   actions: {
-    /**
-     * 从本地存储恢复登录态（App onLaunch 调用）
-     */
+    /** 从本地存储恢复登录态（App onLaunch 调用） */
     restore() {
       this.token = uni.getStorageSync('access_token') || ''
       this.username = uni.getStorageSync('username') || ''
+      this.userId = uni.getStorageSync('user_id') || ''
+      this.role = uni.getStorageSync('user_role') || ''
     },
 
     /**
      * 登录
-     * @param {string} username 学号 / 工号
-     * @param {string} password 密码
+     * @param {string} username
+     * @param {string} password
      */
     async login(username, password) {
       this.loading = true
       try {
-        let token
-        if (MOCK_MODE) {
-          token = 'mock-token'
-        } else {
+        let token = 'mock-token'
+        let user = { id: '', username, role: 'USER' }
+        if (!MOCK_MODE) {
           const data = await http({
             url: '/api/v1/auth/login',
             method: 'POST',
@@ -36,24 +37,31 @@ export const useAuth = defineStore('auth', {
             auth: false,
           })
           token = data.accessToken
+          user = data.user || user
         }
         uni.setStorageSync('access_token', token)
-        uni.setStorageSync('username', username)
+        uni.setStorageSync('username', user.username || username)
+        uni.setStorageSync('user_id', user.id || '')
+        uni.setStorageSync('user_role', user.role || '')
         this.token = token
-        this.username = username
+        this.username = user.username || username
+        this.userId = user.id || ''
+        this.role = user.role || ''
       } finally {
         this.loading = false
       }
     },
 
-    /**
-     * 退出登录
-     */
+    /** 退出登录 */
     logout() {
       uni.removeStorageSync('access_token')
       uni.removeStorageSync('username')
+      uni.removeStorageSync('user_id')
+      uni.removeStorageSync('user_role')
       this.token = ''
       this.username = ''
+      this.userId = ''
+      this.role = ''
       uni.reLaunch({ url: '/pages/login/login' })
     },
   },

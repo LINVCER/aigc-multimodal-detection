@@ -4,6 +4,9 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { UploadFile, UploadRawFile } from 'element-plus'
 import { submitPaper, detectTextDirect, type DirectDetectResp } from '@/api/detect'
+import { useAuthStore } from '@/stores/auth'
+
+const auth = useAuthStore()
 
 const router = useRouter()
 
@@ -75,7 +78,7 @@ async function submit() {
   if (!file.value) return ElMessage.warning('请先选择论文文件')
   submitting.value = true
   try {
-    const resp = await submitPaper(file.value, scenario.value)
+    const resp = await submitPaper(file.value, scenario.value, undefined, auth.user?.id)
     ElMessage.success('提交成功，正在检测')
     router.push({ name: 'TaskDetail', params: { id: resp.taskId } })
   } finally { submitting.value = false }
