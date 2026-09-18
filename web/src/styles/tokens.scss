@@ -1,0 +1,212 @@
+/* ============================================================
+ * Apple Design tokens for Web (Vue 3 + Element Plus)
+ * 参考 s1gmamale1/apple-design-skills · systemXxx 色板 · 8pt grid
+ * 单位：px（web 端，用 rem 也可）
+ * ============================================================ */
+
+:root {
+  /* ---- 系统色板 ---- */
+  --system-blue:   #007AFF;
+  --system-green:  #34C759;
+  --system-orange: #FF9500;
+  --system-red:    #FF3B30;
+  --system-purple: #AF52DE;
+  --system-pink:   #FF2D55;
+  --system-teal:   #5AC8FA;
+  --system-gray:   #8E8E93;
+  --system-gray-2: #AEAEB2;
+
+  /* ---- 分层背景 ---- */
+  --label:                #000000;
+  --label-secondary:      rgba(60, 60, 67, 0.60);
+  --label-tertiary:       rgba(60, 60, 67, 0.30);
+  --label-quaternary:     rgba(60, 60, 67, 0.18);
+  --system-background:            #FFFFFF;
+  --secondary-system-background:  #F2F2F7;
+  --system-grouped-background:    #F2F2F7;
+  --separator:            rgba(60, 60, 67, 0.29);
+  --separator-opaque:     #C6C6C8;
+
+  /* ---- 8pt grid ---- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+
+  /* ---- 圆角 ---- */
+  --radius-btn:   10px;
+  --radius-card:  14px;
+  --radius-sheet: 20px;
+  --radius-pill:  9999px;
+
+  /* ---- 字号阶梯（Apple type ramp）---- */
+  --fs-large-title: 34px;
+  --fs-title-1:     28px;
+  --fs-title-2:     22px;
+  --fs-title-3:     20px;
+  --fs-headline:    17px;   /* semi-bold */
+  --fs-body:        17px;
+  --fs-callout:     16px;
+  --fs-subhead:     15px;
+  --fs-footnote:    13px;
+  --fs-caption-1:   12px;
+  --fs-caption-2:   11px;
+
+  --fw-regular:  400;
+  --fw-medium:   500;
+  --fw-semibold: 600;
+  --fw-bold:     700;
+
+  /* ---- 动效 ---- */
+  --ease-standard: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur-fast: 200ms;
+  --dur-base: 300ms;
+
+  /* ---- 阴影 ---- */
+  --shadow-hair: 0 0.5px 0 rgba(0, 0, 0, 0.06);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-lift: 0 8px 24px rgba(0, 0, 0, 0.08);
+
+  /* ---- Element Plus 覆盖 ---- */
+  --el-color-primary: var(--system-blue);
+  --el-color-success: var(--system-green);
+  --el-color-warning: var(--system-orange);
+  --el-color-danger:  var(--system-red);
+  --el-border-radius-base:  var(--radius-btn);
+  --el-border-radius-small: 6px;
+  --el-border-radius-round: var(--radius-pill);
+  --el-font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text',
+                    'PingFang SC', 'Helvetica Neue', 'Microsoft YaHei', sans-serif;
+}
+
+/* ---- 全局基础 ---- */
+html, body {
+  font-family: var(--el-font-family);
+  color: var(--label);
+  background: var(--system-grouped-background);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ---- Element Plus 组件精调（苹果观感）---- */
+
+/* 按钮：pill 或圆角，spring press 反馈 */
+.el-button {
+  transition: transform var(--dur-fast) var(--ease-standard),
+              background-color var(--dur-fast),
+              opacity var(--dur-fast) !important;
+  font-weight: var(--fw-semibold) !important;
+  letter-spacing: 0.2px;
+}
+.el-button:active { transform: scale(0.98); }
+.el-button.is-round, .el-button--large.is-round {
+  border-radius: var(--radius-pill) !important;
+}
+
+/* 主按钮 tinted 变体 */
+.el-button--primary.is-plain {
+  background: rgba(0, 122, 255, 0.10) !important;
+  color: var(--system-blue) !important;
+  border-color: transparent !important;
+}
+.el-button--primary.is-plain:hover {
+  background: rgba(0, 122, 255, 0.18) !important;
+}
+
+/* 卡片：软阴影 + 大圆角 */
+.el-card {
+  border: none !important;
+  border-radius: var(--radius-card) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+.el-card__body { padding: var(--sp-6) !important; }
+
+/* 表格：无边框 + 大行距 + 悬浮系统灰 */
+.el-table {
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  --el-table-border-color: transparent;
+  --el-table-row-hover-bg-color: rgba(60, 60, 67, 0.06);
+  --el-table-header-bg-color: transparent;
+}
+.el-table th.el-table__cell {
+  background: transparent !important;
+  color: var(--label-secondary) !important;
+  font-weight: var(--fw-medium) !important;
+  font-size: var(--fs-caption-1) !important;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+.el-table td.el-table__cell, .el-table th.el-table__cell.is-leaf {
+  border-bottom: 1px solid var(--label-quaternary) !important;
+}
+
+/* Input / Select：inset 圆角灰底 */
+.el-input__wrapper, .el-select .el-input__wrapper {
+  background: rgba(120, 120, 128, 0.12) !important;
+  box-shadow: none !important;
+  border-radius: var(--radius-btn) !important;
+  padding: 4px 14px !important;
+}
+.el-input__wrapper.is-focus {
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.25) !important;
+}
+.el-input__inner {
+  height: 38px !important;
+  font-size: var(--fs-body) !important;
+}
+
+/* Tag（Chip）*/
+.el-tag {
+  border: none !important;
+  font-weight: var(--fw-semibold) !important;
+  border-radius: var(--radius-pill) !important;
+  padding: 2px 12px !important;
+  height: 24px !important;
+  line-height: 20px !important;
+}
+
+/* Alert */
+.el-alert {
+  border-radius: var(--radius-card) !important;
+  border: none !important;
+}
+
+/* Radio Button Group → Segmented Control */
+.el-radio-group {
+  background: rgba(120, 120, 128, 0.12);
+  border-radius: 10px;
+  padding: 3px;
+  display: inline-flex;
+}
+.el-radio-button__inner {
+  background: transparent !important;
+  border: none !important;
+  color: var(--label) !important;
+  border-radius: 8px !important;
+  font-weight: var(--fw-medium) !important;
+  padding: 8px 20px !important;
+  box-shadow: none !important;
+  transition: all var(--dur-fast) var(--ease-standard);
+}
+.el-radio-button.is-active .el-radio-button__inner {
+  background: #FFFFFF !important;
+  color: var(--label) !important;
+  font-weight: var(--fw-semibold) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Progress：细腰系统蓝 */
+.el-progress-bar__outer {
+  background: rgba(120, 120, 128, 0.16) !important;
+  border-radius: var(--radius-pill) !important;
+}
+.el-progress-bar__inner {
+  border-radius: var(--radius-pill) !important;
+  background: var(--system-blue);
+}

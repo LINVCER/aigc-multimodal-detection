@@ -16,7 +16,6 @@ const DEGREES = [
 const degree = ref<'BACHELOR' | 'MASTER' | 'PHD'>('BACHELOR')
 const file = ref<UploadRawFile | null>(null)
 const submitting = ref(false)
-
 const threshold = computed(() => DEGREES.find(d => d.key === degree.value)?.threshold)
 
 function onChange(uploadFile: UploadFile) {
@@ -29,8 +28,13 @@ function onChange(uploadFile: UploadFile) {
   }
   file.value = raw
 }
-
 function onRemove() { file.value = null }
+
+function humanBytes(n?: number) {
+  if (!n) return ''
+  const mb = n / 1024 / 1024
+  return mb >= 1 ? `${mb.toFixed(1)} MB` : `${Math.round(n / 1024)} KB`
+}
 
 async function submit() {
   if (!file.value) return ElMessage.warning('请先选择论文文件')
@@ -39,9 +43,7 @@ async function submit() {
     const resp = await submitPaper(file.value, degree.value)
     ElMessage.success('提交成功，正在检测')
     router.push({ name: 'TaskDetail', params: { id: resp.taskId } })
-  } finally {
-    submitting.value = false
-  }
+  } finally { submitting.value = false }
 }
 </script>
 
@@ -50,68 +52,137 @@ async function submit() {
     <el-header class="header">
       <div class="header-inner">
         <el-button link @click="router.back()">← 返回</el-button>
-        <span class="title">提交论文检测</span>
+        <span class="header-title">上传检测</span>
         <span></span>
       </div>
     </el-header>
 
     <el-main class="main">
-      <el-card class="card">
-        <el-form label-position="top">
-          <el-form-item label="学位类型">
-            <el-radio-group v-model="degree">
-              <el-radio-button v-for="d in DEGREES" :key="d.key" :label="d.key">
-                {{ d.label }}
-              </el-radio-button>
-            </el-radio-group>
-            <div class="threshold-hint">教育部红线：AI 率 ≤ {{ threshold }}%</div>
-          </el-form-item>
+      <div class="wrap">
+        <h1 class="large-title">上传检测</h1>
 
-          <el-form-item label="论文文件（PDF / Word / TXT，≤ 20MB）">
-            <el-upload
-              drag
-              accept=".pdf,.doc,.docx,.txt"
-              :auto-upload="false"
-              :limit="1"
-              :on-change="onChange"
-              :on-remove="onRemove"
-              :on-exceed="() => ElMessage.warning('只能选择一个文件')"
-            >
-              <div class="upload-inner">
-                <div style="font-size: 48px">📎</div>
-                <div>将文件拖到此处，或 <em>点击选择</em></div>
-              </div>
-            </el-upload>
-          </el-form-item>
-
-          <el-form-item>
-            <el-button
-              type="primary" size="large" :loading="submitting"
-              :disabled="!file" @click="submit" style="width: 240px"
-            >提交检测</el-button>
-          </el-form-item>
-
-          <div class="privacy">
-            论文原文加密存储，30 天后自动删除；检测报告保留 3 年
+        <!-- Group 1: 学位类型 -->
+        <div class="group-label">学位类型</div>
+        <el-card class="group-card">
+          <el-radio-group v-model="degree">
+            <el-radio-button v-for="d in DEGREES" :key="d.key" :value="d.key">
+              {{ d.label }}
+            </el-radio-button>
+          </el-radio-group>
+          <div class="footnote">
+            教育部红线：AI 率 <span class="footnote-strong">≤ {{ threshold }}%</span>
           </div>
-        </el-form>
-      </el-card>
+        </el-card>
+
+        <!-- Group 2: 文件 -->
+        <div class="group-label">论文文件</div>
+        <el-card class="group-card">
+          <el-upload
+            drag
+            accept=".pdf,.doc,.docx,.txt"
+            :auto-upload="false"
+            :limit="1"
+            :on-change="onChange"
+            :on-remove="onRemove"
+            :on-exceed="() => ElMessage.warning('只能选择一个文件')"
+          >
+            <div class="upload-inner">
+              <div class="upload-icon">􀈕</div>
+              <div class="upload-text">
+                <div class="upload-title">拖入文件 或 <em>点击选择</em></div>
+                <div class="upload-sub">PDF / Word / TXT · 最大 20MB</div>
+              </div>
+            </div>
+          </el-upload>
+          <div v-if="file" class="file-picked">
+            <span class="file-name">{{ file.name }}</span>
+            <span class="file-size">{{ humanBytes(file.size) }}</span>
+          </div>
+        </el-card>
+
+        <!-- Submit -->
+        <el-button
+          type="primary" round size="large"
+          :loading="submitting" :disabled="!file"
+          style="width: 100%; margin-top: 24px; height: 50px; font-size: 17px"
+          @click="submit"
+        >提交检测</el-button>
+
+        <div class="privacy">
+          论文原文加密存储，30 天后自动删除；检测报告保留 3 年
+        </div>
+      </div>
     </el-main>
   </el-container>
 </template>
 
 <style scoped>
 .page { min-height: 100vh; }
-.header { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 0; }
-.header-inner {
-  height: 60px; padding: 0 24px; display: flex;
-  justify-content: space-between; align-items: center;
+.header {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--label-quaternary);
+  padding: 0; position: sticky; top: 0; z-index: 10;
 }
-.title { font-size: 16px; font-weight: 600; color: #111827; }
-.main { padding: 32px 24px; display: flex; justify-content: center; }
-.card { width: 100%; max-width: 720px; }
-.threshold-hint { margin-top: 6px; font-size: 12px; color: #f59e0b; }
-.upload-inner { padding: 24px 0; color: #6b7280; font-size: 14px; }
-.upload-inner em { color: #1a56db; font-style: normal; }
-.privacy { color: #9ca3af; font-size: 12px; text-align: center; margin-top: 12px; }
+.header-inner { height: 56px; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; }
+.header-title { font-size: var(--fs-headline); font-weight: var(--fw-semibold); }
+
+.main { padding: 32px 24px 48px; }
+.wrap { max-width: 640px; margin: 0 auto; }
+
+.large-title {
+  font-size: var(--fs-large-title);
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.8px;
+  margin: 0 0 24px;
+}
+
+.group-label {
+  font-size: var(--fs-caption-1);
+  font-weight: var(--fw-medium);
+  color: var(--label-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 16px 12px 8px;
+}
+.group-card { margin-bottom: 8px; }
+
+.footnote { margin-top: 12px; font-size: var(--fs-footnote); color: var(--label-secondary); }
+.footnote-strong { color: var(--system-orange); font-weight: var(--fw-semibold); }
+
+.upload-inner {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px 0;
+}
+.upload-icon {
+  width: 48px; height: 48px; border-radius: 10px;
+  background: rgba(0, 122, 255, 0.10);
+  color: var(--system-blue);
+  font-size: 22px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.upload-text { text-align: left; }
+.upload-title { font-size: var(--fs-body); font-weight: var(--fw-medium); color: var(--label); }
+.upload-title em { color: var(--system-blue); font-style: normal; font-weight: var(--fw-semibold); }
+.upload-sub { font-size: var(--fs-caption-1); color: var(--label-secondary); margin-top: 4px; }
+
+.file-picked {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: rgba(0, 122, 255, 0.06);
+  border-radius: 8px;
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: var(--fs-subhead);
+}
+.file-name { color: var(--label); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-size { color: var(--label-secondary); flex-shrink: 0; margin-left: 12px; }
+
+.privacy {
+  margin-top: 24px;
+  font-size: var(--fs-caption-1);
+  color: var(--label-secondary);
+  text-align: center;
+}
 </style>

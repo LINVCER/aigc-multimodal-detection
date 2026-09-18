@@ -8,6 +8,8 @@ const routes: RouteRecordRaw[] = [
   { path: '/dashboard', name: 'Dashboard', component: () => import('@/views/Dashboard.vue') },
   { path: '/upload', name: 'Upload', component: () => import('@/views/Upload.vue') },
   { path: '/task/:id', name: 'TaskDetail', component: () => import('@/views/TaskDetail.vue'), props: true },
+  { path: '/profile', name: 'Profile', component: () => import('@/views/Profile.vue') },
+  { path: '/:pathMatch(.*)*', name: 'NotFound', component: () => import('@/views/NotFound.vue'), meta: { public: true } },
 ]
 
 const router = createRouter({
