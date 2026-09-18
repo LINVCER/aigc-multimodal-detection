@@ -11,27 +11,22 @@ const feedbackOpen = ref(false)
 
 const detail = ref(null)
 const loading = ref(true)
-const loadError = ref('')      // 加载失败（404 / 网络异常）触发兜底 UI
+const loadError = ref('')
 const retrying = ref(false)
 const rewrittenMap = ref({})
 const humanizingMap = ref({})
 const diffOpenMap = ref({})
-const expandedMap = ref({})    // 段落卡默认折叠，点击展开
-const scrollIntoId = ref('')   // scroll-view 定位锚点，速览点击后设置
+const expandedMap = ref({})
+const scrollIntoId = ref('')
 let pollTimer = null
 let taskId = null
 
 async function load() {
   loadError.value = ''
-  try {
-    detail.value = await getTaskDetail(taskId)
-  } catch (e) {
-    loadError.value = e?.message || '加载失败'
-  } finally {
-    loading.value = false
-  }
+  try { detail.value = await getTaskDetail(taskId) }
+  catch (e) { loadError.value = e?.message || '加载失败' }
+  finally { loading.value = false }
 }
-
 function ensurePolling() {
   if (pollTimer) return
   const s = detail.value?.status
@@ -42,7 +37,6 @@ function ensurePolling() {
     if (st === 'DONE' || st === 'FAILED') stopPoll()
   }, 3000)
 }
-
 function stopPoll() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null } }
 onUnmounted(stopPoll)
 
@@ -55,9 +49,7 @@ async function onRetry() {
     ensurePolling()
   } catch (e) {
     uni.showToast({ title: e?.message || '重试失败', icon: 'none' })
-  } finally {
-    retrying.value = false
-  }
+  } finally { retrying.value = false }
 }
 
 function goBack() {
@@ -83,7 +75,7 @@ const pass = computed(() => {
 })
 const summaryColor = computed(() => aiRateColor(detail.value?.aiRate, detail.value?.threshold))
 
-// 环形进度（SVG r=86 → 周长 ≈ 540.354）
+// 环形进度 (SVG r=86 → 周长 ≈ 540.354)
 const ringCircumference = 2 * Math.PI * 86
 const ringOffset = computed(() => {
   const d = detail.value
@@ -105,7 +97,6 @@ const sortedSources = computed(() => {
     .map(([label, ratio]) => ({ label, ratio }))
 })
 
-// 底部副标题：X 段正文 · 已排除 Y 段
 const bodyStats = computed(() => {
   if (!detail.value?.paragraphs) return null
   const body = detail.value.paragraphs.filter(p => !p.excluded).length
@@ -122,7 +113,8 @@ const EXCLUDE_REASON_LABEL = {
 }
 
 /**
- * 改进建议（Wave 1 · 2.4）：纯前端规则驱动
+ * 改进建议：改用 severity dot + 语义色，去掉 emoji
+ * severity: 'danger' | 'warn' | 'info' | 'success'
  */
 const suggestions = computed(() => {
   const d = detail.value
@@ -132,24 +124,21 @@ const suggestions = computed(() => {
   if (d.aiRate > d.threshold) {
     const gap = (d.aiRate - d.threshold).toFixed(1)
     out.push({
-      icon: '📉',
       title: `AI 率超线 ${gap} 个百分点`,
       body: `你的 AI 率 ${d.aiRate.toFixed(1)}% 超过 ${d.threshold}% 红线。建议重点修改标红段落，用自己的话重写核心观点。`,
       severity: 'danger',
     })
   } else if (d.aiRate > d.threshold * 0.7) {
     out.push({
-      icon: '⚠️',
       title: '接近红线，仍有修改空间',
       body: `AI 率 ${d.aiRate.toFixed(1)}%，距 ${d.threshold}% 红线不足 ${(d.threshold - d.aiRate).toFixed(1)} 个百分点。建议对标黄段落小幅改写。`,
       severity: 'warn',
     })
   } else {
     out.push({
-      icon: '✓',
       title: '整体达标',
       body: `AI 率 ${d.aiRate.toFixed(1)}%，明显低于 ${d.threshold}% 红线。继续保持原创性写作。`,
-      severity: 'info',
+      severity: 'success',
     })
   }
 
@@ -157,7 +146,6 @@ const suggestions = computed(() => {
   if (highRisk.length > 0) {
     const idxList = highRisk.slice(0, 5).map(p => '段' + (p.paragraphIdx + 1)).join('、')
     out.push({
-      icon: '🎯',
       title: `${highRisk.length} 段高疑似 AI，优先处理`,
       body: `${idxList}${highRisk.length > 5 ? ' 等' : ''}被判为高疑似（≥70%）。展开对应段落可一键改写。`,
       severity: 'warn',
@@ -171,7 +159,6 @@ const suggestions = computed(() => {
     if (entries.length && entries[0][1] >= 0.4) {
       const src = SOURCE_MAP[entries[0][0]]?.label || entries[0][0]
       out.push({
-        icon: '🔎',
         title: `疑似大量使用 ${src}`,
         body: `${(entries[0][1] * 100).toFixed(0)}% 段落被判为 ${src} 风格。建议避免连续段落使用同一 AI 助手。`,
         severity: 'info',
@@ -181,7 +168,6 @@ const suggestions = computed(() => {
 
   if (bodyStats.value && bodyStats.value.excluded > bodyStats.value.body) {
     out.push({
-      icon: '📄',
       title: '识别到大量非正文段落',
       body: `${bodyStats.value.excluded} 段被识别为参考文献 / 图表 / 章节标题（未参与 AI 率计算）。若不符合预期请检查论文格式。`,
       severity: 'info',
@@ -191,13 +177,24 @@ const suggestions = computed(() => {
   return out
 })
 
-function suggestionColor(sev) {
-  return sev === 'danger' ? '#FF3B30' : sev === 'warn' ? '#FF9500' : '#007AFF'
+// severity → 前景/背景/dot 三色（对齐 tokens 语义色）
+function sevFg(sev) {
+  return sev === 'danger' ? '#C62A22'
+    : sev === 'warn' ? '#B26200'
+    : sev === 'success' ? '#1B7F3E'
+    : '#0056B3'
 }
-function suggestionBg(sev) {
-  return sev === 'danger' ? 'rgba(255,59,48,0.08)'
-    : sev === 'warn' ? 'rgba(255,149,0,0.08)'
-    : 'rgba(0,122,255,0.06)'
+function sevSolid(sev) {
+  return sev === 'danger' ? '#FF3B30'
+    : sev === 'warn' ? '#FF9500'
+    : sev === 'success' ? '#34C759'
+    : '#007AFF'
+}
+function sevBg(sev) {
+  return sev === 'danger' ? 'rgba(255,59,48,0.10)'
+    : sev === 'warn' ? 'rgba(255,149,0,0.12)'
+    : sev === 'success' ? 'rgba(52,199,89,0.10)'
+    : 'rgba(0,122,255,0.08)'
 }
 
 async function humanize(idx) {
@@ -211,7 +208,6 @@ async function humanize(idx) {
     humanizingMap.value[idx] = false
   }
 }
-
 function copyRewritten(idx) {
   const text = rewrittenMap.value[idx]
   if (!text) return
@@ -220,22 +216,15 @@ function copyRewritten(idx) {
     success: () => uni.showToast({ title: '已复制', icon: 'success' }),
   })
 }
-
 function paragraphDiff(idx, original) {
   const rewritten = rewrittenMap.value[idx]
   if (!rewritten) return []
   return diffChars(original, rewritten)
 }
-
-/**
- * 点段落速览 chip：展开对应段 + 滚动定位
- */
 function jumpTo(idx) {
   expandedMap.value[idx] = true
-  // 微延迟保证 DOM 展开完成后再触发 scroll-into-view
   setTimeout(() => { scrollIntoId.value = 'para-' + idx }, 30)
 }
-
 function toggleExpand(idx) {
   expandedMap.value[idx] = !expandedMap.value[idx]
 }
@@ -244,14 +233,14 @@ function toggleExpand(idx) {
 <template>
   <Skeleton v-if="loading" :rows="4" />
 
-  <!-- 加载失败兜底（404 / 网络异常 / 无效任务号）-->
+  <!-- 整页错误态 -->
   <view v-else-if="loadError && !detail" class="error-page">
-    <text class="error-icon">⚠️</text>
+    <view class="error-mark" />
     <text class="error-title">{{ loadError }}</text>
     <text class="error-sub">请检查任务是否已被删除或稍后重试</text>
     <view class="error-actions">
-      <button class="error-btn primary" @click="load">重新加载</button>
-      <button class="error-btn" @click="goBack">返回列表</button>
+      <button class="btn-primary" @click="load">重新加载</button>
+      <button class="btn-tinted" @click="goBack">返回列表</button>
     </view>
   </view>
 
@@ -262,81 +251,83 @@ function toggleExpand(idx) {
     :scroll-with-animation="true"
   >
     <!-- 处理中 -->
-    <view v-if="detail.status === 'RUNNING' || detail.status === 'PENDING'" class="processing group-card">
-      <text class="processing-icon">⏳</text>
-      <text class="processing-title">检测中</text>
-      <text class="processing-sub">页面将自动刷新（约 15-30 秒）</text>
+    <view v-if="detail.status === 'RUNNING' || detail.status === 'PENDING'" class="state-card">
+      <view class="state-spinner">
+        <view class="spinner-ring" />
+      </view>
+      <text class="state-title" style="color: #B26200">检测中</text>
+      <text class="state-sub">页面将自动刷新（约 15-30 秒）</text>
     </view>
 
     <!-- 检测失败 -->
-    <view v-else-if="detail.status === 'FAILED'" class="failed-card group-card">
-      <text class="failed-icon">❌</text>
-      <text class="failed-title">检测失败</text>
-      <text class="failed-sub">推理服务暂时不可用，可点下方重新提交</text>
+    <view v-else-if="detail.status === 'FAILED'" class="state-card">
+      <view class="state-mark danger">
+        <view class="mark-x-1" />
+        <view class="mark-x-2" />
+      </view>
+      <text class="state-title" style="color: #C62A22">检测失败</text>
+      <text class="state-sub">推理服务暂时不可用，可点下方重新提交</text>
       <button
-        class="retry-btn"
+        class="btn-primary retry-btn"
         :loading="retrying"
         :disabled="retrying"
         @click="onRetry"
       >重新检测</button>
     </view>
 
-    <!-- 总览环形进度（Apple Fitness / Health 风） -->
-    <view v-else class="summary-hero">
-      <text class="summary-label">整体 AI 率</text>
+    <!-- Hero AI 率环 -->
+    <view v-else class="hero-card">
+      <text class="hero-label">整体 AI 率</text>
 
       <view class="ring-wrap">
-        <!-- 微信小程序也支持 <svg>；不支持时可降级为纯 view 环 -->
-        <view class="ring-svg-wrap">
-          <svg viewBox="0 0 200 200" class="ring-svg">
-            <circle cx="100" cy="100" r="86"
-              fill="none" stroke="rgba(120,120,128,0.16)" stroke-width="14"/>
-            <circle cx="100" cy="100" r="86"
-              fill="none"
-              :stroke="summaryColor" stroke-width="14" stroke-linecap="round"
-              :stroke-dasharray="ringCircumference"
-              :stroke-dashoffset="ringOffset"
-              transform="rotate(-90 100 100)"
-              style="transition: stroke-dashoffset 900ms cubic-bezier(0.32, 0.72, 0, 1)"/>
-            <circle cx="100" cy="100" r="86"
-              fill="none"
-              :stroke="pass ? '#34C759' : '#FF3B30'"
-              stroke-width="14" stroke-linecap="butt"
-              :stroke-dasharray="`3 ${ringCircumference - 3}`"
-              :stroke-dashoffset="ringThresholdOffset"
-              transform="rotate(-90 100 100)" opacity="0.9"/>
-          </svg>
-        </view>
+        <svg viewBox="0 0 200 200" class="ring-svg">
+          <circle cx="100" cy="100" r="86"
+            fill="none" stroke="rgba(120,120,128,0.16)" stroke-width="14"/>
+          <circle cx="100" cy="100" r="86"
+            fill="none"
+            :stroke="summaryColor" stroke-width="14" stroke-linecap="round"
+            :stroke-dasharray="ringCircumference"
+            :stroke-dashoffset="ringOffset"
+            transform="rotate(-90 100 100)"
+            style="transition: stroke-dashoffset 900ms cubic-bezier(0.32, 0.72, 0, 1)"/>
+          <circle cx="100" cy="100" r="86"
+            fill="none"
+            :stroke="pass ? '#34C759' : '#FF3B30'"
+            stroke-width="14" stroke-linecap="butt"
+            :stroke-dasharray="`3 ${ringCircumference - 3}`"
+            :stroke-dashoffset="ringThresholdOffset"
+            transform="rotate(-90 100 100)" opacity="0.9"/>
+        </svg>
         <view class="ring-center">
           <text class="ring-rate" :style="{ color: summaryColor }">
             {{ detail.aiRate?.toFixed(1) }}<text class="ring-unit">%</text>
           </text>
-          <text class="ring-cap">红线 {{ detail.threshold }}%</text>
+          <text class="ring-cap">红线 ≤ {{ detail.threshold }}%</text>
         </view>
       </view>
 
-      <text class="summary-verdict" :style="{ color: summaryColor }">
-        {{ pass ? '✓ 低于红线，达标' : '⚠ 超过红线 ' + detail.threshold + '%，建议修改' }}
-      </text>
-      <text v-if="bodyStats" class="summary-body-hint">
+      <view class="verdict-pill" :class="pass ? 'verdict-ok' : 'verdict-fail'">
+        <text>{{ pass ? '低于红线，达标' : '超过红线 ' + detail.threshold + '%，建议修改' }}</text>
+      </view>
+
+      <text v-if="bodyStats" class="hero-hint">
         基于正文 {{ bodyStats.body }} 段计算<template v-if="bodyStats.excluded > 0">，已排除 {{ bodyStats.excluded }} 段（参考文献/图表等）</template>
       </text>
-      <text class="summary-paper">{{ detail.paperTitle }}</text>
+      <text class="hero-paper">{{ detail.paperTitle }}</text>
     </view>
 
-    <!-- 改进建议（Wave 1 · 2.4） -->
+    <!-- 改进建议 -->
     <view v-if="suggestions.length" class="section">
       <text class="section-header">改进建议</text>
-      <view class="group-card">
+      <view class="suggest-list">
         <view
           v-for="(s, i) in suggestions" :key="i"
-          class="sug-item"
-          :class="{ 'has-sep': i < suggestions.length - 1 }"
-          :style="{ background: suggestionBg(s.severity) }"
+          class="sug-card"
+          :style="{ background: sevBg(s.severity) }"
         >
-          <text class="sug-icon" :style="{ color: suggestionColor(s.severity) }">{{ s.icon }}</text>
+          <view class="sug-dot" :style="{ background: sevSolid(s.severity) }" />
           <view class="sug-body">
-            <text class="sug-title" :style="{ color: suggestionColor(s.severity) }">{{ s.title }}</text>
+            <text class="sug-title" :style="{ color: sevFg(s.severity) }">{{ s.title }}</text>
             <text class="sug-text">{{ s.body }}</text>
           </view>
         </view>
@@ -350,20 +341,20 @@ function toggleExpand(idx) {
         <view v-for="(s, i) in sortedSources" :key="s.label" class="source-item">
           <view class="source-line">
             <view class="source-name-wrap">
-              <view class="source-dot" :style="{ background: SOURCE_MAP[s.label]?.color || COLOR.systemGray }"></view>
+              <view class="source-dot" :style="{ background: SOURCE_MAP[s.label]?.color || COLOR.systemGray }" />
               <text class="source-name">{{ SOURCE_MAP[s.label]?.label || s.label }}</text>
             </view>
             <text class="source-ratio">{{ (s.ratio * 100).toFixed(0) }}%</text>
           </view>
           <view class="bar-track">
-            <view class="bar-fill" :style="{ width: (s.ratio * 100) + '%', background: SOURCE_MAP[s.label]?.color || COLOR.systemGray }"></view>
+            <view class="bar-fill" :style="{ width: (s.ratio * 100) + '%', background: SOURCE_MAP[s.label]?.color || COLOR.systemGray }" />
           </view>
-          <view v-if="i < sortedSources.length - 1" class="source-sep"></view>
+          <view v-if="i < sortedSources.length - 1" class="row-sep" />
         </view>
       </view>
     </view>
 
-    <!-- 段落速览：一屏定位所有段的 AI 率，chip 点击展开+滚动到该段 -->
+    <!-- 段落速览 -->
     <view v-if="detail.status === 'DONE' && (detail.paragraphs || []).length > 1" class="section">
       <text class="section-header">段落速览 · 点击查看</text>
       <view class="group-card overview-card">
@@ -392,13 +383,13 @@ function toggleExpand(idx) {
       </view>
     </view>
 
-    <!-- 段落列表 -->
+    <!-- 段落分析 -->
     <view v-if="detail.status === 'DONE'" class="section">
       <view class="section-header-line">
-        <text class="section-header">段落分析</text>
+        <text class="section-header no-pad">段落分析</text>
         <view class="legend">
-          <text><text class="swatch high"></text> 高</text>
-          <text><text class="swatch mid"></text> 中</text>
+          <view class="legend-item"><view class="swatch high" /><text>高</text></view>
+          <view class="legend-item"><view class="swatch mid" /><text>中</text></view>
         </view>
       </view>
 
@@ -408,7 +399,6 @@ function toggleExpand(idx) {
         class="para-card group-card"
         :class="{ 'para-excluded': p.excluded }"
       >
-        <!-- 折叠头：全宽点击区，右侧 chevron -->
         <view class="para-header" hover-class="para-header-hover" @click="toggleExpand(p.paragraphIdx)">
           <view class="para-header-left">
             <text class="para-idx">段 {{ p.paragraphIdx + 1 }}</text>
@@ -417,7 +407,7 @@ function toggleExpand(idx) {
             </text>
             <text v-else class="para-prob" :style="{ color: paragraphRisk(p.calibratedProb || 0).color }">
               {{ ((p.calibratedProb || 0) * 100).toFixed(0) }}%
-              <text v-if="p.sourceLabel && p.sourceLabel !== 'human'">
+              <text v-if="p.sourceLabel && p.sourceLabel !== 'human'" class="para-src">
                 · 疑似 {{ SOURCE_MAP[p.sourceLabel]?.label || p.sourceLabel }}
               </text>
             </text>
@@ -425,7 +415,6 @@ function toggleExpand(idx) {
           <text class="chevron" :class="{ expanded: expandedMap[p.paragraphIdx] }">›</text>
         </view>
 
-        <!-- 折叠体：默认展示前 60 字预览 + 三档色高亮；展开后完整段落 -->
         <view v-if="!expandedMap[p.paragraphIdx]" class="para-preview">
           {{ (p.text || '').slice(0, 60) }}{{ (p.text || '').length > 60 ? '…' : '' }}
         </view>
@@ -439,13 +428,12 @@ function toggleExpand(idx) {
             >{{ s.text }}</text>
           </view>
 
-          <!-- 高危：改写（excluded 段不显示） -->
           <button
             v-if="!p.excluded && (p.calibratedProb || 0) >= 0.7 && !rewrittenMap[p.paragraphIdx]"
-            class="tinted-btn"
+            class="btn-tinted humanize-btn"
             :loading="humanizingMap[p.paragraphIdx]"
             @click="humanize(p.paragraphIdx)"
-          >✨  降 AIGC 改写建议</button>
+          >降 AIGC · 生成改写建议</button>
 
           <view v-if="rewrittenMap[p.paragraphIdx]" class="rewritten">
             <view class="rewritten-header">
@@ -457,7 +445,6 @@ function toggleExpand(idx) {
                 <text class="link-btn primary" @click="copyRewritten(p.paragraphIdx)">复制</text>
               </view>
             </view>
-
             <view v-if="diffOpenMap[p.paragraphIdx]" class="diff-text">
               <text
                 v-for="(seg, i) in paragraphDiff(p.paragraphIdx, p.text)" :key="i"
@@ -470,16 +457,17 @@ function toggleExpand(idx) {
       </view>
     </view>
 
-    <!-- W3.d 结果申诉入口：只在 DONE 状态出现 -->
+    <!-- 申诉入口 -->
     <view v-if="detail && detail.status === 'DONE'" class="appeal-card" hover-class="appeal-card-hover" @click="feedbackOpen = true">
-      <view class="appeal-line">
-        <text class="appeal-icon">🚩</text>
-        <view class="appeal-body">
-          <text class="appeal-title">对本次结果有疑问？</text>
-          <text class="appeal-sub">提交申诉，我们会人工复核并回复</text>
-        </view>
-        <text class="appeal-chevron">›</text>
+      <view class="appeal-icon">
+        <view class="appeal-flag-mast" />
+        <view class="appeal-flag-cloth" />
       </view>
+      <view class="appeal-body">
+        <text class="appeal-title">对本次结果有疑问？</text>
+        <text class="appeal-sub">提交申诉，我们会人工复核并回复</text>
+      </view>
+      <text class="appeal-chevron">›</text>
     </view>
   </scroll-view>
 
@@ -487,409 +475,389 @@ function toggleExpand(idx) {
 </template>
 
 <style lang="scss" scoped>
-.page { padding: 24rpx 32rpx 100rpx; background: #F2F2F7; }
-
-/* 处理中 */
-.processing {
-  padding: 80rpx 40rpx !important;
-  text-align: center;
-}
-.processing-icon { font-size: 96rpx; display: block; margin-bottom: 24rpx; }
-.processing-title { display: block; font-size: 40rpx; font-weight: 600; color: #FF9500; }
-.processing-sub { display: block; font-size: 28rpx; color: rgba(60,60,67,0.60); margin-top: 12rpx; }
-
-/* 检测失败 */
-.failed-card {
-  padding: 80rpx 40rpx 60rpx !important;
-  text-align: center;
-}
-.failed-icon { font-size: 96rpx; display: block; margin-bottom: 24rpx; }
-.failed-title { display: block; font-size: 40rpx; font-weight: 600; color: #FF3B30; }
-.failed-sub { display: block; font-size: 28rpx; color: rgba(60,60,67,0.60); margin-top: 12rpx; }
-.retry-btn {
-  margin-top: 40rpx;
-  min-width: 300rpx;
-  height: 88rpx;
-  line-height: 88rpx;
-  background: #007AFF;
-  color: #FFFFFF;
-  font-size: 32rpx;
-  font-weight: 600;
-  border-radius: 9999rpx;
-  transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
-  &:active { transform: scale(0.96); }
-  &[disabled] { opacity: 0.5; }
+.page {
+  padding: $sp-3 $sp-4 100rpx;
+  background: $bg-grouped-primary;
 }
 
-/* 加载失败兜底（整页错误态）*/
+/* ============ 整页错误 ============ */
 .error-page {
   min-height: 100vh;
-  padding: 200rpx 60rpx;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: #F2F2F7;
+  padding: 200rpx $sp-6;
+  display: flex; flex-direction: column; align-items: center;
+  background: $bg-grouped-primary;
 }
-.error-icon { font-size: 128rpx; margin-bottom: 40rpx; }
-.error-title { font-size: 40rpx; font-weight: 600; color: #000; letter-spacing: -0.5rpx; }
+.error-mark {
+  width: 96rpx; height: 96rpx; border-radius: 50%;
+  background: $danger-bg;
+  position: relative;
+  margin-bottom: $sp-5;
+  &::before {
+    content: '!';
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 56rpx; font-weight: $fw-bold; color: $danger-solid;
+    font-family: $font-family;
+  }
+}
+.error-title {
+  font-size: $fs-title-3; font-weight: $fw-semibold;
+  color: $label-primary; letter-spacing: $tracking-snug;
+}
 .error-sub {
-  font-size: 28rpx; color: rgba(60,60,67,0.60);
-  margin-top: 16rpx; text-align: center;
+  font-size: $fs-subhead; color: $label-secondary;
+  margin-top: $sp-2; text-align: center;
 }
 .error-actions {
-  display: flex; gap: 24rpx;
-  margin-top: 60rpx;
-  width: 100%; justify-content: center;
-}
-.error-btn {
-  min-width: 240rpx;
-  height: 88rpx;
-  line-height: 88rpx;
-  background: rgba(0,122,255,0.10);
-  color: #007AFF;
-  font-size: 30rpx;
-  font-weight: 600;
-  border-radius: 9999rpx;
-  transition: background 200ms;
-  &.primary { background: #007AFF; color: #fff; }
-  &:active { opacity: 0.85; }
+  display: flex; gap: $sp-3;
+  margin-top: $sp-8; width: 100%; justify-content: center;
 }
 
-/* Hero 大数字（Fitness app 风） */
-.summary-hero {
-  background: #FFFFFF;
-  border-radius: 28rpx;
-  padding: 56rpx 40rpx 48rpx;
+/* ============ 状态卡（处理中 / 失败） ============ */
+.state-card {
+  @include card;
+  padding: 80rpx $sp-5 60rpx;
   text-align: center;
+  display: flex; flex-direction: column; align-items: center;
 }
-.summary-label {
+.state-title {
   display: block;
-  font-size: 26rpx;
-  font-weight: 500;
-  color: rgba(60,60,67,0.60);
-  text-transform: uppercase;
-  letter-spacing: 1rpx;
+  font-size: $fs-title-3; font-weight: $fw-semibold;
+  letter-spacing: $tracking-snug;
+  margin-top: $sp-4;
+}
+.state-sub {
+  display: block;
+  font-size: $fs-subhead; color: $label-secondary;
+  margin-top: $sp-2;
 }
 
-/* 环形进度 */
+/* CSS 环形 spinner（替代 ⏳ emoji） */
+.state-spinner {
+  width: 96rpx; height: 96rpx; position: relative;
+}
+.spinner-ring {
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  border: 8rpx solid rgba(255, 149, 0, 0.18);
+  border-top-color: $warning-solid;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* CSS X 标（替代 ❌ emoji） */
+.state-mark {
+  width: 96rpx; height: 96rpx; border-radius: 50%;
+  position: relative;
+  &.danger { background: $danger-bg; }
+}
+.mark-x-1, .mark-x-2 {
+  position: absolute;
+  left: 20%; right: 20%; top: 48%;
+  height: 6rpx; border-radius: 3rpx;
+  background: $danger-solid;
+  transform-origin: center;
+}
+.mark-x-1 { transform: rotate(45deg); }
+.mark-x-2 { transform: rotate(-45deg); }
+
+.retry-btn { margin-top: $sp-5; min-width: 320rpx; }
+
+/* ============ 主 & 次 按钮 ============ */
+.btn-primary {
+  min-width: 240rpx;
+  height: $size-btn-h-lg; line-height: $size-btn-h-lg;
+  background: $brand-primary; color: #FFFFFF;
+  font-size: $fs-headline; font-weight: $fw-semibold;
+  border-radius: $radius-pill;
+  transition: transform $duration-fast $ease-standard, background $duration-fast;
+  &:active { transform: scale(#{$tap-scale}); background: $brand-primary-tint; }
+  &[disabled] { opacity: 0.5; }
+}
+.btn-tinted {
+  min-width: 240rpx;
+  height: $size-btn-h-lg; line-height: $size-btn-h-lg;
+  background: $brand-primary-wash; color: $brand-primary;
+  font-size: $fs-body; font-weight: $fw-semibold;
+  border-radius: $radius-pill;
+  transition: opacity $duration-fast;
+  &:active { opacity: 0.7; }
+}
+
+/* ============ Hero AI 率环 ============ */
+.hero-card {
+  @include card;
+  padding: 56rpx $sp-5 48rpx;
+  text-align: center;
+  display: flex; flex-direction: column; align-items: center;
+}
+.hero-label {
+  display: block;
+  font-size: $fs-footnote; font-weight: $fw-medium;
+  color: $label-secondary;
+  text-transform: uppercase;
+  letter-spacing: $tracking-wide;
+}
 .ring-wrap {
   position: relative;
-  width: 440rpx;
-  height: 440rpx;
-  margin: 32rpx auto 24rpx;
+  width: 440rpx; height: 440rpx;
+  margin: $sp-4 auto $sp-3;
 }
-.ring-svg-wrap {
-  width: 100%;
-  height: 100%;
-}
-.ring-svg {
-  width: 440rpx;
-  height: 440rpx;
-  display: block;
-}
+.ring-svg { width: 440rpx; height: 440rpx; display: block; }
 .ring-center {
-  position: absolute;
-  left: 0; right: 0; top: 0; bottom: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
 .ring-rate {
-  font-size: 100rpx;
-  font-weight: 700;
-  letter-spacing: -2rpx;
-  line-height: 1;
+  font-size: 100rpx; font-weight: $fw-bold;
+  letter-spacing: -2rpx; line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 .ring-unit {
-  font-size: 40rpx;
-  font-weight: 600;
-  color: rgba(60,60,67,0.60);
+  font-size: 40rpx; font-weight: $fw-semibold;
+  color: $label-secondary;
   margin-left: 4rpx;
 }
 .ring-cap {
   display: block;
-  font-size: 24rpx;
-  color: rgba(60,60,67,0.60);
-  margin-top: 12rpx;
-  letter-spacing: 1rpx;
+  font-size: $fs-caption-1; color: $label-secondary;
+  margin-top: $sp-2; letter-spacing: 1rpx;
 }
-.summary-rate-line {
-  display: inline-flex;
-  align-items: baseline;
-  margin: 20rpx 0 16rpx;
+.verdict-pill {
+  display: inline-flex; align-items: center;
+  padding: $sp-2 $sp-4;
+  border-radius: $radius-pill;
+  font-size: $fs-subhead; font-weight: $fw-semibold;
+  &.verdict-ok   { background: $success-bg; color: $success-fg; }
+  &.verdict-fail { background: $danger-bg;  color: $danger-fg;  }
 }
-.summary-rate {
-  font-size: 176rpx;
-  font-weight: 700;
-  letter-spacing: -4rpx;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-.summary-unit {
-  font-size: 60rpx;
-  font-weight: 600;
-  margin-left: 8rpx;
-  color: rgba(60,60,67,0.60);
-}
-.summary-verdict {
+.hero-hint {
   display: block;
-  font-size: 30rpx;
-  font-weight: 600;
+  font-size: $fs-caption-1; color: $label-secondary;
+  margin-top: $sp-3; padding: 0 $sp-3;
+  line-height: $lh-normal;
 }
-.summary-body-hint {
+.hero-paper {
   display: block;
-  font-size: 24rpx;
-  color: rgba(60,60,67,0.60);
-  margin-top: 12rpx;
-  padding: 0 20rpx;
-}
-.summary-paper {
-  display: block;
-  font-size: 26rpx;
-  color: rgba(60,60,67,0.60);
-  margin-top: 32rpx;
-  padding-top: 24rpx;
-  border-top: 1rpx solid rgba(60,60,67,0.18);
+  font-size: $fs-footnote; color: $label-secondary;
+  margin-top: $sp-4; padding-top: $sp-3;
+  border-top: $stroke-hairline solid $separator;
 }
 
-/* 改进建议 */
-.sug-item {
-  display: flex;
-  padding: 24rpx 28rpx;
-  position: relative;
-  gap: 20rpx;
+/* ============ Section 通用 ============ */
+.section { margin-top: $sp-6; }
+.section-header {
+  display: block;
+  padding: 0 $sp-3 $sp-2;
+  font-size: $fs-footnote; font-weight: $fw-medium;
+  color: $label-secondary;
+  text-transform: uppercase; letter-spacing: $tracking-wide;
+  &.no-pad { padding-left: 0; }
 }
-.sug-item.has-sep::after {
-  content: ''; position: absolute; left: 28rpx; right: 0; bottom: 0;
-  height: 1rpx; background: rgba(60,60,67,0.18);
+.section-header-line {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0 $sp-3 $sp-2;
 }
-.sug-icon {
-  font-size: 40rpx;
-  line-height: 1.3;
-  flex-shrink: 0;
-  width: 60rpx;
-  text-align: center;
+.legend { display: inline-flex; gap: $sp-3; font-size: $fs-caption-2; color: $label-secondary; }
+.legend-item { display: inline-flex; align-items: center; gap: 6rpx; }
+.swatch { display: inline-block; width: 24rpx; height: 12rpx; border-radius: 4rpx; }
+.swatch.high { background: rgba(255, 59, 48, 0.30); }
+.swatch.mid  { background: rgba(255, 149, 0, 0.30); }
+
+.group-card { @include card-flush; }
+
+/* ============ 改进建议 ============ */
+.suggest-list { display: flex; flex-direction: column; gap: $sp-2; }
+.sug-card {
+  border-radius: $radius-lg;
+  padding: $sp-3 $sp-3 $sp-3 $sp-2;
+  display: flex; gap: $sp-3; align-items: flex-start;
+}
+.sug-dot {
+  width: 12rpx; height: 12rpx; border-radius: 50%;
+  margin-top: 14rpx; flex-shrink: 0;
 }
 .sug-body { flex: 1; }
 .sug-title {
   display: block;
-  font-size: 30rpx;
-  font-weight: 600;
-  margin-bottom: 8rpx;
+  font-size: $fs-headline; font-weight: $fw-semibold;
+  letter-spacing: $tracking-snug;
+  margin-bottom: 6rpx;
 }
 .sug-text {
   display: block;
-  font-size: 26rpx;
-  color: #000;
-  opacity: 0.85;
-  line-height: 1.5;
+  font-size: $fs-subhead; color: $label-primary; opacity: 0.85;
+  line-height: $lh-normal;
 }
 
-/* 非正文段 excluded */
-.para-excluded { opacity: 0.7; }
-.excluded-badge {
-  font-size: 22rpx;
-  color: rgba(60,60,67,0.60);
-  background: rgba(120,120,128,0.14);
-  padding: 4rpx 16rpx;
-  border-radius: 9999rpx;
-  font-weight: 500;
-  margin-left: 16rpx;
-}
-.para-excluded-text {
-  font-size: 28rpx;
-  line-height: 1.6;
-  color: rgba(60,60,67,0.60);
-}
-
-/* Sections */
-.section { margin-top: 48rpx; }
-.section-header {
-  font-size: 26rpx;
-  font-weight: 500;
-  color: rgba(60,60,67,0.60);
-  text-transform: uppercase;
-  letter-spacing: 1rpx;
-  padding: 0 20rpx 12rpx;
-  display: block;
-}
-.section-header-line {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-right: 20rpx;
-}
-.legend {
-  font-size: 22rpx;
-  color: rgba(60,60,67,0.60);
-  display: inline-flex; gap: 20rpx;
-}
-.swatch { display: inline-block; width: 24rpx; height: 12rpx; border-radius: 4rpx; margin-right: 6rpx; vertical-align: middle; }
-.swatch.high { background: rgba(255,59,48,0.30); }
-.swatch.mid  { background: rgba(255,149,0,0.30); }
-
-.group-card {
-  background: #FFFFFF;
-  border-radius: 28rpx;
-  overflow: hidden;
-}
-
-/* Source list */
-.source-item { padding: 28rpx 32rpx; position: relative; }
+/* ============ 溯源分布 ============ */
+.source-item { padding: $sp-4 $sp-4; position: relative; }
 .source-line {
   display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 12rpx;
+  margin-bottom: $sp-2;
 }
 .source-name-wrap { display: inline-flex; align-items: center; }
-.source-dot { width: 20rpx; height: 20rpx; border-radius: 50%; margin-right: 16rpx; }
-.source-name { font-size: 30rpx; color: #000; font-weight: 500; }
-.source-ratio { font-size: 28rpx; color: #000; font-weight: 600; font-variant-numeric: tabular-nums; }
+.source-dot { width: 20rpx; height: 20rpx; border-radius: 50%; margin-right: $sp-2; }
+.source-name { font-size: $fs-subhead; color: $label-primary; font-weight: $fw-medium; }
+.source-ratio {
+  font-size: $fs-callout; color: $label-primary;
+  font-weight: $fw-semibold; font-variant-numeric: tabular-nums;
+}
 .bar-track {
   height: 10rpx;
-  background: rgba(120,120,128,0.16);
-  border-radius: 5rpx;
-  overflow: hidden;
+  background: $fill-tertiary;
+  border-radius: 5rpx; overflow: hidden;
 }
 .bar-fill {
-  height: 100%;
-  border-radius: 5rpx;
-  transition: width 400ms cubic-bezier(0.32, 0.72, 0, 1);
+  height: 100%; border-radius: 5rpx;
+  transition: width $duration-slow $ease-standard;
 }
-.source-sep {
-  position: absolute;
-  left: 32rpx; right: 0; bottom: 0;
-  height: 1rpx;
-  background: rgba(60,60,67,0.18);
+.row-sep {
+  position: absolute; left: $sp-4; right: 0; bottom: 0;
+  height: $stroke-hairline; background: $separator;
 }
 
-/* 段落速览 chip grid */
-.overview-card { padding: 24rpx 20rpx 12rpx !important; }
+/* ============ 段落速览 chip grid ============ */
+.overview-card { padding: $sp-3 $sp-2 $sp-1; }
 .chip-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16rpx;
+  display: flex; flex-wrap: wrap; gap: $sp-2;
 }
 .para-chip {
   min-width: 130rpx;
-  padding: 16rpx 24rpx;
-  border-radius: 20rpx;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
+  padding: $sp-2 $sp-3;
+  border-radius: $radius-md;
+  display: flex; flex-direction: column; align-items: center;
+  transition: transform $duration-fast $ease-standard;
 }
 .para-chip-hover { transform: scale(0.94); }
 .chip-idx {
-  font-size: 20rpx;
-  font-weight: 600;
-  opacity: 0.85;
-  letter-spacing: 0.5rpx;
-  text-transform: uppercase;
+  font-size: $fs-caption-2; font-weight: $fw-semibold;
+  opacity: 0.85; letter-spacing: 0.5rpx;
 }
 .chip-rate {
-  font-size: 32rpx;
-  font-weight: 700;
+  font-size: $fs-callout; font-weight: $fw-bold;
   font-variant-numeric: tabular-nums;
-  margin-top: 4rpx;
-  letter-spacing: -0.5rpx;
+  margin-top: 4rpx; letter-spacing: -0.5rpx;
 }
 
-/* Para cards */
+/* ============ 段落卡 ============ */
 .para-card {
-  margin-bottom: 20rpx;
-  padding: 0;                /* 交给 header/body 各自 padding，方便点击展开动画 */
+  margin-bottom: $sp-2;
+  padding: 0;
   overflow: hidden;
+  transition: background $duration-fast;
 }
+.para-excluded { opacity: 0.7; }
 .para-header {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 28rpx 32rpx;
-  transition: background 150ms;
+  padding: $sp-3 $sp-4;
+  transition: background $duration-fast $ease-standard;
 }
-.para-header-hover { background: rgba(60,60,67,0.06); }
-.para-header-left { display: flex; align-items: baseline; gap: 20rpx; }
-.para-idx { font-size: 22rpx; color: rgba(60,60,67,0.60); font-weight: 600; letter-spacing: 1rpx; text-transform: uppercase; }
-.para-prob { font-size: 26rpx; font-weight: 600; }
+.para-header-hover { background: rgba(60, 60, 67, 0.06); }
+.para-header-left {
+  display: flex; align-items: baseline; gap: $sp-2;
+  flex: 1; min-width: 0;
+}
+.para-idx {
+  font-size: $fs-caption-2; color: $label-secondary;
+  font-weight: $fw-semibold; letter-spacing: 1rpx;
+  text-transform: uppercase;
+}
+.para-prob { font-size: $fs-subhead; font-weight: $fw-semibold; }
+.para-src  { color: $label-secondary; font-weight: $fw-regular; }
+.excluded-badge {
+  font-size: $fs-caption-2; color: $label-secondary;
+  background: $fill-tertiary;
+  padding: 4rpx 16rpx; border-radius: $radius-pill;
+  font-weight: $fw-medium;
+}
 .chevron {
-  font-size: 40rpx;
-  color: rgba(60,60,67,0.30);
-  line-height: 1;
-  transition: transform 300ms cubic-bezier(0.32, 0.72, 0, 1);
-  transform: rotate(0deg);
+  font-size: 40rpx; color: $label-tertiary; line-height: 1;
+  transition: transform $duration-base $ease-standard;
 }
 .chevron.expanded { transform: rotate(90deg); }
 
 .para-preview {
-  padding: 0 32rpx 28rpx;
-  font-size: 28rpx;
-  line-height: 1.5;
-  color: rgba(60,60,67,0.60);
+  padding: 0 $sp-4 $sp-3;
+  font-size: $fs-subhead; line-height: $lh-normal;
+  color: $label-secondary;
 }
-
 .para-body {
-  padding: 8rpx 32rpx 32rpx;
-  border-top: 1rpx solid rgba(60,60,67,0.10);
-  padding-top: 24rpx;
+  padding: $sp-3 $sp-4 $sp-4;
+  border-top: $stroke-hairline solid $label-quaternary;
 }
-.para-text { font-size: 32rpx; line-height: 1.7; color: #000; }
+.para-text { font-size: $fs-body; line-height: $lh-relaxed; color: $label-primary; }
+.para-excluded-text { font-size: $fs-callout; line-height: $lh-normal; color: $label-secondary; }
 
-/* Tinted 按钮（iOS Tinted style） */
-.tinted-btn {
-  margin-top: 24rpx;
-  background: rgba(0,122,255,0.12);
-  color: #007AFF;
-  font-size: 30rpx;
-  font-weight: 600;
-  border-radius: 20rpx;
-  padding: 22rpx 0;
-  transition: background 200ms;
-  &:active { background: rgba(0,122,255,0.22); }
+.humanize-btn {
+  margin-top: $sp-3;
+  width: 100%;
+  height: $size-btn-h-md; line-height: $size-btn-h-md;
+  border-radius: $radius-btn;
 }
 
-/* 改写卡 */
+/* ============ 改写卡 ============ */
 .rewritten {
-  margin-top: 24rpx;
-  background: rgba(0,122,255,0.06);
-  border-radius: 20rpx;
-  padding: 28rpx;
+  margin-top: $sp-3;
+  background: $brand-primary-wash;
+  border-radius: $radius-md;
+  padding: $sp-3 $sp-4;
 }
 .rewritten-header {
   display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 16rpx;
+  margin-bottom: $sp-2;
 }
-.rewritten-label { font-size: 24rpx; color: #007AFF; font-weight: 600; letter-spacing: 0.5rpx; }
-.rewritten-actions { display: flex; gap: 24rpx; }
+.rewritten-label {
+  font-size: $fs-caption-1; color: $brand-primary;
+  font-weight: $fw-semibold; letter-spacing: 0.5rpx;
+}
+.rewritten-actions { display: flex; gap: $sp-3; }
 .link-btn {
-  font-size: 26rpx;
-  color: #007AFF;
-  font-weight: 500;
+  font-size: $fs-footnote; color: $brand-primary;
+  font-weight: $fw-medium;
   padding: 4rpx 16rpx;
-  border-radius: 9999rpx;
-  border: 1rpx solid #007AFF;
-  &.primary { background: #007AFF; color: #fff; }
+  border-radius: $radius-pill;
+  border: $stroke-hairline solid $brand-primary;
+  &.primary { background: $brand-primary; color: #FFFFFF; border-color: $brand-primary; }
 }
-.rewritten-text { font-size: 30rpx; line-height: 1.7; color: #000; }
+.rewritten-text { font-size: $fs-callout; line-height: $lh-relaxed; color: $label-primary; }
 
 /* diff */
-.diff-text { font-size: 30rpx; line-height: 1.7; }
-.diff-equal  { color: #000; }
-.diff-add    { background: rgba(52,199,89,0.20); color: #1B7F3E; }
-.diff-remove { background: rgba(255,59,48,0.16); color: #C62A22; text-decoration: line-through; }
+.diff-text { font-size: $fs-callout; line-height: $lh-relaxed; }
+.diff-equal  { color: $label-primary; }
+.diff-add    { background: rgba(52, 199, 89, 0.20); color: $success-fg; }
+.diff-remove { background: rgba(255, 59, 48, 0.16); color: $danger-fg; text-decoration: line-through; }
 
-/* W3.d 申诉入口卡 */
+/* ============ 申诉入口卡（CSS 小旗 icon 替代 emoji 🚩） ============ */
 .appeal-card {
-  margin: 32rpx;
-  padding: 28rpx 32rpx;
-  background: #FFFFFF;
-  border-radius: 24rpx;
-  transition: background 150ms;
+  margin: $sp-4 0 0;
+  padding: $sp-3 $sp-4;
+  background: $bg-primary;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+  display: flex; align-items: center;
+  transition: background $duration-fast;
 }
-.appeal-card-hover { background: rgba(60,60,67,0.06); }
-.appeal-line { display: flex; align-items: center; }
-.appeal-icon { font-size: 40rpx; margin-right: 24rpx; }
+.appeal-card-hover { background: rgba(60, 60, 67, 0.05); }
+.appeal-icon {
+  position: relative;
+  width: 48rpx; height: 48rpx; margin-right: $sp-3;
+  flex-shrink: 0;
+}
+.appeal-flag-mast {
+  position: absolute; left: 12rpx; top: 4rpx;
+  width: 4rpx; height: 40rpx;
+  background: $label-primary;
+  border-radius: 2rpx;
+}
+.appeal-flag-cloth {
+  position: absolute; left: 16rpx; top: 4rpx;
+  width: 26rpx; height: 20rpx;
+  background: $brand-primary;
+  clip-path: polygon(0 0, 100% 0, 70% 50%, 100% 100%, 0 100%);
+}
 .appeal-body { flex: 1; }
-.appeal-title { display: block; font-size: 30rpx; font-weight: 600; color: #000; }
-.appeal-sub { display: block; font-size: 24rpx; color: rgba(60,60,67,0.60); margin-top: 6rpx; }
-.appeal-chevron { color: rgba(60,60,67,0.30); font-size: 36rpx; }
+.appeal-title { display: block; font-size: $fs-headline; font-weight: $fw-semibold; color: $label-primary; }
+.appeal-sub { display: block; font-size: $fs-caption-1; color: $label-secondary; margin-top: 6rpx; }
+.appeal-chevron { color: $label-tertiary; font-size: 36rpx; margin-left: $sp-2; }
 </style>
