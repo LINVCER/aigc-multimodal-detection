@@ -55,11 +55,19 @@ export function getTaskDetail(id) {
  * @param {string} name 文件名
  * @param {string} degreeType BACHELOR|MASTER|PHD
  */
+/**
+ * 上传论文
+ * @returns { id, paperTitle, status, createdAt } — id 已从契约 taskId 归一
+ */
 export function uploadPaper(filePath, name, degreeType) {
   if (MOCK_MODE) {
     return Promise.resolve({
-      id: Date.now(), paperTitle: name, status: 'PENDING', aiRate: null,
-      degreeType, threshold: 20, createdAt: new Date().toISOString(),
+      id: Date.now(),
+      paperTitle: name,
+      status: 'PENDING',
+      degreeType,
+      threshold: 20,
+      createdAt: new Date().toISOString(),
     })
   }
   return new Promise((resolve, reject) => {
@@ -75,12 +83,27 @@ export function uploadPaper(filePath, name, degreeType) {
         try {
           const body = JSON.parse(res.data)
           if (body.code !== 0 && body.code !== 200) return reject(new Error(body.msg))
-          resolve(body.data)
+          // 契约 §3.1 字段名 taskId → 前端统一 id，避免上层跳转空值
+          const d = body.data || {}
+          resolve({
+            id: d.taskId || d.id,
+            paperTitle: d.paperTitle || name,
+            status: d.status || 'PENDING',
+            createdAt: d.createdAt,
+          })
         } catch (e) { reject(e) }
       },
       fail: reject,
     })
   })
+}
+
+/**
+ * §3.4 重试失败任务
+ */
+export function retryTask(id) {
+  if (MOCK_MODE) return Promise.resolve({ id, status: 'PENDING' })
+  return http({ url: `/api/v1/detect/tasks/${id}/retry`, method: 'POST' })
 }
 
 export function requestHumanize(taskId, paragraphIdx) {

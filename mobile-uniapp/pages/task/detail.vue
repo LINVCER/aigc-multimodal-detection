@@ -1,13 +1,15 @@
 <script setup>
 import { ref, computed, onUnmounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { getTaskDetail, requestHumanize } from '@/api/detect'
+import { getTaskDetail, requestHumanize, retryTask } from '@/api/detect'
 import { SOURCE_MAP, COLOR, paragraphRisk, aiRateColor } from '@/utils/constants'
 import { diffChars } from '@/utils/diff'
 import Skeleton from '@/components/Skeleton.vue'
 
 const detail = ref(null)
 const loading = ref(true)
+const loadError = ref('')      // 加载失败（404 / 网络异常）触发兜底 UI
+const retrying = ref(false)
 const rewrittenMap = ref({})
 const humanizingMap = ref({})
 const diffOpenMap = ref({})
@@ -15,28 +17,60 @@ let pollTimer = null
 let taskId = null
 
 async function load() {
+  loadError.value = ''
   try {
     detail.value = await getTaskDetail(taskId)
   } catch (e) {
-    uni.showToast({ title: '加载失败', icon: 'none' })
+    loadError.value = e?.message || '加载失败'
   } finally {
     loading.value = false
   }
 }
 
-onLoad(async (query) => {
-  taskId = Number(query.id)
-  await load()
-  if (detail.value && (detail.value.status === 'PENDING' || detail.value.status === 'RUNNING')) {
-    pollTimer = setInterval(async () => {
-      await load()
-      if (detail.value.status === 'DONE' || detail.value.status === 'FAILED') stopPoll()
-    }, 3000)
-  }
-})
+function ensurePolling() {
+  if (pollTimer) return
+  const s = detail.value?.status
+  if (s !== 'PENDING' && s !== 'RUNNING') return
+  pollTimer = setInterval(async () => {
+    await load()
+    const st = detail.value?.status
+    if (st === 'DONE' || st === 'FAILED') stopPoll()
+  }, 3000)
+}
 
 function stopPoll() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null } }
 onUnmounted(stopPoll)
+
+async function onRetry() {
+  retrying.value = true
+  try {
+    await retryTask(taskId)
+    uni.showToast({ title: '已重新提交', icon: 'success' })
+    await load()
+    ensurePolling()
+  } catch (e) {
+    uni.showToast({ title: e?.message || '重试失败', icon: 'none' })
+  } finally {
+    retrying.value = false
+  }
+}
+
+function goBack() {
+  const pages = getCurrentPages()
+  if (pages.length > 1) uni.navigateBack()
+  else uni.switchTab({ url: '/pages/index/index' })
+}
+
+onLoad(async (query) => {
+  taskId = Number(query.id)
+  if (!taskId || Number.isNaN(taskId)) {
+    loadError.value = '无效的任务号'
+    loading.value = false
+    return
+  }
+  await load()
+  ensurePolling()
+})
 
 const pass = computed(() => {
   const d = detail.value
@@ -82,12 +116,36 @@ function paragraphDiff(idx, original) {
 <template>
   <Skeleton v-if="loading" :rows="4" />
 
+  <!-- 加载失败兜底（404 / 网络异常 / 无效任务号）-->
+  <view v-else-if="loadError && !detail" class="error-page">
+    <text class="error-icon">⚠️</text>
+    <text class="error-title">{{ loadError }}</text>
+    <text class="error-sub">请检查任务是否已被删除或稍后重试</text>
+    <view class="error-actions">
+      <button class="error-btn primary" @click="load">重新加载</button>
+      <button class="error-btn" @click="goBack">返回列表</button>
+    </view>
+  </view>
+
   <scroll-view v-else-if="detail" scroll-y class="page">
     <!-- 处理中 -->
     <view v-if="detail.status === 'RUNNING' || detail.status === 'PENDING'" class="processing group-card">
       <text class="processing-icon">⏳</text>
       <text class="processing-title">检测中</text>
       <text class="processing-sub">页面将自动刷新（约 15-30 秒）</text>
+    </view>
+
+    <!-- 检测失败 -->
+    <view v-else-if="detail.status === 'FAILED'" class="failed-card group-card">
+      <text class="failed-icon">❌</text>
+      <text class="failed-title">检测失败</text>
+      <text class="failed-sub">推理服务暂时不可用，可点下方重新提交</text>
+      <button
+        class="retry-btn"
+        :loading="retrying"
+        :disabled="retrying"
+        @click="onRetry"
+      >重新检测</button>
     </view>
 
     <!-- 总览大数字（Health app 风） -->
@@ -194,6 +252,63 @@ function paragraphDiff(idx, original) {
 .processing-icon { font-size: 96rpx; display: block; margin-bottom: 24rpx; }
 .processing-title { display: block; font-size: 40rpx; font-weight: 600; color: #FF9500; }
 .processing-sub { display: block; font-size: 28rpx; color: rgba(60,60,67,0.60); margin-top: 12rpx; }
+
+/* 检测失败 */
+.failed-card {
+  padding: 80rpx 40rpx 60rpx !important;
+  text-align: center;
+}
+.failed-icon { font-size: 96rpx; display: block; margin-bottom: 24rpx; }
+.failed-title { display: block; font-size: 40rpx; font-weight: 600; color: #FF3B30; }
+.failed-sub { display: block; font-size: 28rpx; color: rgba(60,60,67,0.60); margin-top: 12rpx; }
+.retry-btn {
+  margin-top: 40rpx;
+  min-width: 300rpx;
+  height: 88rpx;
+  line-height: 88rpx;
+  background: #007AFF;
+  color: #FFFFFF;
+  font-size: 32rpx;
+  font-weight: 600;
+  border-radius: 9999rpx;
+  transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
+  &:active { transform: scale(0.96); }
+  &[disabled] { opacity: 0.5; }
+}
+
+/* 加载失败兜底（整页错误态）*/
+.error-page {
+  min-height: 100vh;
+  padding: 200rpx 60rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #F2F2F7;
+}
+.error-icon { font-size: 128rpx; margin-bottom: 40rpx; }
+.error-title { font-size: 40rpx; font-weight: 600; color: #000; letter-spacing: -0.5rpx; }
+.error-sub {
+  font-size: 28rpx; color: rgba(60,60,67,0.60);
+  margin-top: 16rpx; text-align: center;
+}
+.error-actions {
+  display: flex; gap: 24rpx;
+  margin-top: 60rpx;
+  width: 100%; justify-content: center;
+}
+.error-btn {
+  min-width: 240rpx;
+  height: 88rpx;
+  line-height: 88rpx;
+  background: rgba(0,122,255,0.10);
+  color: #007AFF;
+  font-size: 30rpx;
+  font-weight: 600;
+  border-radius: 9999rpx;
+  transition: background 200ms;
+  &.primary { background: #007AFF; color: #fff; }
+  &:active { opacity: 0.85; }
+}
 
 /* Hero 大数字（Fitness app 风） */
 .summary-hero {

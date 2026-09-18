@@ -45,12 +45,20 @@ function pickFile() {
 async function submit() {
   if (!file.value) return uni.showToast({ title: '请先选择论文文件', icon: 'none' })
   submitting.value = true
+  // 大文件上传给全屏遮罩，避免用户在等待时误触其它按钮
+  uni.showLoading({ title: '上传中…', mask: true })
   try {
-    await uploadPaper(file.value.path, file.value.name, degree.value)
-    uni.showToast({ title: '提交成功', icon: 'success' })
+    const task = await uploadPaper(file.value.path, file.value.name, degree.value)
+    uni.hideLoading()
+    if (!task?.id) {
+      throw new Error('提交成功但未拿到任务号')
+    }
+    uni.showToast({ title: '提交成功', icon: 'success', duration: 800 })
     file.value = null
-    setTimeout(() => uni.switchTab({ url: '/pages/index/index' }), 800)
+    // 直接跳报告详情，用户马上看到"检测中"进度；详情页自带轮询直到 DONE
+    setTimeout(() => uni.navigateTo({ url: `/pages/task/detail?id=${task.id}` }), 500)
   } catch (e) {
+    uni.hideLoading()
     uni.showToast({ title: e?.message || '提交失败', icon: 'none' })
   } finally {
     submitting.value = false
