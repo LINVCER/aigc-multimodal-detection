@@ -5,6 +5,7 @@ import com.paperaigc.detect.domain.dto.DetectTaskQueryDTO;
 import com.paperaigc.detect.domain.entity.DetectTask;
 import com.paperaigc.detect.domain.vo.PageVO;
 import com.paperaigc.detect.repository.IDetectTaskRepository;
+import com.paperaigc.detect.service.IAdminUserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.common.core.domain.R;
@@ -19,9 +20,6 @@ import java.util.Map;
 
 /**
  * 运营后台 · 全平台任务列表 · Wave 3.e (§3.4)
- *
- * <p>跨用户视图；数据从 {@link IDetectTaskRepository} 拉取，
- * 用户标识脱敏走 {@link AdminUserController#getAllUsers()}。</p>
  */
 @Slf4j
 @RestController
@@ -30,7 +28,7 @@ import java.util.Map;
 public class AdminTaskController {
 
     private final IDetectTaskRepository taskRepository;
-    private final AdminUserController adminUserController;
+    private final IAdminUserService adminUserService;
 
     @GetMapping("/list")
     public R<PageVO<Map<String, Object>>> list(DetectTaskQueryDTO q) {
@@ -51,15 +49,12 @@ public class AdminTaskController {
         int pageNum = q.getPageNum() == null || q.getPageNum() < 1 ? 1 : q.getPageNum();
         int pageSize = q.getPageSize() == null || q.getPageSize() < 1 ? 20 : q.getPageSize();
         int from = Math.max(0, (pageNum - 1) * pageSize);
-        int to   = Math.min(total, from + pageSize);
+        int to = Math.min(total, from + pageSize);
         List<Map<String, Object>> rows = from >= total ? List.of() : all.subList(from, to);
         return R.ok(PageVO.of(total, rows));
     }
 
-    /**
-     * 运营视图：不返回原文段落，只带列表字段 + 用户脱敏标识。
-     * 详细段落走 C 端同名接口 GET /api/v1/detect/tasks/{id}。
-     */
+    /** 运营视图：不返回原文段落，只带列表字段 + 用户脱敏标识 */
     private Map<String, Object> maskForAdmin(DetectTask t) {
         Map<String, Object> m = new HashMap<>();
         m.put("id",           t.getId());
@@ -73,14 +68,7 @@ public class AdminTaskController {
         m.put("modelVersion", t.getModelVersion() == null ? "stub-v0" : t.getModelVersion());
         Long uid = t.getUserId();
         m.put("userId", uid);
-        m.put("userLabel", uid == null ? "-" : userLabel(uid));
+        m.put("userLabel", adminUserService.userLabel(uid));
         return m;
-    }
-
-    private String userLabel(Long uid) {
-        for (Map<String, Object> u : adminUserController.getAllUsers()) {
-            if (uid.equals(u.get("id"))) return String.valueOf(u.get("identity"));
-        }
-        return "user#" + uid;
     }
 }

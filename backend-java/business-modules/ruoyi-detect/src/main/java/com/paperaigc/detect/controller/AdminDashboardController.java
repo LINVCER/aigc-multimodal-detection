@@ -1,10 +1,11 @@
 package com.paperaigc.detect.controller;
 
 import com.paperaigc.detect.common.constant.FeedbackConstants;
-import com.paperaigc.detect.common.util.ParamUtils;
 import com.paperaigc.detect.domain.dto.FeedbackQueryDTO;
+import com.paperaigc.detect.domain.entity.AdminUser;
 import com.paperaigc.detect.domain.entity.DetectTask;
 import com.paperaigc.detect.repository.IDetectTaskRepository;
+import com.paperaigc.detect.service.IAdminUserService;
 import com.paperaigc.detect.service.IFeedbackService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,21 +37,20 @@ import java.util.Map;
 public class AdminDashboardController {
 
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    private static final DateTimeFormatter DATETIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final IDetectTaskRepository taskRepository;
-    private final AdminUserController adminUserController;
+    private final IAdminUserService adminUserService;
     private final IFeedbackService feedbackService;
 
     @GetMapping("/dashboard")
     public R<Map<String, Object>> dashboard() {
         Collection<DetectTask> allTasks = taskRepository.findAll();
-        Collection<Map<String, Object>> allUsers = adminUserController.getAllUsers();
+        Collection<AdminUser> allUsers = adminUserService.findAll();
         String today = LocalDate.now().toString();
 
         /* ---------- KPI ---------- */
         Map<String, Object> kpi = new LinkedHashMap<>();
-        kpi.put("todayNewUser", adminUserController.countTodayNewUser());
+        kpi.put("todayNewUser", adminUserService.countTodayNewUser());
         kpi.put("todayDetect",  (int) allTasks.stream()
                 .filter(t -> t.getCreatedAt() != null && t.getCreatedAt().toLocalDate().toString().equals(today)).count());
         kpi.put("totalUser",    allUsers.size());
@@ -69,7 +69,7 @@ public class AdminDashboardController {
             long detectCount = allTasks.stream()
                     .filter(t -> t.getCreatedAt() != null && t.getCreatedAt().toLocalDate().toString().equals(key)).count();
             long userCount = allUsers.stream()
-                    .filter(u -> String.valueOf(u.get("registeredAt")).startsWith(key)).count();
+                    .filter(u -> u.getRegisteredAt() != null && u.getRegisteredAt().toLocalDate().toString().equals(key)).count();
             double avgRate = allTasks.stream()
                     .filter(t -> t.getCreatedAt() != null && t.getCreatedAt().toLocalDate().toString().equals(key))
                     .filter(t -> t.getAiRate() != null)
@@ -110,7 +110,7 @@ public class AdminDashboardController {
                     Map<String, Object> row = new HashMap<>();
                     row.put("userId", e.getKey());
                     row.put("detectCount", e.getValue());
-                    row.put("userLabel", userLabelOf(e.getKey()));
+                    row.put("userLabel", adminUserService.userLabel(e.getKey()));
                     return row;
                 })
                 .toList();
@@ -128,13 +128,6 @@ public class AdminDashboardController {
         resp.put("topUsers", topUsers);
         resp.put("pendingFeedback", pendingRows);
         return R.ok(resp);
-    }
-
-    private String userLabelOf(Long uid) {
-        for (Map<String, Object> u : adminUserController.getAllUsers()) {
-            if (uid.equals(u.get("id"))) return String.valueOf(u.get("identity"));
-        }
-        return "user#" + uid;
     }
 
     private static double round1(double v) { return Math.round(v * 10.0) / 10.0; }
