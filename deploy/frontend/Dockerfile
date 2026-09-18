@@ -9,12 +9,12 @@ ENV VITE_API_BASE=${VITE_API_BASE}
 WORKDIR /app
 
 # 拷 package 与 lock 优先，利用层缓存
-COPY frontend/package.json frontend/package-lock.json* ./
+COPY web/package.json web/package-lock.json* ./
 RUN npm config set registry https://registry.npmmirror.com && \
     npm install --frozen-lockfile || npm install
 
 # 拷源码
-COPY frontend/ ./
+COPY web/ ./
 
 RUN npm run build && ls -lh dist
 
