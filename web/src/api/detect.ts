@@ -1,11 +1,11 @@
 import { http } from './client'
 import type { DetectTask, TaskDetail, PageResp, HumanizeResp, SentenceScore, StatisticsResp } from './types'
 
-/** §3.1 提交论文 */
-export async function submitPaper(file: File, degreeType: string, title?: string): Promise<{ taskId: number; paperTitle: string; status: string; createdAt: string }> {
+/** §3.1 提交论文（W3.b · 参数由 degreeType 改为 scenario） */
+export async function submitPaper(file: File, scenario: string, title?: string): Promise<{ taskId: number; paperTitle: string; status: string; createdAt: string }> {
   const form = new FormData()
   form.append('file', file)
-  form.append('degreeType', degreeType)
+  form.append('scenario', scenario)
   if (title) form.append('title', title)
   const resp = await http.post('/api/v1/detect/submit', form, {
     headers: { 'Content-Type': 'multipart/form-data' },

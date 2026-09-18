@@ -125,7 +125,15 @@ const STATUS_TAG = {
   FAILED:  { type: 'danger',  text: '失败' },
 } as const
 
-const DEGREE_LABEL = { BACHELOR: '本科', MASTER: '硕士', PHD: '博士' } as const
+// W3.b · 场景标签（列表列展示用）
+const SCENARIO_LABEL = {
+  academic_bachelor: '学术·本科',
+  academic_master:   '学术·硕士',
+  academic_phd:      '学术·博士',
+  job_report:        '职业报告',
+  self_media:        '自媒体',
+  other:             '其他',
+} as const
 
 const avatarLetter = computed(() =>
   (auth.user?.realName || auth.user?.username || 'U').charAt(0).toUpperCase())
@@ -286,9 +294,9 @@ const showEmptyFiltered = computed(() =>
                 <a class="title-link" @click="goDetail(row.id)">{{ row.paperTitle }}</a>
               </template>
             </el-table-column>
-            <el-table-column label="学位" width="80">
+            <el-table-column label="场景" width="120">
               <template #default="{ row }">
-                <span class="degree-tag">{{ DEGREE_LABEL[row.degreeType as keyof typeof DEGREE_LABEL] || row.degreeType }}</span>
+                <span class="degree-tag">{{ SCENARIO_LABEL[row.scenario as keyof typeof SCENARIO_LABEL] || row.scenario }}</span>
               </template>
             </el-table-column>
             <el-table-column label="红线" width="70" align="center">

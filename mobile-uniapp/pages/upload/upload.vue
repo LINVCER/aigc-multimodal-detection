@@ -1,19 +1,23 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { uploadPaper, detectTextDirect } from '@/api/detect'
-import { DEGREE_MAP, paragraphRisk } from '@/utils/constants'
+import { SCENARIO_MAP, paragraphRisk } from '@/utils/constants'
 
-const DEGREES = [
-  { key: 'BACHELOR', label: '本科', threshold: 20 },
-  { key: 'MASTER',   label: '硕士', threshold: 15 },
-  { key: 'PHD',      label: '博士', threshold: 10 },
+// W3.b · 使用场景预设（取代原学位红线）
+const SCENARIOS = [
+  { key: 'academic_bachelor', label: '学术·本科', threshold: 20, desc: '毕业论文自查' },
+  { key: 'academic_master',   label: '学术·硕士', threshold: 15, desc: '硕士毕业论文' },
+  { key: 'academic_phd',      label: '学术·博士', threshold: 10, desc: '博士毕业论文' },
+  { key: 'job_report',        label: '职业报告',   threshold: 15, desc: '工作报告 / PR件' },
+  { key: 'self_media',        label: '自媒体',     threshold: 30, desc: '公众号 / 小红书' },
+  { key: 'other',             label: '其他',       threshold: 25, desc: '通用文档' },
 ]
 
 const mode = ref('file')  // file | paste
-const degree = ref('BACHELOR')
+const scenario = ref('academic_bachelor')
 const file = ref(null)
 const submitting = ref(false)
-const threshold = computed(() => DEGREES.find(d => d.key === degree.value)?.threshold)
+const threshold = computed(() => SCENARIOS.find(s => s.key === scenario.value)?.threshold)
 
 // 粘贴模式
 const PASTE_MAX = 5000
@@ -69,7 +73,7 @@ async function submit() {
   // 大文件上传给全屏遮罩，避免用户在等待时误触其它按钮
   uni.showLoading({ title: '上传中…', mask: true })
   try {
-    const task = await uploadPaper(file.value.path, file.value.name, degree.value)
+    const task = await uploadPaper(file.value.path, file.value.name, scenario.value)
     uni.hideLoading()
     if (!task?.id) {
       throw new Error('提交成功但未拿到任务号')
@@ -107,18 +111,22 @@ function humanBytes(n) {
 
     <!-- ============ 文件模式 ============ -->
     <template v-if="mode === 'file'">
-      <text class="group-label">学位类型</text>
-      <view class="group-card">
-        <view class="segmented">
+      <text class="group-label">使用场景</text>
+      <view class="group-card scenario-card">
+        <view class="scenario-grid">
           <view
-            v-for="d in DEGREES" :key="d.key"
-            class="seg" :class="{ active: degree === d.key }"
-            @click="degree = d.key"
-          >{{ d.label }}</view>
+            v-for="s in SCENARIOS" :key="s.key"
+            class="scenario-tile" :class="{ active: scenario === s.key }"
+            @click="scenario = s.key"
+          >
+            <text class="scenario-label">{{ s.label }}</text>
+            <text class="scenario-desc">{{ s.desc }}</text>
+            <text class="scenario-th">≤ {{ s.threshold }}%</text>
+          </view>
         </view>
       </view>
       <text class="footnote">
-        教育部红线：AI 率 <text class="footnote-strong">≤ {{ threshold }}%</text>
+        当前场景建议 AI 率 <text class="footnote-strong">≤ {{ threshold }}%</text>
       </text>
 
       <text class="group-label">论文文件</text>
@@ -278,6 +286,45 @@ function humanBytes(n) {
     font-weight: 600;
     box-shadow: 0 3rpx 8rpx rgba(0,0,0,0.05);
   }
+}
+
+/* 场景网格（W3.b） */
+.scenario-card { padding: 0 !important; }
+.scenario-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+  padding: 24rpx;
+}
+.scenario-tile {
+  padding: 20rpx;
+  border-radius: 20rpx;
+  background: rgba(120,120,128,0.08);
+  border: 2rpx solid transparent;
+  transition: all 200ms cubic-bezier(0.32, 0.72, 0, 1);
+  &.active {
+    border-color: #007AFF;
+    background: rgba(0,122,255,0.08);
+  }
+}
+.scenario-label {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #000;
+}
+.scenario-desc {
+  display: block;
+  font-size: 22rpx;
+  color: rgba(60,60,67,0.60);
+  margin-top: 6rpx;
+}
+.scenario-th {
+  display: block;
+  font-size: 22rpx;
+  color: #FF9500;
+  margin-top: 8rpx;
+  font-weight: 500;
 }
 
 .footnote {

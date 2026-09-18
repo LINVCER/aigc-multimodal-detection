@@ -68,8 +68,17 @@ public class DetectController {
         return "http://" + inferenceHost + ":" + inferencePort;
     }
 
-    private static final Map<String, Integer> THRESHOLD = Map.of(
-            "BACHELOR", 20, "MASTER", 15, "PHD", 10
+    /**
+     * 场景预设阈值（W3.b · 使用场景取代学位红线）
+     * 对齐 docs/design/OPERATIONS_REQUIREMENTS.md §3.7；生产走 detect_scenario_threshold 表
+     */
+    private static final Map<String, Integer> SCENARIO_THRESHOLD = Map.of(
+            "academic_bachelor", 20,
+            "academic_master",   15,
+            "academic_phd",      10,
+            "job_report",        15,
+            "self_media",        30,
+            "other",             25
     );
 
     /** 支持的 MIME 白名单 */
@@ -91,8 +100,19 @@ public class DetectController {
     @PostMapping("/detect/submit")
     public R<Map<String, Object>> submit(
             @RequestParam("file") MultipartFile file,
-            @RequestParam("degreeType") String degreeType,
+            @RequestParam(value = "scenario", required = false) String scenario,
+            @RequestParam(value = "degreeType", required = false) String degreeType,   // 兼容旧字段，等所有客户端切完后删
             @RequestParam(value = "title", required = false) String title) {
+        // 归一：优先取 scenario，兜底把旧 degreeType 转成场景码
+        String sc = scenario;
+        if (sc == null || sc.isBlank()) {
+            sc = switch (degreeType == null ? "" : degreeType) {
+                case "BACHELOR" -> "academic_bachelor";
+                case "MASTER"   -> "academic_master";
+                case "PHD"      -> "academic_phd";
+                default -> "other";
+            };
+        }
         if (file == null || file.isEmpty()) return R.fail(3002, "未能从文件中提取到有效文本");
         if (file.getSize() > 20L * 1024 * 1024) return R.fail(3001, "文件超过 20MB 限制");
 
@@ -126,8 +146,8 @@ public class DetectController {
         task.put("paperTitle", paperTitle);
         task.put("status", "PENDING");
         task.put("aiRate", null);
-        task.put("degreeType", degreeType);
-        task.put("threshold", THRESHOLD.getOrDefault(degreeType, 20));
+        task.put("scenario", sc);
+        task.put("threshold", SCENARIO_THRESHOLD.getOrDefault(sc, 25));
         task.put("createdAt", LocalDateTime.now().toString());
         task.put("finishedAt", null);
         task.put("modelVersion", "stub-v0");

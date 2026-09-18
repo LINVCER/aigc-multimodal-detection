@@ -21,10 +21,14 @@ export const STATUS_MAP = {
   FAILED:  { text: '失败',   color: COLOR.systemRed,    bg: 'rgba(255,59,48,0.14)' },
 }
 
-export const DEGREE_MAP = {
-  BACHELOR: { label: '本科', threshold: 20 },
-  MASTER:   { label: '硕士', threshold: 15 },
-  PHD:      { label: '博士', threshold: 10 },
+// W3.b · 使用场景预设（取代原学位红线，对齐 Java SCENARIO_THRESHOLD）
+export const SCENARIO_MAP = {
+  academic_bachelor: { label: '学术·本科', threshold: 20, desc: '毕业论文自查' },
+  academic_master:   { label: '学术·硕士', threshold: 15, desc: '硕士毕业论文' },
+  academic_phd:      { label: '学术·博士', threshold: 10, desc: '博士毕业论文' },
+  job_report:        { label: '职业报告',   threshold: 15, desc: '工作报告 / 项目文档' },
+  self_media:        { label: '自媒体',     threshold: 30, desc: '公众号 / 小红书 / 头条' },
+  other:             { label: '其他',       threshold: 25, desc: '通用文档' },
 }
 
 export const SOURCE_MAP = {

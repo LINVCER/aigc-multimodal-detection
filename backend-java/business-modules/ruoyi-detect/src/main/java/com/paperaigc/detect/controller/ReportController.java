@@ -100,7 +100,7 @@ public class ReportController {
 
     private void renderCover(Document doc, Map<String, Object> task) {
         String paperTitle = str(task, "paperTitle", "未命名论文");
-        String degreeType = str(task, "degreeType", "");
+        String scenario   = str(task, "scenario", str(task, "degreeType", ""));
         String createdAt  = str(task, "createdAt", "");
         Number aiRateNum  = (Number) task.get("aiRate");
         Number threshold  = (Number) task.getOrDefault("threshold", 20);
@@ -147,7 +147,7 @@ public class ReportController {
         Table meta = new Table(UnitValue.createPercentArray(new float[]{1, 2}))
                 .useAllAvailableWidth()
                 .setMarginLeft(60).setMarginRight(60).setMarginTop(20);
-        addMetaRow(meta, "学位类型", degreeLabel(degreeType) + "  ·  红线 ≤ " + threshold + "%");
+        addMetaRow(meta, "使用场景", scenarioLabel(scenario) + "  ·  红线 ≤ " + threshold + "%");
         addMetaRow(meta, "检测时间", createdAt);
         addMetaRow(meta, "论文段落", task.getOrDefault("bodyParagraphCount", "-") + " 正文 / "
                 + task.getOrDefault("excludedParagraphCount", 0) + " 已排除");
@@ -347,12 +347,20 @@ public class ReportController {
         };
     }
 
-    private String degreeLabel(String d) {
-        return switch (d) {
-            case "BACHELOR" -> "本科";
-            case "MASTER" -> "硕士";
-            case "PHD" -> "博士";
-            default -> d == null ? "-" : d;
+    private String scenarioLabel(String s) {
+        if (s == null || s.isBlank()) return "-";
+        return switch (s) {
+            case "academic_bachelor" -> "学术·本科";
+            case "academic_master"   -> "学术·硕士";
+            case "academic_phd"      -> "学术·博士";
+            case "job_report"        -> "职业报告";
+            case "self_media"        -> "自媒体";
+            case "other"             -> "其他";
+            // 兼容旧数据
+            case "BACHELOR" -> "学术·本科";
+            case "MASTER"   -> "学术·硕士";
+            case "PHD"      -> "学术·博士";
+            default -> s;
         };
     }
 

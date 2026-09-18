@@ -3,9 +3,9 @@ import { http, MOCK_MODE } from '@/utils/request'
 // ---- mock 数据（未配 VITE_API_BASE 时启用，供离线 UI 联调）----
 
 const mockTasks = [
-  { id: 1, paperTitle: '基于深度学习的中文文本情感分析研究', status: 'DONE',    aiRate: 26.4, degreeType: 'MASTER',   threshold: 15, createdAt: '2026-09-16 14:20' },
-  { id: 2, paperTitle: '乡村振兴背景下农产品电商发展路径研究', status: 'RUNNING', aiRate: null, degreeType: 'BACHELOR', threshold: 20, createdAt: '2026-09-17 09:12' },
-  { id: 3, paperTitle: '双碳目标下制造业绿色转型机制研究',   status: 'DONE',    aiRate: 8.1,  degreeType: 'PHD',      threshold: 10, createdAt: '2026-09-15 18:44' },
+  { id: 1, paperTitle: '基于深度学习的中文文本情感分析研究', status: 'DONE',    aiRate: 26.4, scenario: 'academic_master',   threshold: 15, createdAt: '2026-09-16 14:20' },
+  { id: 2, paperTitle: '乡村振兴背景下农产品电商发展路径研究', status: 'RUNNING', aiRate: null, scenario: 'academic_bachelor', threshold: 20, createdAt: '2026-09-17 09:12' },
+  { id: 3, paperTitle: '双碳目标下制造业绿色转型机制研究',   status: 'DONE',    aiRate: 8.1,  scenario: 'academic_phd',      threshold: 10, createdAt: '2026-09-15 18:44' },
 ]
 
 const mockDetail = {
@@ -50,22 +50,19 @@ export function getTaskDetail(id) {
 }
 
 /**
- * 上传论文
+ * 上传论文（W3.b · 参数由 degreeType 改为 scenario）
  * @param {string} filePath 本地文件路径（uni.chooseMessageFile / uni.chooseImage 拿到）
  * @param {string} name 文件名
- * @param {string} degreeType BACHELOR|MASTER|PHD
- */
-/**
- * 上传论文
+ * @param {string} scenario academic_bachelor|academic_master|academic_phd|job_report|self_media|other
  * @returns { id, paperTitle, status, createdAt } — id 已从契约 taskId 归一
  */
-export function uploadPaper(filePath, name, degreeType) {
+export function uploadPaper(filePath, name, scenario) {
   if (MOCK_MODE) {
     return Promise.resolve({
       id: Date.now(),
       paperTitle: name,
       status: 'PENDING',
-      degreeType,
+      scenario,
       threshold: 20,
       createdAt: new Date().toISOString(),
     })
@@ -77,7 +74,7 @@ export function uploadPaper(filePath, name, degreeType) {
       url: '/api/v1/detect/submit',
       filePath,
       name: 'file',
-      formData: { degreeType },
+      formData: { scenario },
       header: token ? { Authorization: `Bearer ${token}` } : {},
       success: (res) => {
         try {

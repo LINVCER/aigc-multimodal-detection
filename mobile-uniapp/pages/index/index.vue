@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
 import { listTasks } from '@/api/detect'
-import { DEGREE_MAP, STATUS_FILTER_OPTIONS, aiRateColor } from '@/utils/constants'
+import { SCENARIO_MAP, STATUS_FILTER_OPTIONS, aiRateColor } from '@/utils/constants'
 import StatusChip from '@/components/StatusChip.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import Skeleton from '@/components/Skeleton.vue'
@@ -125,7 +125,7 @@ function goUpload() { uni.switchTab({ url: '/pages/upload/upload' }) }
               <StatusChip :status="t.status" />
             </view>
             <view class="row-meta">
-              <text class="degree-tag">{{ DEGREE_MAP[t.degreeType]?.label || t.degreeType }}</text>
+              <text class="degree-tag">{{ SCENARIO_MAP[t.scenario]?.label || t.scenario }}</text>
               <text class="meta-sep">·</text>
               <text>红线 {{ t.threshold }}%</text>
               <text class="meta-sep">·</text>

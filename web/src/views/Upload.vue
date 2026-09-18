@@ -7,17 +7,23 @@ import { submitPaper, detectTextDirect, type DirectDetectResp } from '@/api/dete
 
 const router = useRouter()
 
-const DEGREES = [
-  { key: 'BACHELOR', label: '本科', threshold: 20 },
-  { key: 'MASTER',   label: '硕士', threshold: 15 },
-  { key: 'PHD',      label: '博士', threshold: 10 },
+// W3.b · 使用场景预设（取代原学位红线）
+const SCENARIOS = [
+  { key: 'academic_bachelor', label: '学术论文·本科', threshold: 20, desc: '毕业论文自查' },
+  { key: 'academic_master',   label: '学术论文·硕士', threshold: 15, desc: '硕士毕业论文' },
+  { key: 'academic_phd',      label: '学术论文·博士', threshold: 10, desc: '博士毕业论文' },
+  { key: 'job_report',        label: '职业报告',       threshold: 15, desc: '工作报告 / 项目文档' },
+  { key: 'self_media',        label: '自媒体',         threshold: 30, desc: '公众号 / 小红书 / 头条' },
+  { key: 'other',             label: '其他',           threshold: 25, desc: '通用文档' },
 ] as const
 
+type ScenarioKey = typeof SCENARIOS[number]['key']
+
 const mode = ref<'file' | 'paste'>('file')
-const degree = ref<'BACHELOR' | 'MASTER' | 'PHD'>('BACHELOR')
+const scenario = ref<ScenarioKey>('academic_bachelor')
 const file = ref<UploadRawFile | null>(null)
 const submitting = ref(false)
-const threshold = computed(() => DEGREES.find(d => d.key === degree.value)?.threshold)
+const threshold = computed(() => SCENARIOS.find(s => s.key === scenario.value)?.threshold)
 
 // 粘贴模式状态
 const pasteText = ref('')
@@ -69,7 +75,7 @@ async function submit() {
   if (!file.value) return ElMessage.warning('请先选择论文文件')
   submitting.value = true
   try {
-    const resp = await submitPaper(file.value, degree.value)
+    const resp = await submitPaper(file.value, scenario.value)
     ElMessage.success('提交成功，正在检测')
     router.push({ name: 'TaskDetail', params: { id: resp.taskId } })
   } finally { submitting.value = false }
@@ -100,15 +106,21 @@ async function submit() {
 
         <!-- ===== 文件模式 ===== -->
         <template v-if="mode === 'file'">
-          <div class="group-label">学位类型</div>
-          <el-card class="group-card">
-            <el-radio-group v-model="degree">
-              <el-radio-button v-for="d in DEGREES" :key="d.key" :value="d.key">
-                {{ d.label }}
-              </el-radio-button>
-            </el-radio-group>
+          <div class="group-label">使用场景</div>
+          <el-card class="group-card scenario-card">
+            <div class="scenario-grid">
+              <div
+                v-for="s in SCENARIOS" :key="s.key"
+                class="scenario-tile" :class="{ active: scenario === s.key }"
+                @click="scenario = s.key"
+              >
+                <div class="scenario-label">{{ s.label }}</div>
+                <div class="scenario-desc">{{ s.desc }}</div>
+                <div class="scenario-th">建议 ≤ {{ s.threshold }}%</div>
+              </div>
+            </div>
             <div class="footnote">
-              教育部红线：AI 率 <span class="footnote-strong">≤ {{ threshold }}%</span>
+              当前场景建议 AI 率 <span class="footnote-strong">≤ {{ threshold }}%</span>
             </div>
           </el-card>
 
@@ -254,6 +266,35 @@ async function submit() {
 
 .footnote { margin-top: 12px; font-size: var(--fs-footnote); color: var(--label-secondary); }
 .footnote-strong { color: var(--system-orange); font-weight: var(--fw-semibold); }
+
+/* 场景网格 */
+.scenario-card { padding: 0 !important; }
+.scenario-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 20px;
+}
+.scenario-tile {
+  padding: 14px 16px;
+  border-radius: var(--radius-card);
+  background: rgba(120, 120, 128, 0.08);
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: all var(--dur-fast) var(--ease-standard);
+}
+.scenario-tile:hover { background: rgba(120, 120, 128, 0.14); }
+.scenario-tile.active {
+  border-color: var(--system-blue);
+  background: rgba(0, 122, 255, 0.08);
+}
+.scenario-label { font-size: var(--fs-body); font-weight: var(--fw-semibold); color: var(--label); }
+.scenario-desc  { font-size: var(--fs-caption-1); color: var(--label-secondary); margin-top: 4px; }
+.scenario-th    { font-size: var(--fs-caption-1); color: var(--system-orange); margin-top: 6px; font-weight: var(--fw-medium); }
+
+@media (max-width: 640px) {
+  .scenario-grid { grid-template-columns: repeat(2, 1fr); }
+}
 
 .upload-inner {
   display: flex; align-items: center; gap: 16px;

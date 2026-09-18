@@ -1,14 +1,24 @@
 // 与 docs/design/API_CONTRACT.md 保持一致，字段全部 camelCase
 
 export type TaskStatus = 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED'
-export type DegreeType = 'BACHELOR' | 'MASTER' | 'PHD'
+/**
+ * 使用场景（W3.b · 取代原 DegreeType）
+ * 与后端 SCENARIO_THRESHOLD Map key 对齐
+ */
+export type Scenario =
+  | 'academic_bachelor'
+  | 'academic_master'
+  | 'academic_phd'
+  | 'job_report'
+  | 'self_media'
+  | 'other'
 
 export interface DetectTask {
   id: number
   paperTitle: string
   status: TaskStatus
   aiRate: number | null
-  degreeType: DegreeType
+  scenario: Scenario
   threshold: number
   createdAt: string
   finishedAt?: string | null
