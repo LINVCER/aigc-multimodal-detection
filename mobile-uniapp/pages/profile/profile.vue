@@ -1,7 +1,10 @@
 <script setup>
+import { ref } from 'vue'
 import { useAuth } from '@/store/auth'
+import FeedbackSheet from '@/components/FeedbackSheet.vue'
 
 const auth = useAuth()
+const feedbackOpen = ref(false)
 
 function logout() {
   uni.showModal({
@@ -51,6 +54,11 @@ function logout() {
     <!-- 分组列表 2 -->
     <text class="group-label">关于</text>
     <view class="group-card">
+      <view class="row" hover-class="row-hover" @click="feedbackOpen = true">
+        <text class="row-title">意见反馈</text>
+        <text class="chevron">›</text>
+      </view>
+      <view class="separator"></view>
       <view class="row">
         <text class="row-title">隐私政策</text>
         <text class="chevron">›</text>
@@ -66,6 +74,8 @@ function logout() {
     <view class="group-card danger-card" hover-class="row-hover" @click="logout">
       <text class="danger-text">退出登录</text>
     </view>
+
+    <FeedbackSheet v-model="feedbackOpen" default-category="suggestion" />
   </view>
 </template>
 

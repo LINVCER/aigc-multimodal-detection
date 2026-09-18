@@ -5,6 +5,9 @@ import { getTaskDetail, requestHumanize, retryTask } from '@/api/detect'
 import { SOURCE_MAP, COLOR, paragraphRisk, aiRateColor } from '@/utils/constants'
 import { diffChars } from '@/utils/diff'
 import Skeleton from '@/components/Skeleton.vue'
+import FeedbackSheet from '@/components/FeedbackSheet.vue'
+
+const feedbackOpen = ref(false)
 
 const detail = ref(null)
 const loading = ref(true)
@@ -466,7 +469,21 @@ function toggleExpand(idx) {
         </view>
       </view>
     </view>
+
+    <!-- W3.d 结果申诉入口：只在 DONE 状态出现 -->
+    <view v-if="detail && detail.status === 'DONE'" class="appeal-card" hover-class="appeal-card-hover" @click="feedbackOpen = true">
+      <view class="appeal-line">
+        <text class="appeal-icon">🚩</text>
+        <view class="appeal-body">
+          <text class="appeal-title">对本次结果有疑问？</text>
+          <text class="appeal-sub">提交申诉，我们会人工复核并回复</text>
+        </view>
+        <text class="appeal-chevron">›</text>
+      </view>
+    </view>
   </scroll-view>
+
+  <FeedbackSheet v-model="feedbackOpen" :task-id="Number(taskId) || 0" default-category="appeal" />
 </template>
 
 <style lang="scss" scoped>
@@ -859,4 +876,20 @@ function toggleExpand(idx) {
 .diff-equal  { color: #000; }
 .diff-add    { background: rgba(52,199,89,0.20); color: #1B7F3E; }
 .diff-remove { background: rgba(255,59,48,0.16); color: #C62A22; text-decoration: line-through; }
+
+/* W3.d 申诉入口卡 */
+.appeal-card {
+  margin: 32rpx;
+  padding: 28rpx 32rpx;
+  background: #FFFFFF;
+  border-radius: 24rpx;
+  transition: background 150ms;
+}
+.appeal-card-hover { background: rgba(60,60,67,0.06); }
+.appeal-line { display: flex; align-items: center; }
+.appeal-icon { font-size: 40rpx; margin-right: 24rpx; }
+.appeal-body { flex: 1; }
+.appeal-title { display: block; font-size: 30rpx; font-weight: 600; color: #000; }
+.appeal-sub { display: block; font-size: 24rpx; color: rgba(60,60,67,0.60); margin-top: 6rpx; }
+.appeal-chevron { color: rgba(60,60,67,0.30); font-size: 36rpx; }
 </style>

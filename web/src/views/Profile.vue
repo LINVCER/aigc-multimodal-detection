@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
+import FeedbackDialog from '@/components/FeedbackDialog.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
+
+const feedbackOpen = ref(false)
 
 const avatarLetter = computed(() => (auth.user?.realName || auth.user?.username || 'U').charAt(0).toUpperCase())
 
@@ -68,6 +71,11 @@ async function logout() {
         <!-- 关于 group -->
         <div class="group-label">关于</div>
         <el-card class="group-card" body-style="padding:0">
+          <div class="row clickable" @click="feedbackOpen = true">
+            <span class="row-title">意见反馈</span>
+            <span class="chevron">›</span>
+          </div>
+          <div class="separator"></div>
           <div class="row clickable">
             <span class="row-title">隐私政策</span>
             <span class="chevron">›</span>
@@ -87,6 +95,8 @@ async function logout() {
         </el-card>
       </div>
     </el-main>
+
+    <FeedbackDialog v-model="feedbackOpen" default-category="suggestion" />
   </el-container>
 </template>
 

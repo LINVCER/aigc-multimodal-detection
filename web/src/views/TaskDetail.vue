@@ -4,7 +4,10 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getTaskDetail, requestHumanize, downloadReportPdf } from '@/api/detect'
 import Skeleton from '@/components/Skeleton.vue'
+import FeedbackDialog from '@/components/FeedbackDialog.vue'
 import type { TaskDetail, ParagraphResult } from '@/api/types'
+
+const feedbackOpen = ref(false)
 
 const props = defineProps<{ id: string }>()
 const router = useRouter()
@@ -273,11 +276,13 @@ function suggestionBg(sev: 'info' | 'warn' | 'danger'): string {
       <div class="header-inner">
         <el-button link @click="router.back()">← 返回</el-button>
         <span class="header-title">检测报告</span>
-        <el-button
-          v-if="detail && detail.status === 'DONE'"
-          type="primary" round size="small"
-          :loading="downloading" @click="onDownloadPdf"
-        >⬇  下载 PDF</el-button>
+        <div v-if="detail && detail.status === 'DONE'" class="header-actions">
+          <el-button link size="small" @click="feedbackOpen = true">🚩 申诉</el-button>
+          <el-button
+            type="primary" round size="small"
+            :loading="downloading" @click="onDownloadPdf"
+          >⬇  下载 PDF</el-button>
+        </div>
         <span v-else></span>
       </div>
     </el-header>
@@ -517,6 +522,8 @@ function suggestionBg(sev: 'info' | 'warn' | 'danger'): string {
         </div>
       </template>
     </el-main>
+
+    <FeedbackDialog v-model="feedbackOpen" :task-id="Number(id)" default-category="appeal" />
   </el-container>
 </template>
 
@@ -531,6 +538,7 @@ function suggestionBg(sev: 'info' | 'warn' | 'danger'): string {
 }
 .header-inner { height: 56px; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; }
 .header-title { font-size: var(--fs-headline); font-weight: var(--fw-semibold); }
+.header-actions { display: flex; align-items: center; gap: 12px; }
 
 .main { padding: 32px 24px 48px; }
 .wrap { max-width: 900px; margin: 0 auto; }
