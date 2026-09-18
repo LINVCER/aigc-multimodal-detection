@@ -1,4 +1,10 @@
--- W3.a · 业务补表（对齐 docs/design/OPERATIONS_REQUIREMENTS.md §5）
+-- ============================================================
+-- ⚠ 此文件是「当前累计的全量 schema 快照」，仅用于本地一键搭数据库
+-- 规范化的版本化迁移见 docs/releases/{version}/sql/（Flyway V*/R* 命名）
+-- 未来所有增量走那里，本文件只在发版时同步全量快照，不再单点追加
+-- ============================================================
+
+-- W3.a baseline · 业务补表（对齐 docs/design/OPERATIONS_REQUIREMENTS.md §5）
 -- 前置：已导入若依 sys_* 全套（RuoYi-Vue-Plus/script/sql/ry_vue_5.X.sql）
 -- 字符集：utf8mb4 / utf8mb4_0900_ai_ci
 

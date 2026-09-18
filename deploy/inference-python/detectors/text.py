@@ -18,6 +18,12 @@ checkpoint 期望字段（对齐训练脚本第 754-760 行）：
     - temperature              float
     - platt_a, platt_b         float
     - hyperparams.max_length   int，用于 tokenizer 截断
+
+⚠ 现状：本模块当前只是「加载器 + 校准 + 推理管线」骨架。目录 models/ 里的
+aigc_detector_v3_thesis.pth 是 legacy/algorithms/ 老训练脚本产出的实验权重，
+不是本次 C 端产品线的正式模型；新一代生产模型的训练计划尚未启动。
+将其挂上来的目的是先把「Java → Python 真实推理 → 校准 → 前端展示」链路
+打通，替换 MD5 stub；等新模型训完，替换 checkpoint 路径即可，本模块与接口无需改。
 """
 from __future__ import annotations
 

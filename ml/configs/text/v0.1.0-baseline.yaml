@@ -1,0 +1,52 @@
+# v0.1.0-baseline · 文本检测首个基线
+# 目标：跑通训练 → 评估 → 校准 → 导出流程，取代 legacy 兜底 checkpoint
+
+version: v0.1.0-baseline
+codename: baseline
+modality: text
+
+# ---------------- 模型 ----------------
+model:
+  backbone: chinese-roberta-wwm-ext        # HF repo id 或本地 dir
+  hidden_size: 768
+  classifier_hidden: 256
+  num_classes: 2                            # 0=human, 1=ai
+  dropout: 0.1
+
+# ---------------- 数据 ----------------
+data:
+  train_jsonl: ml/datasets/text/train.jsonl
+  val_jsonl:   ml/datasets/text/val.jsonl
+  test_jsonl:  ml/datasets/text/test.jsonl
+  max_length: 512
+  # 场景采样比例（对齐 C 端 6 场景，避免偏科）
+  scenario_mix:
+    academic_bachelor: 0.20
+    academic_master:   0.15
+    academic_phd:      0.10
+    job_report:        0.20
+    self_media:        0.20
+    other:             0.15
+
+# ---------------- 训练 ----------------
+train:
+  epochs: 5
+  batch_size: 16
+  lr: 2.0e-5
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  grad_clip: 1.0
+  unfreeze_layers: 4          # roberta 只解冻最后 N 层，其余 freeze
+  seed: 42
+  early_stop_patience: 2
+
+# ---------------- 校准 ----------------
+calibration:
+  temperature_lbfgs_max_iter: 200
+  platt_c_regularization: 1.0
+
+# ---------------- 输出 ----------------
+output:
+  checkpoint_dir: ml/checkpoints/text/v0.1.0-baseline/
+  save_best_only: true
+  metric_for_best: val_f1

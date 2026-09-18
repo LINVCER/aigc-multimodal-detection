@@ -102,6 +102,11 @@ frontend/components.d.ts
 *.pkl
 *.h5
 *.ckpt
+
+# ======== ml/ 新架构（训练产出与数据集不入 git）========
+ml/checkpoints/
+ml/datasets/**/*.jsonl
+ml/datasets/**/raw/
 *.safetensors
 *.msc
 *.mv
