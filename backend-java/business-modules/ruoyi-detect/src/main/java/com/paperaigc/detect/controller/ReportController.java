@@ -83,7 +83,7 @@ public class ReportController {
 
             // 中文字体（iText 内置 Adobe CJK，无需 ttf）
             FontProgram fp = FontProgramFactory.createFont("STSong-Light", "UniGB-UCS2-H", true);
-            PdfFont cn = PdfFontFactory.createFont(fp, PdfFontFactory.EmbeddingStrategy.PREFER_NOT_EMBEDDED);
+            PdfFont cn = PdfFontFactory.createFont(fp, "UniGB-UCS2-H");
             doc.setFont(cn).setFontSize(11).setFontColor(C_LABEL);
 
             renderCover(doc, task);
