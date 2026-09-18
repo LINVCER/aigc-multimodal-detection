@@ -22,13 +22,14 @@ export const STATUS_MAP = {
 }
 
 // W3.b · 使用场景预设（取代原学位红线，对齐 Java SCENARIO_THRESHOLD）
+// tint/wash 用于场景 chip、hero 渐变、图表色（对齐 uni.scss tokens 的 solid+wash 语义色对）
 export const SCENARIO_MAP = {
-  academic_bachelor: { label: '学术·本科', threshold: 20, desc: '毕业论文自查' },
-  academic_master:   { label: '学术·硕士', threshold: 15, desc: '硕士毕业论文' },
-  academic_phd:      { label: '学术·博士', threshold: 10, desc: '博士毕业论文' },
-  job_report:        { label: '职业报告',   threshold: 15, desc: '工作报告 / 项目文档' },
-  self_media:        { label: '自媒体',     threshold: 30, desc: '公众号 / 小红书 / 头条' },
-  other:             { label: '其他',       threshold: 25, desc: '通用文档' },
+  academic_bachelor: { label: '学术·本科', threshold: 20, desc: '毕业论文自查',       tint: '#007AFF', wash: 'rgba(0,122,255,0.10)' },
+  academic_master:   { label: '学术·硕士', threshold: 15, desc: '硕士毕业论文',       tint: '#5856D6', wash: 'rgba(88,86,214,0.10)' },
+  academic_phd:      { label: '学术·博士', threshold: 10, desc: '博士毕业论文',       tint: '#AF52DE', wash: 'rgba(175,82,222,0.10)' },
+  job_report:        { label: '职业报告',   threshold: 15, desc: '工作报告 / 项目文档', tint: '#00C7BE', wash: 'rgba(0,199,190,0.10)' },
+  self_media:        { label: '自媒体',     threshold: 30, desc: '公众号 / 小红书 / 头条', tint: '#FF2D55', wash: 'rgba(255,45,85,0.10)' },
+  other:             { label: '其他',       threshold: 25, desc: '通用文档',           tint: '#8E8E93', wash: 'rgba(142,142,147,0.14)' },
 }
 
 export const SOURCE_MAP = {
