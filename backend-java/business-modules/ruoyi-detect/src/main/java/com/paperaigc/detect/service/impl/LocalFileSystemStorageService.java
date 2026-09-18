@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -47,6 +48,18 @@ public class LocalFileSystemStorageService implements IStorageService {
         } catch (IOException e) {
             log.error("save file failed taskId={}", taskId, e);
             throw new BizException(ErrorCode.SERVER_ERROR, "文件保存失败");
+        }
+    }
+
+    @Override
+    public InputStream read(String path) {
+        if (path == null) throw new BizException(ErrorCode.NOT_FOUND, "文件路径为空");
+        Path abs = Paths.get(storageRoot).resolve(path);
+        if (!Files.exists(abs)) throw new BizException(ErrorCode.NOT_FOUND, "文件不存在：" + path);
+        try { return Files.newInputStream(abs); }
+        catch (IOException e) {
+            log.error("read file failed path={}", path, e);
+            throw new BizException(ErrorCode.SERVER_ERROR, "读取文件失败");
         }
     }
 

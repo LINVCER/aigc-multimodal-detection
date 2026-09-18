@@ -5,6 +5,8 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.common.core.domain.R;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -23,6 +25,7 @@ import java.util.stream.Collectors;
  * <p>返回统一 {@link R} 结构，前端 client.ts 拦截器已按 code 分派。</p>
  */
 @Slf4j
+@Order(Ordered.HIGHEST_PRECEDENCE)    // 优先于若依基座 GlobalExceptionHandler，避免两方兜底顺序不确定
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 

@@ -55,7 +55,7 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public DetectTask submit(MultipartFile file, String scenario, String degreeType, String title) {
+    public DetectTask submit(MultipartFile file, String scenario, String degreeType, String title, Long userId) {
         // ---------- 基础校验 ----------
         if (file == null || file.isEmpty()) throw new BizException(ErrorCode.DETECT_EXTRACT_FAILED, "未上传文件");
         if (file.getSize() > DetectConstants.FILE_SIZE_MAX) throw new BizException(ErrorCode.DETECT_FILE_TOO_LARGE);
@@ -76,6 +76,7 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
         // ---------- 构造 Task ----------
         String paperTitle = (title != null && !title.isBlank()) ? title : file.getOriginalFilename();
         DetectTask task = DetectTask.builder()
+                .userId(userId)
                 .paperTitle(paperTitle)
                 .status(DetectConstants.STATUS_PENDING)
                 .scenario(sc)
@@ -112,6 +113,7 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
         List<ParagraphResult> paragraphs = new ArrayList<>();
         double sumRate = 0;
         int rateCount = 0;
+        int attemptedCount = 0;   // 参与推理的段数（非 excluded）
 
         for (int i = 0; i < limit; i++) {
             Map<String, Object> meta = metas.get(i);
@@ -127,6 +129,7 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
                 continue;
             }
 
+            attemptedCount++;
             try {
                 Map<String, Object> py = inferenceClient.detectParagraph(text, true);
                 double cp = ((Number) py.get("calibrated_prob")).doubleValue();
@@ -160,7 +163,9 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
         task.setParagraphs(paragraphs);
         task.setSourceLabels(sourceLabels);
         task.setAiRate(rateCount == 0 ? null : Math.round(sumRate / rateCount * 10) / 10.0);
-        task.setStatus(DetectConstants.STATUS_DONE);
+        // 尝试了推理但一段都没成功 → 视为整体失败（避免展示"完成但无结果"）
+        boolean allFailed = attemptedCount > 0 && rateCount == 0;
+        task.setStatus(allFailed ? DetectConstants.STATUS_FAILED : DetectConstants.STATUS_DONE);
         task.setFinishedAt(LocalDateTime.now());
     }
 
@@ -222,9 +227,33 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
     public DetectTask retry(Long id) {
         DetectTask task = taskRepository.findById(id)
                 .orElseThrow(() -> new BizException(ErrorCode.DETECT_TASK_NOT_FOUND));
-        // Phase 0 未持久化原文，重试只重置状态；生产从存储读原稿重跑
+
         task.setStatus(DetectConstants.STATUS_PENDING);
         task.setFinishedAt(null);
+        task.setAiRate(null);
+        task.setParagraphs(null);
+        task.setSourceLabels(null);
+
+        // 从存储反读原文件重跑抽取 + 推理
+        if (task.getFilePath() != null && storageService.exists(task.getFilePath())) {
+            try (java.io.InputStream is = storageService.read(task.getFilePath())) {
+                String fullText = textProcessor.extractText(is, task.getOriginalFilename());
+                List<String> raw = textProcessor.splitParagraphs(fullText);
+                List<Map<String, Object>> metas = textProcessor.filterNonBody(raw);
+                runInference(task, metas);
+            } catch (BizException e) {
+                task.setStatus(DetectConstants.STATUS_FAILED);
+                log.warn("retry task {} failed: {}", id, e.getMessage());
+            } catch (Exception e) {
+                task.setStatus(DetectConstants.STATUS_FAILED);
+                log.error("retry task {} unexpected error", id, e);
+            }
+        } else {
+            // 原稿丢失，只能置 FAILED（避免永久 PENDING）
+            log.warn("retry task {} but filePath missing/gone: {}", id, task.getFilePath());
+            task.setStatus(DetectConstants.STATUS_FAILED);
+        }
+
         taskRepository.update(task);
         return task;
     }

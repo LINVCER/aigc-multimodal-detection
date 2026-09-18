@@ -49,8 +49,9 @@ public class DetectController {
             @RequestParam("file") MultipartFile file,
             @RequestParam(value = "scenario", required = false) String scenario,
             @RequestParam(value = "degreeType", required = false) String degreeType,   // 兼容旧字段
-            @RequestParam(value = "title", required = false) String title) {
-        DetectTask task = detectTaskService.submit(file, scenario, degreeType, title);
+            @RequestParam(value = "title", required = false) String title,
+            @RequestParam(value = "userId", required = false) Long userId) {  // W3.c 前透传；接入后从 Sa-Token 取
+        DetectTask task = detectTaskService.submit(file, scenario, degreeType, title, userId);
         Map<String, Object> resp = new HashMap<>();
         resp.put("taskId",     task.getId());
         resp.put("paperTitle", task.getPaperTitle());

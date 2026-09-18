@@ -22,9 +22,10 @@ public interface IDetectTaskService {
      * @param scenario 场景码（academic_bachelor 等）；null / 空时兜底 other
      * @param degreeType 旧字段兼容：BACHELOR/MASTER/PHD 迁移到 scenario；scenario 非空时忽略
      * @param title 论文标题；缺省用文件名
+     * @param userId 提交用户 ID（Sa-Token 接入后从上下文取；未登录场景 null）
      * @return 新建任务实体
      */
-    DetectTask submit(MultipartFile file, String scenario, String degreeType, String title);
+    DetectTask submit(MultipartFile file, String scenario, String degreeType, String title, Long userId);
 
     /**
      * §3.2 列表（分页 + 过滤）

@@ -67,12 +67,22 @@ public class TextProcessor {
 
     /* ==================== Tika 抽取 ==================== */
 
-    /** 抽全文，单次最大 1MB */
+    /** 抽全文，单次最大 1MB（MultipartFile 版） */
     public String extractText(MultipartFile file) {
         try (InputStream is = file.getInputStream()) {
             return tika.parseToString(is, new Metadata(), 1_000_000);
         } catch (Exception e) {
             log.error("extract text failed: {}", file.getOriginalFilename(), e);
+            throw new BizException(ErrorCode.DETECT_EXTRACT_FAILED, e.getMessage());
+        }
+    }
+
+    /** 抽全文（InputStream 版，供 retry 时从 storage 反读原稿） */
+    public String extractText(InputStream is, String filenameForLog) {
+        try (InputStream in = is) {
+            return tika.parseToString(in, new Metadata(), 1_000_000);
+        } catch (Exception e) {
+            log.error("extract text failed: {}", filenameForLog, e);
             throw new BizException(ErrorCode.DETECT_EXTRACT_FAILED, e.getMessage());
         }
     }

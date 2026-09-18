@@ -1,5 +1,6 @@
 package com.paperaigc.detect.controller;
 
+import cn.dev33.satoken.annotation.SaIgnore;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.common.core.domain.R;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * 若依基座接入后直接删除该 controller。</p>
  */
 @Slf4j
+@SaIgnore    // 登录/登出/me 走 Bearer 自校验，不经 Sa-Token 拦截；生产接入基座 auth 后移除
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {
