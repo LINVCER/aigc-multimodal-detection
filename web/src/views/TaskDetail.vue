@@ -130,6 +130,58 @@ const bodyStats = computed(() => {
   return { body, excluded }
 })
 
+// 视图切换：段落顺序 / 按章节聚合
+const paragraphView = ref<'paragraph' | 'section'>('paragraph')
+const expandedSectionMap = ref<Record<string, boolean>>({})
+
+interface SectionAgg {
+  name: string
+  paragraphs: ParagraphResult[]
+  bodyCount: number
+  excludedCount: number
+  avgRate: number | null       // 该章正文段 AI 率平均
+  maxRate: number              // 该章正文段最高 AI 率（用于染色）
+}
+
+const sectionGroups = computed<SectionAgg[]>(() => {
+  const paragraphs = detail.value?.paragraphs || []
+  if (paragraphs.length === 0) return []
+  const map = new Map<string, ParagraphResult[]>()
+  const order: string[] = []          // 保持章节出现顺序
+  for (const p of paragraphs) {
+    const key = p.sectionName || '正文'
+    if (!map.has(key)) { map.set(key, []); order.push(key) }
+    map.get(key)!.push(p)
+  }
+  return order.map(name => {
+    const items = map.get(name)!
+    const bodyItems = items.filter(p => !p.excluded && p.calibratedProb != null)
+    const sum = bodyItems.reduce((s, p) => s + (p.calibratedProb || 0), 0)
+    const avg = bodyItems.length ? (sum / bodyItems.length) * 100 : null
+    const max = bodyItems.reduce((m, p) => Math.max(m, (p.calibratedProb || 0) * 100), 0)
+    return {
+      name,
+      paragraphs: items,
+      bodyCount: bodyItems.length,
+      excludedCount: items.length - bodyItems.length,
+      avgRate: avg,
+      maxRate: max,
+    }
+  })
+})
+
+function sectionAvgColor(agg: SectionAgg): string {
+  if (agg.avgRate == null) return 'var(--label-tertiary)'
+  const thr = detail.value?.threshold ?? 20
+  if (agg.avgRate <= thr) return 'var(--system-green)'
+  if (agg.avgRate <= thr * 1.5) return 'var(--system-orange)'
+  return 'var(--system-red)'
+}
+
+function toggleSection(name: string) {
+  expandedSectionMap.value[name] = !expandedSectionMap.value[name]
+}
+
 /**
  * 改进建议（Wave 1 · 2.4）：纯前端规则驱动，不需要后端返回
  * 依据整体 AI 率、章节高危段落、溯源分布给出可执行建议
@@ -349,11 +401,74 @@ function suggestionBg(sev: 'info' | 'warn' | 'danger'): string {
           <template v-if="detail.status === 'DONE'">
             <div class="section-header-line">
               <div class="section-header">段落分析</div>
-              <div class="legend">
-                <span><span class="swatch high"></span> 高</span>
-                <span><span class="swatch mid"></span> 中</span>
+              <div class="header-right">
+                <!-- View toggle：段落顺序 / 章节聚合 -->
+                <el-radio-group v-model="paragraphView" size="small" style="margin-right: 12px">
+                  <el-radio-button label="paragraph" value="paragraph">段落</el-radio-button>
+                  <el-radio-button label="section"   value="section">章节</el-radio-button>
+                </el-radio-group>
+                <div class="legend">
+                  <span><span class="swatch high"></span> 高</span>
+                  <span><span class="swatch mid"></span> 中</span>
+                </div>
               </div>
             </div>
+
+            <!-- ===== 章节视图 ===== -->
+            <template v-if="paragraphView === 'section'">
+              <el-card
+                v-for="agg in sectionGroups" :key="agg.name"
+                class="section-card"
+                body-style="padding: 0"
+              >
+                <div class="section-head" @click="toggleSection(agg.name)">
+                  <div class="section-head-left">
+                    <div class="section-name">{{ agg.name }}</div>
+                    <div class="section-meta">
+                      <span>{{ agg.bodyCount }} 段正文</span>
+                      <template v-if="agg.excludedCount > 0"><span class="dot">·</span>{{ agg.excludedCount }} 段已排除</template>
+                    </div>
+                  </div>
+                  <div class="section-head-right">
+                    <div class="section-rate" :style="{ color: sectionAvgColor(agg) }">
+                      <template v-if="agg.avgRate != null">
+                        {{ agg.avgRate.toFixed(0) }}<span class="section-rate-unit">%</span>
+                      </template>
+                      <template v-else>—</template>
+                    </div>
+                    <span class="section-chevron" :class="{ expanded: expandedSectionMap[agg.name] }">›</span>
+                  </div>
+                </div>
+
+                <!-- 展开：该章段落列表（简版：段号+AI率+首 80 字） -->
+                <div v-if="expandedSectionMap[agg.name]" class="section-body">
+                  <div
+                    v-for="p in agg.paragraphs" :key="p.paragraphIdx"
+                    class="section-para" :class="{ excluded: p.excluded }"
+                  >
+                    <div class="section-para-head">
+                      <span class="section-para-idx">段 {{ p.paragraphIdx + 1 }}</span>
+                      <span v-if="p.excluded" class="excluded-badge">
+                        {{ EXCLUDE_REASON_LABEL[p.excludeReason || ''] || '非正文' }}
+                      </span>
+                      <span
+                        v-else
+                        class="section-para-rate"
+                        :style="{ color: paragraphProbColor(p.calibratedProb || 0) }"
+                      >
+                        {{ ((p.calibratedProb || 0) * 100).toFixed(0) }}%
+                      </span>
+                    </div>
+                    <div class="section-para-text">
+                      {{ (p.text || '').slice(0, 80) }}{{ (p.text || '').length > 80 ? '…' : '' }}
+                    </div>
+                  </div>
+                </div>
+              </el-card>
+            </template>
+
+            <!-- ===== 段落视图（原样，保留完整交互） ===== -->
+            <template v-else>
 
             <el-card
               v-for="p in detail.paragraphs || []" :key="p.paragraphIdx"
@@ -397,6 +512,7 @@ function suggestionBg(sev: 'info' | 'warn' | 'danger'): string {
                 <div class="rewritten-text">{{ rewrittenMap[p.paragraphIdx] }}</div>
               </div>
             </el-card>
+            </template>
           </template>
         </div>
       </template>
@@ -532,6 +648,97 @@ function suggestionBg(sev: 'info' | 'warn' | 'danger'): string {
 }
 .para-prob { font-size: var(--fs-footnote); font-weight: var(--fw-semibold); }
 .para-text { font-size: 15px; line-height: 1.7; color: var(--label); }
+
+/* 段落分析头部：右侧放 view toggle + legend */
+.header-right { display: flex; align-items: center; gap: 12px; padding-right: 12px; }
+
+/* ============ 章节视图 ============ */
+.section-card { margin-top: 12px; overflow: hidden; }
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: background var(--dur-fast);
+}
+.section-head:hover { background: rgba(60, 60, 67, 0.06); }
+
+.section-head-left { flex: 1; min-width: 0; }
+.section-name {
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  color: var(--label);
+  letter-spacing: -0.2px;
+}
+.section-meta {
+  margin-top: 4px;
+  font-size: var(--fs-caption-1);
+  color: var(--label-secondary);
+}
+.section-meta .dot { margin: 0 6px; opacity: 0.4; }
+
+.section-head-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.section-rate {
+  font-size: 28px;
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.section-rate-unit {
+  font-size: 14px;
+  font-weight: var(--fw-semibold);
+  color: var(--label-secondary);
+  margin-left: 1px;
+}
+.section-chevron {
+  color: var(--label-tertiary);
+  font-size: 22px;
+  line-height: 1;
+  transition: transform var(--dur-base) var(--ease-standard);
+}
+.section-chevron.expanded { transform: rotate(90deg); }
+
+.section-body {
+  padding: 8px 20px 16px;
+  border-top: 1px solid var(--label-quaternary);
+  background: rgba(60, 60, 67, 0.03);
+}
+.section-para {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--label-quaternary);
+}
+.section-para:last-child { border-bottom: none; }
+.section-para.excluded { opacity: 0.65; }
+.section-para-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.section-para-idx {
+  font-size: 11px;
+  font-weight: var(--fw-semibold);
+  color: var(--label-secondary);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+.section-para-rate {
+  font-size: var(--fs-footnote);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.section-para-text {
+  font-size: var(--fs-subhead);
+  color: var(--label);
+  line-height: 1.55;
+}
 
 /* 改进建议卡（分段落，语义色左边） */
 .suggestion-card { overflow: hidden; }

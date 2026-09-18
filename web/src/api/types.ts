@@ -32,6 +32,7 @@ export interface ParagraphResult {
   sentences: SentenceScore[]
   excluded?: boolean              // 非正文（参考文献 / 图表 caption / 章节标题 等）
   excludeReason?: 'reference' | 'acknowledgement' | 'appendix' | 'sectionTitle' | 'caption'
+  sectionName?: string            // 归属章节（摘要 / 引言 / 方法 / 参考文献 ...）
 }
 
 export interface TaskDetail extends DetectTask {

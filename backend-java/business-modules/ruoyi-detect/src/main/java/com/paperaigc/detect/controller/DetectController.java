@@ -259,32 +259,36 @@ public class DetectController {
             "^\\s*(\\[\\d+\\]|\\(\\d+\\)|\\d+\\.)\\s+\\S");
 
     /**
-     * 过滤非正文段：给每段打 {text, excluded, excludeReason}。
-     * 命中"参考文献/致谢/附录"起始后，其后所有段落一并 excluded=true（reason=后置区）。
+     * 过滤非正文段：给每段打 {text, excluded, excludeReason, sectionName}。
+     * 命中"参考文献/致谢/附录"起始后，其后所有段落一并 excluded=true（reason=后置区）；
+     * 同时跟踪 currentSection —— 章节标题命中时更新，所有后续段落归属该章。
+     * 找不到显式章节时归属"正文"。
      */
     private List<Map<String, Object>> filterNonBody(List<String> raw) {
         List<Map<String, Object>> out = new ArrayList<>(raw.size());
         boolean afterRefSection = false;
         String afterReason = null;
+        String currentSection = "正文";       // 未识别到章节前的默认
 
         for (String text : raw) {
             String reason = null;
 
             if (!afterRefSection && REF_START.matcher(text).matches()) {
-                // 起始段本身也排除，且后续全部排除
                 afterRefSection = true;
-                afterReason = text.matches("(?i).*致谢.*|(?i).*acknowledge.*") ? "acknowledgement"
-                        : text.matches("(?i).*附录.*|(?i).*appendix.*") ? "appendix"
-                        : "reference";
+                boolean isAck = text.matches("(?i).*致谢.*") || text.matches("(?i).*acknowledge.*");
+                boolean isAppendix = text.matches("(?i).*附录.*") || text.matches("(?i).*appendix.*");
+                afterReason = isAck ? "acknowledgement" : isAppendix ? "appendix" : "reference";
                 reason = afterReason;
+                currentSection = isAck ? "致谢" : isAppendix ? "附录" : "参考文献";
             } else if (afterRefSection) {
                 reason = afterReason;
+                // currentSection 保持
             } else if (SECTION_TITLE.matcher(text).matches() && text.length() < 30) {
                 reason = "sectionTitle";
+                currentSection = normalizeSectionName(text.trim());
             } else if (CAPTION.matcher(text).find()) {
                 reason = "caption";
             } else if (REF_ITEM.matcher(text).find() && text.length() < 300) {
-                // 落单的参考文献行（前面没识别到"参考文献"标题就直接开始编号）
                 reason = "reference";
             }
 
@@ -292,9 +296,29 @@ public class DetectController {
             meta.put("text", text);
             meta.put("excluded", reason != null);
             if (reason != null) meta.put("excludeReason", reason);
+            meta.put("sectionName", currentSection);
             out.add(meta);
         }
         return out;
+    }
+
+    /**
+     * 章节名归一化：把「第 一 章  绪论」/「1.1  引言」等杂空白拍成单空格；
+     * 常见节名映射为规范中文（Abstract → 摘要 · Introduction → 引言 …）以便前端聚合。
+     */
+    private String normalizeSectionName(String raw) {
+        String s = raw.replaceAll("\\s+", " ").trim();
+        String lower = s.toLowerCase();
+        if (lower.equals("abstract")) return "摘要";
+        if (lower.equals("introduction")) return "引言";
+        if (lower.equals("background")) return "背景";
+        if (lower.equals("related work") || lower.equals("relatedwork")) return "相关工作";
+        if (lower.startsWith("methods") || lower.equals("method")) return "方法";
+        if (lower.startsWith("experiments") || lower.equals("experiment")) return "实验";
+        if (lower.startsWith("results") || lower.equals("result")) return "结果";
+        if (lower.startsWith("discussion")) return "讨论";
+        if (lower.equals("conclusion") || lower.equals("conclusions")) return "结论";
+        return s;
     }
 
     /* ==================== 内部访问（供 ReportController 读取任务） ==================== */
@@ -500,6 +524,7 @@ public class DetectController {
                 para.put("aiProb", null);
                 para.put("calibratedProb", null);
                 para.put("sourceLabel", null);
+                para.put("sectionName", meta.getOrDefault("sectionName", "正文"));
                 para.put("sentences", List.of());
                 paragraphs.add(para);
                 continue;
@@ -528,6 +553,7 @@ public class DetectController {
                 para.put("confidenceInterval", py.get("interval"));
                 double cp = ((Number) py.get("calibrated_prob")).doubleValue();
                 para.put("sourceLabel", cp >= 0.7 ? "qwen" : (cp >= 0.4 ? "gpt" : "human"));
+                para.put("sectionName", meta.getOrDefault("sectionName", "正文"));
                 para.put("warnings", List.of());
 
                 @SuppressWarnings("unchecked")
