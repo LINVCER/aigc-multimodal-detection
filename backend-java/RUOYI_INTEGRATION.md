@@ -42,15 +42,18 @@ git clone https://gitee.com/JavaLionLi/plus-ui.git
 
 ## 3. 数据库
 
-1. 先导入若依自带的 `sys_*` 初始化脚本（RuoYi-Vue-Plus/script/sql/）
-2. 再导入本仓库业务表：`doc/sql/init.sql` 中 **除 sys_org / sys_user 之外的所有表**（paper / detect_task / detect_paragraph_result / detect_sentence_result / humanize_task / report / credit_* / payment_order / model_version）
-   - `sys_org` → 用若依的 `sys_dept`（组织树语义一致）
-   - `sys_user` → 用若依自带（字段更全），`student_no` 加为扩展字段：
-     ```sql
-     ALTER TABLE sys_user ADD COLUMN student_no VARCHAR(32) NULL COMMENT '学号';
-     ALTER TABLE sys_user ADD COLUMN degree_type VARCHAR(20) NULL COMMENT '学位类型';
-     ```
-3. `audit_log` → 用若依自带 `sys_oper_log`（`@Log` 注解自动写入），本表删除
+C 端定位（个人用户，非校园 SaaS），跟 `docs/design/OPERATIONS_REQUIREMENTS.md §5` 对齐：
+
+1. 先导入若依自带的 `sys_*` 全套初始化脚本（RuoYi-Vue-Plus/script/sql/）
+2. 再导入本仓库业务表 —— 用 `scripts/patch-schema.sql` 一键跑：
+   - 保留：`paper / detect_task / detect_paragraph_result / detect_sentence_result / humanize_task / report`
+   - 新增（Wave 3 运营后台配套）：`user_feedback / detect_scenario_threshold / model_version / user_abnormal_flag`
+   - 场景阈值初始数据（本科 20 / 硕士 15 / 博士 10 / 职业报告 15 / 自媒体 30 / 其他 25）随建表插入
+3. `sys_user` 直接用若依自带（不再加 `student_no / degree_type`，C 端产品不需要）
+4. `sys_org / sys_dept` 只做后台角色隔离用，不承载教师/院系语义
+5. `audit_log` → 若依自带 `sys_oper_log`（`@Log` 注解自动写入），业务侧删除
+
+> ⚠️ 老版 `docs/sql/init.sql` 里的 `sys_org / sys_user / STUDENT|TEACHER` 那批 B2B 字段在 C 端定位下已弃用，仅作历史参考，不要执行。
 
 ## 4. 配置
 
