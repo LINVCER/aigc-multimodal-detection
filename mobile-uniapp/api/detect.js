@@ -50,19 +50,21 @@ export function getTaskDetail(id) {
 }
 
 /**
- * 上传论文（W3.b · scenario；W3.c 前透传 userId 供后台 topUsers/userLabel 归属）
+ * 上传检测（支持 text/audio/image 多模态）
  * @param {string} filePath 本地文件路径
  * @param {string} name 文件名
  * @param {string} scenario academic_bachelor|academic_master|academic_phd|job_report|self_media|other
  * @param {number|string} [userId] 登录用户 ID（未登录可空）
+ * @param {string} [modality] text|audio|image；不传后端按后缀猜
  * @returns { id, paperTitle, status, createdAt }
  */
-export function uploadPaper(filePath, name, scenario, userId) {
+export function uploadPaper(filePath, name, scenario, userId, modality) {
   if (MOCK_MODE) {
     return Promise.resolve({
       id: Date.now(),
       paperTitle: name,
       status: 'PENDING',
+      modality: modality || 'text',
       scenario,
       threshold: 20,
       createdAt: new Date().toISOString(),
@@ -72,6 +74,7 @@ export function uploadPaper(filePath, name, scenario, userId) {
     const token = uni.getStorageSync('access_token')
     const formData = { scenario }
     if (userId != null && userId !== '') formData.userId = String(userId)
+    if (modality) formData.modality = modality
     uni.uploadFile({
       // §3.1 上传端点 · 必须拼 API_BASE，否则 H5 打到当前源（5175）404
       // H5 dev 场景 API_BASE 为空 → 相对 /api/v1/... 走 manifest.json 里 vite proxy

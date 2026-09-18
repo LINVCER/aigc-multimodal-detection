@@ -29,7 +29,31 @@
     {
       "path": "pages/upload/upload",
       "style": {
-        "navigationBarTitleText": "上传检测",
+        "navigationBarTitleText": "选择检测方式",
+        "navigationStyle": "custom",
+        "backgroundColor": "#F2F2F7"
+      }
+    },
+    {
+      "path": "pages/upload/text",
+      "style": {
+        "navigationBarTitleText": "论文检测",
+        "navigationStyle": "custom",
+        "backgroundColor": "#F2F2F7"
+      }
+    },
+    {
+      "path": "pages/upload/audio",
+      "style": {
+        "navigationBarTitleText": "音频检测",
+        "navigationStyle": "custom",
+        "backgroundColor": "#F2F2F7"
+      }
+    },
+    {
+      "path": "pages/upload/image",
+      "style": {
+        "navigationBarTitleText": "图像检测",
         "navigationStyle": "custom",
         "backgroundColor": "#F2F2F7"
       }
