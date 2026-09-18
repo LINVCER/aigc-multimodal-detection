@@ -1,5 +1,10 @@
 package com.paperaigc.detect.domain.entity;
 
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -8,17 +13,19 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
- * 用户反馈实体 —— 对齐 scripts/patch-schema.sql · user_feedback
+ * 用户反馈实体 —— 对齐 docs/releases/v0.1.0/sql · user_feedback
  *
- * <p>Phase 0 内存态，Phase B 接入 MyBatis-Plus 时补 @TableName / @TableId / @TableField 注解。</p>
+ * <p>Phase B 接入 MyBatis-Plus，字段与表列映射由 map-underscore-to-camel-case 处理。</p>
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@TableName("user_feedback")
 public class Feedback {
 
     /** 反馈 ID */
+    @TableId(type = IdType.AUTO)
     private Long id;
     /** 提交用户 ID（Sa-Token 接入后从上下文取；未登录场景为 null） */
     private Long userId;
@@ -39,5 +46,6 @@ public class Feedback {
     /** 处理时间 */
     private LocalDateTime handledAt;
     /** 提交时间 */
+    @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 }
