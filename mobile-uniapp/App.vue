@@ -5,7 +5,6 @@ import { useAuth } from '@/store/auth'
 onLaunch(() => {
   const auth = useAuth()
   auth.restore()
-  // 未登录跳登录页；已登录直接留在 tabBar 页
   if (!auth.token) {
     uni.reLaunch({ url: '/pages/login/login' })
   }
@@ -13,15 +12,21 @@ onLaunch(() => {
 </script>
 
 <style lang="scss">
-/* 全局 reset & 基础字号 */
+/* 全局基础：Apple 语义色板 + SF Pro 字栈 */
 page {
-  background-color: #f3f4f6;
-  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', Helvetica, 'Microsoft YaHei', Arial, sans-serif;
-  color: #111827;
-  font-size: 28rpx;
+  background-color: #F2F2F7;  /* systemGroupedBackground */
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC',
+               'Helvetica Neue', Helvetica, 'Microsoft YaHei', sans-serif;
+  color: #000000;
+  font-size: 34rpx;           /* Body 17pt */
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-view, text {
-  box-sizing: border-box;
-}
+view, text, button, input { box-sizing: border-box; }
+
+/* 覆盖 uni-app / 微信小程序默认按钮丑陋边框 */
+button { border: none; }
+button::after { border: none; }
 </style>

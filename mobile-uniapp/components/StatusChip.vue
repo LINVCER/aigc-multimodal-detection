@@ -3,9 +3,8 @@ import { computed } from 'vue'
 import { STATUS_MAP } from '@/utils/constants'
 
 const props = defineProps({
-  status: { type: String, required: true },  // PENDING|RUNNING|DONE|FAILED
+  status: { type: String, required: true },
 })
-
 const conf = computed(() => STATUS_MAP[props.status] || STATUS_MAP.PENDING)
 </script>
 
@@ -20,10 +19,11 @@ const conf = computed(() => STATUS_MAP[props.status] || STATUS_MAP.PENDING)
 .chip {
   display: inline-flex;
   align-items: center;
-  padding: 4rpx 16rpx;
+  padding: 6rpx 20rpx;
   border-radius: 9999rpx;
-  font-size: 22rpx;
+  font-size: 24rpx;
   font-weight: 600;
+  letter-spacing: 0.5rpx;
 }
 .dot {
   display: inline-block;
@@ -31,11 +31,11 @@ const conf = computed(() => STATUS_MAP[props.status] || STATUS_MAP.PENDING)
   height: 12rpx;
   border-radius: 50%;
   background: currentColor;
-  margin-right: 8rpx;
+  margin-right: 10rpx;
   animation: pulse 1.4s ease-in-out infinite;
 }
 @keyframes pulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 1; }
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 1; }
 }
 </style>

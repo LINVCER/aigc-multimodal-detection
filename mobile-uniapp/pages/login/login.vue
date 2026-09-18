@@ -21,68 +21,85 @@ async function onSubmit() {
 </script>
 
 <template>
-  <view class="container">
-    <view class="header">
-      <text class="title">论文 AIGC 检测</text>
-      <text class="subtitle">教育部 2026 新规 · 学位论文 AI 率检测</text>
+  <view class="page">
+    <view class="hero">
+      <text class="brand">论文AIGC检测</text>
+      <text class="tagline">教育部 2026 新规 · 学位论文 AI 率检测</text>
     </view>
 
     <view class="form">
-      <input class="input" v-model="username" placeholder="学号 / 工号" />
-      <input class="input" v-model="password" placeholder="密码" password />
+      <view class="field">
+        <input v-model="username" class="input" placeholder="学号 / 工号" placeholder-style="color: rgba(60,60,67,0.30)" />
+      </view>
+      <view class="field">
+        <input v-model="password" class="input" placeholder="密码" password placeholder-style="color: rgba(60,60,67,0.30)" />
+      </view>
+
       <button class="submit" :loading="auth.loading" @click="onSubmit">登 录</button>
-      <text class="hint">首次使用请通过学校统一身份认证或联系管理员开通</text>
+      <text class="footer-hint">首次使用请通过学校统一身份认证</text>
     </view>
   </view>
 </template>
 
 <style lang="scss" scoped>
-.container {
+.page {
   min-height: 100vh;
-  padding: 120rpx 64rpx 60rpx;
-  background: #fff;
+  background: #FFFFFF;
+  padding: 200rpx 64rpx 60rpx;
 }
 
-.header {
-  text-align: center;
-  margin-bottom: 80rpx;
-}
-.title {
+/* Hero 大标题 */
+.hero { margin-bottom: 120rpx; }
+.brand {
   display: block;
-  font-size: 44rpx;
+  font-size: 68rpx;
   font-weight: 700;
-  color: #1a56db;
+  letter-spacing: -1rpx;
+  color: #000;
+  line-height: 1.1;
 }
-.subtitle {
+.tagline {
   display: block;
-  margin-top: 16rpx;
-  font-size: 24rpx;
-  color: #6b7280;
-}
-
-.input {
-  height: 88rpx;
-  border: 1rpx solid #d1d5db;
-  border-radius: 16rpx;
-  padding: 0 28rpx;
   font-size: 30rpx;
-  margin-bottom: 28rpx;
+  color: rgba(60,60,67,0.60);
+  margin-top: 20rpx;
 }
 
+/* Inset Grouped 输入框 */
+.form {}
+.field {
+  background: #F2F2F7;
+  border-radius: 28rpx;
+  padding: 4rpx 32rpx;
+  margin-bottom: 20rpx;
+}
+.input {
+  height: 96rpx;
+  font-size: 34rpx;
+  color: #000;
+}
+
+/* 主按钮：填充药丸 */
 .submit {
-  background: #1a56db;
-  color: #fff;
-  font-size: 32rpx;
-  font-weight: 600;
-  border-radius: 16rpx;
-  margin-top: 16rpx;
-}
-
-.hint {
-  display: block;
   margin-top: 40rpx;
-  font-size: 22rpx;
-  color: #9ca3af;
+  height: 100rpx;
+  line-height: 100rpx;
+  background: #007AFF;
+  color: #FFFFFF;
+  font-size: 34rpx;
+  font-weight: 600;
+  border-radius: 9999rpx;
+  letter-spacing: 2rpx;
+  transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1),
+              opacity 200ms;
+}
+.submit[loading], .submit:active { transform: scale(0.98); opacity: 0.88; }
+
+.footer-hint {
+  display: block;
+  margin-top: 48rpx;
+  font-size: 24rpx;
+  color: rgba(60,60,67,0.60);
   text-align: center;
 }
 </style>

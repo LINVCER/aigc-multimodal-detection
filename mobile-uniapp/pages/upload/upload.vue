@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { uploadPaper } from '@/api/detect'
+import { DEGREE_MAP } from '@/utils/constants'
 
 const DEGREES = [
   { key: 'BACHELOR', label: '本科', threshold: 20 },
@@ -9,27 +10,18 @@ const DEGREES = [
 ]
 
 const degree = ref('BACHELOR')
-const file = ref(null)          // { path, name, size }
+const file = ref(null)
 const submitting = ref(false)
-
 const threshold = computed(() => DEGREES.find(d => d.key === degree.value)?.threshold)
 
-/**
- * 选文件
- *   小程序端优先用 chooseMessageFile（从聊天转发），H5 端 fallback 到 chooseFile
- */
 function pickFile() {
   // #ifdef MP-WEIXIN
   uni.chooseMessageFile({
-    count: 1,
-    type: 'file',
+    count: 1, type: 'file',
     extension: ['.pdf', '.doc', '.docx', '.txt'],
     success: (res) => {
       const f = res.tempFiles[0]
-      if (f.size > 20 * 1024 * 1024) {
-        uni.showToast({ title: '文件不能超过 20MB', icon: 'none' })
-        return
-      }
+      if (f.size > 20 * 1024 * 1024) return uni.showToast({ title: '文件不能超过 20MB', icon: 'none' })
       file.value = { path: f.path, name: f.name, size: f.size }
     },
   })
@@ -42,10 +34,7 @@ function pickFile() {
   input.onchange = (e) => {
     const f = e.target.files[0]
     if (!f) return
-    if (f.size > 20 * 1024 * 1024) {
-      uni.showToast({ title: '文件不能超过 20MB', icon: 'none' })
-      return
-    }
+    if (f.size > 20 * 1024 * 1024) return uni.showToast({ title: '文件不能超过 20MB', icon: 'none' })
     const url = URL.createObjectURL(f)
     file.value = { path: url, name: f.name, size: f.size }
   }
@@ -54,10 +43,7 @@ function pickFile() {
 }
 
 async function submit() {
-  if (!file.value) {
-    uni.showToast({ title: '请先选择论文文件', icon: 'none' })
-    return
-  }
+  if (!file.value) return uni.showToast({ title: '请先选择论文文件', icon: 'none' })
   submitting.value = true
   try {
     await uploadPaper(file.value.path, file.value.name, degree.value)
@@ -70,104 +56,198 @@ async function submit() {
     submitting.value = false
   }
 }
+
+function humanBytes(n) {
+  if (!n) return ''
+  const mb = n / 1024 / 1024
+  return mb >= 1 ? `${mb.toFixed(1)} MB` : `${Math.round(n / 1024)} KB`
+}
 </script>
 
 <template>
-  <view class="container">
-    <text class="section-title">学位类型</text>
-    <view class="degree-row">
-      <view
-        v-for="d in DEGREES" :key="d.key"
-        class="chip" :class="{ active: degree === d.key }"
-        @click="degree = d.key"
-      >{{ d.label }}</view>
-    </view>
-    <text class="threshold-hint">教育部红线：AI 率 ≤ {{ threshold }}%</text>
-
-    <text class="section-title">论文文件</text>
-    <view class="file-box" @click="pickFile">
-      <text class="file-icon">{{ file ? '📄' : '📎' }}</text>
-      <text class="file-name">
-        {{ file ? file.name : '点击选择 PDF / Word / TXT（≤ 20MB）' }}
-      </text>
+  <view class="page">
+    <view class="large-title-bar">
+      <text class="large-title">上传检测</text>
     </view>
 
+    <!-- Group 1: 学位类型（Segmented） -->
+    <text class="group-label">学位类型</text>
+    <view class="group-card">
+      <view class="segmented">
+        <view
+          v-for="d in DEGREES" :key="d.key"
+          class="seg" :class="{ active: degree === d.key }"
+          @click="degree = d.key"
+        >{{ d.label }}</view>
+      </view>
+    </view>
+    <text class="footnote">
+      教育部红线：AI 率 <text class="footnote-strong">≤ {{ threshold }}%</text>
+    </text>
+
+    <!-- Group 2: 论文文件 -->
+    <text class="group-label">论文文件</text>
+    <view class="group-card">
+      <view class="file-row" @click="pickFile">
+        <view v-if="!file" class="file-empty">
+          <text class="file-icon">􀈕</text>
+          <view class="file-empty-text">
+            <text class="file-empty-title">选择文件</text>
+            <text class="file-empty-sub">PDF / Word / TXT · 最大 20MB</text>
+          </view>
+          <text class="chevron">›</text>
+        </view>
+        <view v-else class="file-picked">
+          <text class="file-icon-picked">📄</text>
+          <view class="file-info">
+            <text class="file-name">{{ file.name }}</text>
+            <text class="file-size">{{ humanBytes(file.size) }}</text>
+          </view>
+          <text class="reselect">更换</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- Action Button -->
     <button
       class="submit"
-      :disabled="!file || submitting"
+      :class="{ disabled: !file || submitting }"
       :loading="submitting"
+      :disabled="!file || submitting"
       @click="submit"
     >提交检测</button>
 
-    <text class="privacy">论文原文加密存储，30 天后自动删除；检测报告保留 3 年</text>
+    <text class="privacy">
+      论文原文加密存储，30 天后自动删除；报告保留 3 年
+    </text>
   </view>
 </template>
 
 <style lang="scss" scoped>
-.container {
-  padding: 40rpx;
-  background: #fff;
+.page {
   min-height: 100vh;
+  background: #F2F2F7;
+  padding: 40rpx 32rpx 100rpx;
+}
+.large-title-bar { padding-bottom: 32rpx; }
+.large-title {
+  font-size: 68rpx;
+  font-weight: 700;
+  letter-spacing: -1rpx;
+  color: #000;
 }
 
-.section-title {
+.group-label {
   display: block;
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #374151;
-  margin: 40rpx 0 20rpx;
+  font-size: 26rpx;
+  font-weight: 500;
+  color: rgba(60,60,67,0.60);
+  text-transform: uppercase;
+  letter-spacing: 1rpx;
+  padding: 32rpx 20rpx 12rpx;
+}
+.group-card {
+  background: #FFFFFF;
+  border-radius: 28rpx;
+  overflow: hidden;
 }
 
-.degree-row {
+/* Segmented Control（iOS 风） */
+.segmented {
   display: flex;
-  gap: 20rpx;
+  padding: 8rpx;
+  background: rgba(120,120,128,0.12);
+  border-radius: 20rpx;
+  margin: 20rpx;
 }
-.chip {
-  padding: 20rpx 40rpx;
-  border-radius: 40rpx;
-  border: 1rpx solid #d1d5db;
-  font-size: 28rpx;
-  color: #374151;
+.seg {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx 0;
+  font-size: 30rpx;
+  color: #000;
+  border-radius: 16rpx;
+  transition: all 200ms cubic-bezier(0.32, 0.72, 0, 1);
   &.active {
-    background: #1a56db;
-    color: #fff;
-    border-color: #1a56db;
+    background: #FFFFFF;
     font-weight: 600;
+    box-shadow: 0 3rpx 8rpx rgba(0,0,0,0.05);
   }
 }
 
-.threshold-hint {
+.footnote {
   display: block;
-  margin-top: 16rpx;
   font-size: 24rpx;
-  color: #f59e0b;
+  color: rgba(60,60,67,0.60);
+  padding: 12rpx 20rpx 0;
 }
+.footnote-strong { color: #FF9500; font-weight: 600; }
 
-.file-box {
-  border: 3rpx dashed #d1d5db;
-  border-radius: 20rpx;
-  padding: 72rpx 20rpx;
+/* 文件行 */
+.file-row { padding: 32rpx; }
+.file-empty, .file-picked {
+  display: flex; align-items: center;
+}
+.file-icon {
+  font-size: 40rpx;
+  color: #007AFF;
+  width: 72rpx; height: 72rpx;
+  line-height: 72rpx;
   text-align: center;
-  background: #f9fafb;
+  background: rgba(0,122,255,0.10);
+  border-radius: 18rpx;
+  margin-right: 24rpx;
 }
-.file-icon { display: block; font-size: 64rpx; margin-bottom: 16rpx; }
-.file-name { display: block; font-size: 26rpx; color: #6b7280; }
-
-.submit {
-  margin-top: 56rpx;
-  background: #1a56db;
-  color: #fff;
+.file-icon-picked {
+  font-size: 40rpx;
+  width: 72rpx; height: 72rpx;
+  line-height: 72rpx;
+  text-align: center;
+  margin-right: 24rpx;
+}
+.file-empty-text, .file-info { flex: 1; min-width: 0; }
+.file-empty-title, .file-name {
+  display: block;
   font-size: 32rpx;
+  color: #000;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.file-empty-sub, .file-size {
+  display: block;
+  font-size: 24rpx;
+  color: rgba(60,60,67,0.60);
+  margin-top: 4rpx;
+}
+.chevron   { color: rgba(60,60,67,0.30); font-size: 40rpx; }
+.reselect  { color: #007AFF; font-size: 28rpx; font-weight: 500; }
+
+/* 主按钮 */
+.submit {
+  margin-top: 48rpx;
+  height: 100rpx;
+  line-height: 100rpx;
+  background: #007AFF;
+  color: #FFFFFF;
+  font-size: 34rpx;
   font-weight: 600;
-  border-radius: 16rpx;
-  &[disabled] { opacity: 0.4; }
+  border-radius: 9999rpx;
+  letter-spacing: 2rpx;
+  transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1),
+              opacity 200ms;
+  &:active { transform: scale(0.98); opacity: 0.88; }
+  &.disabled { opacity: 0.4; }
 }
 
 .privacy {
   display: block;
   margin-top: 32rpx;
-  font-size: 22rpx;
-  color: #9ca3af;
+  font-size: 24rpx;
+  color: rgba(60,60,67,0.60);
   text-align: center;
+  line-height: 1.5;
+  padding: 0 40rpx;
 }
 </style>

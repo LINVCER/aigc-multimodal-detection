@@ -1,53 +1,80 @@
-/* 品牌色板 */
-$brand-primary:      #1a56db;
-$brand-primary-dark: #1e40af;
-$brand-primary-soft: #eff6ff;
-$brand-gradient:     linear-gradient(135deg, #1a56db 0%, #3b82f6 100%);
+/* ============================================================
+ * Apple Design tokens — 参考 s1gmamale1/apple-design-skills
+ * 原则：Clarity / Deference / Depth + 2025 Liquid Glass
+ * 单位：uni-app 用 rpx，750rpx = 375pt（iPhone 逻辑宽），即 1pt = 2rpx
+ * ============================================================ */
 
-/* 语义色 */
-$success: #10b981;
-$warning: #f59e0b;
-$danger:  #ef4444;
-$info:    #06b6d4;
+/* ---- 系统色板（Apple systemXxx，语义优先，禁硬编码）---- */
+$system-blue:        #007AFF;   /* 交互主色 */
+$system-blue-dark:   #0A84FF;   /* Dark Mode 变体 */
+$system-green:       #34C759;   /* 成功 / 通过 */
+$system-orange:      #FF9500;   /* 警告 / 中风险 */
+$system-red:         #FF3B30;   /* 错误 / 高风险 */
+$system-yellow:      #FFCC00;
+$system-purple:      #AF52DE;
+$system-pink:        #FF2D55;
+$system-teal:        #5AC8FA;
 
-/* 中性色 */
-$gray-50:  #f9fafb;
-$gray-100: #f3f4f6;
-$gray-200: #e5e7eb;
-$gray-300: #d1d5db;
-$gray-400: #9ca3af;
-$gray-500: #6b7280;
-$gray-600: #4b5563;
-$gray-700: #374151;
-$gray-800: #1f2937;
-$gray-900: #111827;
+/* ---- 中性 / 分层背景 ---- */
+$label:              #000000;                /* 一级文本 */
+$label-secondary:    rgba(60, 60, 67, 0.60); /* 二级文本 */
+$label-tertiary:     rgba(60, 60, 67, 0.30); /* 三级文本 / placeholder */
+$label-quaternary:   rgba(60, 60, 67, 0.18); /* 分割线 */
 
-/* 间距（4 的倍数 rpx）*/
-$sp-1:  8rpx;
-$sp-2:  16rpx;
-$sp-3:  24rpx;
-$sp-4:  32rpx;
-$sp-5:  40rpx;
-$sp-6:  48rpx;
-$sp-8:  64rpx;
+$system-background:           #FFFFFF;       /* 卡片背景 */
+$system-grouped-background:   #F2F2F7;       /* 分组表格外层 */
+$secondary-system-background: #F2F2F7;       /* 次级背景 */
+$separator:                   rgba(60, 60, 67, 0.29);
+$separator-opaque:            #C6C6C8;
 
-/* 圆角 */
-$radius-sm: 8rpx;
-$radius-md: 16rpx;
-$radius-lg: 24rpx;
-$radius-xl: 32rpx;
-$radius-full: 9999rpx;
+/* ---- 8pt Grid ---- */
+$sp-0:  0;
+$sp-1:  8rpx;      /*  4pt */
+$sp-2:  16rpx;     /*  8pt */
+$sp-3:  24rpx;     /* 12pt */
+$sp-4:  32rpx;     /* 16pt */
+$sp-5:  40rpx;     /* 20pt */
+$sp-6:  48rpx;     /* 24pt */
+$sp-8:  64rpx;     /* 32pt */
+$sp-10: 80rpx;     /* 40pt */
+$sp-12: 96rpx;     /* 48pt */
 
-/* 阴影 */
-$shadow-sm: 0 2rpx 4rpx rgba(17, 24, 39, 0.04);
-$shadow-md: 0 4rpx 12rpx rgba(17, 24, 39, 0.06);
-$shadow-lg: 0 8rpx 24rpx rgba(17, 24, 39, 0.08);
+/* ---- 圆角（苹果标准）---- */
+$radius-btn:    20rpx;    /* 10pt · 按钮 */
+$radius-card:   28rpx;    /* 14pt · 卡片 */
+$radius-sheet:  40rpx;    /* 20pt · 底部 sheet / 大卡片 */
+$radius-pill:   9999rpx;  /* 药丸 */
 
-/* 字号 */
-$fs-xs: 20rpx;
-$fs-sm: 24rpx;
-$fs-md: 28rpx;
-$fs-lg: 32rpx;
-$fs-xl: 40rpx;
-$fs-2xl: 56rpx;
-$fs-hero: 96rpx;
+/* ---- Typography（SF Pro；中文回落 PingFang SC） ---- */
+$font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display',
+              'PingFang SC', 'Helvetica Neue', Helvetica, 'Microsoft YaHei', sans-serif;
+
+/* Apple 阶梯（size / weight / tracking），rpx = pt × 2 */
+$fs-large-title: 68rpx;   /* 34pt · 页面 hero 大标题 */
+$fs-title-1:     56rpx;   /* 28pt */
+$fs-title-2:     44rpx;   /* 22pt · 段落大标题 */
+$fs-title-3:     40rpx;   /* 20pt */
+$fs-headline:    34rpx;   /* 17pt semi-bold */
+$fs-body:        34rpx;   /* 17pt regular · 正文 */
+$fs-callout:     32rpx;   /* 16pt */
+$fs-subhead:     30rpx;   /* 15pt */
+$fs-footnote:    26rpx;   /* 13pt */
+$fs-caption-1:   24rpx;   /* 12pt */
+$fs-caption-2:   22rpx;   /* 11pt */
+
+$fw-regular:  400;
+$fw-medium:   500;
+$fw-semibold: 600;   /* 苹果 headline / 强调用 */
+$fw-bold:     700;   /* Large Title */
+
+/* ---- 动效（Apple spring 曲线）---- */
+$ease-standard: cubic-bezier(0.32, 0.72, 0, 1);   /* iOS 系统曲线 */
+$ease-decel:    cubic-bezier(0, 0, 0.2, 1);
+$duration-fast: 200ms;
+$duration-base: 300ms;
+$duration-slow: 500ms;
+
+/* ---- 阴影（苹果偏爱几乎无阴影 / 微阴影 / 用材质代替）---- */
+$shadow-hair:  0 1rpx 0 rgba(0, 0, 0, 0.06);
+$shadow-card:  0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+$shadow-lift:  0 8rpx 24rpx rgba(0, 0, 0, 0.08);

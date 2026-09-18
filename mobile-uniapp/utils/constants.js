@@ -1,11 +1,24 @@
-// 全局常量：状态、学位类型、来源标签、阈值判定
-// 与后端 detect_task.status / paper.degree_type / detect_paragraph_result.source_label 对齐
+// Apple 语义色板（与 uni.scss 对齐；JS 侧需要引用色值时集中在此）
+export const COLOR = {
+  systemBlue:   '#007AFF',
+  systemGreen:  '#34C759',
+  systemOrange: '#FF9500',
+  systemRed:    '#FF3B30',
+  systemGray:   '#8E8E93',
+  systemGray2:  '#AEAEB2',
+  label:        '#000000',
+  labelSecondary: 'rgba(60,60,67,0.60)',
+  labelTertiary:  'rgba(60,60,67,0.30)',
+  systemGroupedBackground: '#F2F2F7',
+  systemBackground: '#FFFFFF',
+  separator: 'rgba(60,60,67,0.29)',
+}
 
 export const STATUS_MAP = {
-  PENDING: { text: '排队中', color: '#9ca3af', bg: '#f3f4f6' },
-  RUNNING: { text: '检测中', color: '#f59e0b', bg: '#fef3c7' },
-  DONE:    { text: '已完成', color: '#10b981', bg: '#d1fae5' },
-  FAILED:  { text: '失败',   color: '#ef4444', bg: '#fee2e2' },
+  PENDING: { text: '排队中', color: COLOR.systemGray,   bg: 'rgba(142,142,147,0.12)' },
+  RUNNING: { text: '检测中', color: COLOR.systemOrange, bg: 'rgba(255,149,0,0.14)' },
+  DONE:    { text: '已完成', color: COLOR.systemGreen,  bg: 'rgba(52,199,89,0.14)' },
+  FAILED:  { text: '失败',   color: COLOR.systemRed,    bg: 'rgba(255,59,48,0.14)' },
 }
 
 export const DEGREE_MAP = {
@@ -15,15 +28,15 @@ export const DEGREE_MAP = {
 }
 
 export const SOURCE_MAP = {
-  human:    { label: '人类',       color: '#10b981' },
-  gpt:      { label: 'GPT',        color: '#8b5cf6' },
-  claude:   { label: 'Claude',     color: '#ec4899' },
-  qwen:     { label: '通义千问',    color: '#f59e0b' },
-  deepseek: { label: 'DeepSeek',   color: '#3b82f6' },
-  glm:      { label: '智谱GLM',    color: '#06b6d4' },
-  kimi:     { label: 'Kimi',       color: '#a855f7' },
-  ernie:    { label: '文心',       color: '#ef4444' },
-  other:    { label: '其他',       color: '#6b7280' },
+  human:    { label: '人类',       color: COLOR.systemGreen },
+  gpt:      { label: 'GPT',        color: COLOR.systemPurple || '#AF52DE' },
+  claude:   { label: 'Claude',     color: COLOR.systemPink   || '#FF2D55' },
+  qwen:     { label: '通义千问',    color: COLOR.systemOrange },
+  deepseek: { label: 'DeepSeek',   color: COLOR.systemBlue },
+  glm:      { label: '智谱GLM',    color: COLOR.systemTeal   || '#5AC8FA' },
+  kimi:     { label: 'Kimi',       color: '#AF52DE' },
+  ernie:    { label: '文心',       color: COLOR.systemRed },
+  other:    { label: '其他',       color: COLOR.systemGray },
 }
 
 export const STATUS_FILTER_OPTIONS = [
@@ -34,23 +47,19 @@ export const STATUS_FILTER_OPTIONS = [
 ]
 
 /**
- * AI 率相对红线的颜色分档
+ * AI 率相对红线的语义色
  * @param {number} rate 0-100
  * @param {number} threshold 红线
- * @returns 颜色 hex
  */
 export function aiRateColor(rate, threshold) {
-  if (rate == null) return '#9ca3af'
-  if (rate <= threshold) return '#10b981'
-  if (rate <= threshold * 1.5) return '#f59e0b'
-  return '#ef4444'
+  if (rate == null) return COLOR.systemGray
+  if (rate <= threshold) return COLOR.systemGreen
+  if (rate <= threshold * 1.5) return COLOR.systemOrange
+  return COLOR.systemRed
 }
 
-/**
- * 段落 AI 概率 → 高中低风险
- */
 export function paragraphRisk(prob) {
-  if (prob >= 0.7) return { level: 'high', color: '#ef4444', bg: '#fee2e2' }
-  if (prob >= 0.4) return { level: 'medium', color: '#f59e0b', bg: '#fef3c7' }
-  return { level: 'low', color: '#10b981', bg: 'transparent' }
+  if (prob >= 0.7) return { level: 'high',   color: COLOR.systemRed,    bg: 'rgba(255,59,48,0.14)' }
+  if (prob >= 0.4) return { level: 'medium', color: COLOR.systemOrange, bg: 'rgba(255,149,0,0.16)' }
+  return { level: 'low', color: COLOR.systemGreen, bg: 'transparent' }
 }

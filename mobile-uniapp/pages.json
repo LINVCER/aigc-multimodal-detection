@@ -1,7 +1,5 @@
 {
-  "easycom": {
-    "autoscan": true
-  },
+  "easycom": { "autoscan": true },
   "pages": [
     {
       "path": "pages/login/login",
@@ -13,52 +11,52 @@
     {
       "path": "pages/index/index",
       "style": {
-        "navigationBarTitleText": "检测记录"
+        "navigationBarTitleText": "检测记录",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true,
+        "backgroundColor": "#F2F2F7"
       }
     },
     {
       "path": "pages/upload/upload",
       "style": {
-        "navigationBarTitleText": "上传检测"
+        "navigationBarTitleText": "上传检测",
+        "navigationStyle": "custom",
+        "backgroundColor": "#F2F2F7"
       }
     },
     {
       "path": "pages/profile/profile",
       "style": {
-        "navigationBarTitleText": "我的"
+        "navigationBarTitleText": "我的",
+        "navigationStyle": "custom",
+        "backgroundColor": "#F2F2F7"
       }
     },
     {
       "path": "pages/task/detail",
       "style": {
-        "navigationBarTitleText": "检测报告"
+        "navigationBarTitleText": "检测报告",
+        "navigationBarBackgroundColor": "#FFFFFF",
+        "navigationBarTextStyle": "black"
       }
     }
   ],
   "globalStyle": {
-    "navigationBarTextStyle": "white",
+    "navigationBarTextStyle": "black",
     "navigationBarTitleText": "论文AIGC检测",
-    "navigationBarBackgroundColor": "#1a56db",
-    "backgroundColor": "#f3f4f6"
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#F2F2F7"
   },
   "tabBar": {
-    "color": "#9ca3af",
-    "selectedColor": "#1a56db",
-    "borderStyle": "black",
-    "backgroundColor": "#ffffff",
+    "color": "#8E8E93",
+    "selectedColor": "#007AFF",
+    "borderStyle": "white",
+    "backgroundColor": "#FFFFFF",
     "list": [
-      {
-        "pagePath": "pages/index/index",
-        "text": "记录"
-      },
-      {
-        "pagePath": "pages/upload/upload",
-        "text": "上传"
-      },
-      {
-        "pagePath": "pages/profile/profile",
-        "text": "我的"
-      }
+      { "pagePath": "pages/index/index",     "text": "记录" },
+      { "pagePath": "pages/upload/upload",   "text": "上传" },
+      { "pagePath": "pages/profile/profile", "text": "我的" }
     ]
   }
 }

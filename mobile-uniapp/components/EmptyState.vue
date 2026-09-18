@@ -1,8 +1,8 @@
 <script setup>
 defineProps({
-  icon: { type: String, default: '📭' },
-  title: { type: String, default: '暂无数据' },
-  desc: { type: String, default: '' },
+  icon:       { type: String, default: '📭' },
+  title:      { type: String, default: '暂无数据' },
+  desc:       { type: String, default: '' },
   actionText: { type: String, default: '' },
 })
 const emit = defineEmits(['action'])
@@ -22,18 +22,25 @@ const emit = defineEmits(['action'])
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 160rpx 60rpx 80rpx;
+  padding: 200rpx 80rpx 80rpx;
 }
-.icon { font-size: 120rpx; opacity: 0.6; margin-bottom: 32rpx; }
-.title { font-size: 30rpx; color: #4b5563; font-weight: 600; }
-.desc { font-size: 24rpx; color: #9ca3af; margin-top: 16rpx; text-align: center; line-height: 1.6; }
+.icon  { font-size: 128rpx; opacity: 0.35; margin-bottom: 40rpx; }
+.title { font-size: 40rpx; font-weight: 600; color: #000; letter-spacing: -0.5rpx; }
+.desc  {
+  font-size: 30rpx; color: rgba(60,60,67,0.60);
+  margin-top: 16rpx; text-align: center; line-height: 1.5;
+}
 .action {
-  margin-top: 48rpx;
+  margin-top: 56rpx;
   min-width: 300rpx;
-  background: #1a56db;
+  height: 88rpx;
+  line-height: 88rpx;
+  background: #007AFF;
   color: #fff;
-  font-size: 28rpx;
+  font-size: 32rpx;
   font-weight: 600;
-  border-radius: 16rpx;
+  border-radius: 9999rpx;
+  transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
+  &:active { transform: scale(0.96); }
 }
 </style>
