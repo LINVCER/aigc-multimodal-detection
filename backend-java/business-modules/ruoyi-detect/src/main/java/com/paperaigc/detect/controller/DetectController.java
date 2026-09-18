@@ -351,6 +351,14 @@ public class DetectController {
         return tasks.get(id);
     }
 
+    /**
+     * 全量任务快照（供运营后台跨用户视图使用）
+     * <p>生产替换为通过 Service 层带分页 + 索引读 DB。</p>
+     */
+    public java.util.Collection<Map<String, Object>> getAllTasksRaw() {
+        return tasks.values();
+    }
+
     /* ==================== §3.2 列表 ==================== */
 
     @GetMapping("/detect/tasks")
