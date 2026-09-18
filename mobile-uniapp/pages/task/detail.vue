@@ -80,6 +80,21 @@ const pass = computed(() => {
 })
 const summaryColor = computed(() => aiRateColor(detail.value?.aiRate, detail.value?.threshold))
 
+// 环形进度（SVG r=86 → 周长 ≈ 540.354）
+const ringCircumference = 2 * Math.PI * 86
+const ringOffset = computed(() => {
+  const d = detail.value
+  if (!d || d.aiRate == null) return ringCircumference
+  const pct = Math.min(100, Math.max(0, d.aiRate)) / 100
+  return ringCircumference * (1 - pct)
+})
+const ringThresholdOffset = computed(() => {
+  const d = detail.value
+  if (!d || d.threshold == null) return ringCircumference
+  const pct = Math.min(100, Math.max(0, d.threshold)) / 100
+  return ringCircumference * (1 - pct)
+})
+
 const sortedSources = computed(() => {
   if (!detail.value?.sourceLabels) return []
   return Object.entries(detail.value.sourceLabels)
@@ -263,15 +278,42 @@ function toggleExpand(idx) {
       >重新检测</button>
     </view>
 
-    <!-- 总览大数字（Health app 风） -->
+    <!-- 总览环形进度（Apple Fitness / Health 风） -->
     <view v-else class="summary-hero">
       <text class="summary-label">整体 AI 率</text>
-      <view class="summary-rate-line">
-        <text class="summary-rate" :style="{ color: summaryColor }">{{ detail.aiRate?.toFixed(1) }}</text>
-        <text class="summary-unit">%</text>
+
+      <view class="ring-wrap">
+        <!-- 微信小程序也支持 <svg>；不支持时可降级为纯 view 环 -->
+        <view class="ring-svg-wrap">
+          <svg viewBox="0 0 200 200" class="ring-svg">
+            <circle cx="100" cy="100" r="86"
+              fill="none" stroke="rgba(120,120,128,0.16)" stroke-width="14"/>
+            <circle cx="100" cy="100" r="86"
+              fill="none"
+              :stroke="summaryColor" stroke-width="14" stroke-linecap="round"
+              :stroke-dasharray="ringCircumference"
+              :stroke-dashoffset="ringOffset"
+              transform="rotate(-90 100 100)"
+              style="transition: stroke-dashoffset 900ms cubic-bezier(0.32, 0.72, 0, 1)"/>
+            <circle cx="100" cy="100" r="86"
+              fill="none"
+              :stroke="pass ? '#34C759' : '#FF3B30'"
+              stroke-width="14" stroke-linecap="butt"
+              :stroke-dasharray="`3 ${ringCircumference - 3}`"
+              :stroke-dashoffset="ringThresholdOffset"
+              transform="rotate(-90 100 100)" opacity="0.9"/>
+          </svg>
+        </view>
+        <view class="ring-center">
+          <text class="ring-rate" :style="{ color: summaryColor }">
+            {{ detail.aiRate?.toFixed(1) }}<text class="ring-unit">%</text>
+          </text>
+          <text class="ring-cap">红线 {{ detail.threshold }}%</text>
+        </view>
       </view>
+
       <text class="summary-verdict" :style="{ color: summaryColor }">
-        {{ pass ? '低于红线 ' + detail.threshold + '%，达标' : '超过红线 ' + detail.threshold + '%，建议修改' }}
+        {{ pass ? '✓ 低于红线，达标' : '⚠ 超过红线 ' + detail.threshold + '%，建议修改' }}
       </text>
       <text v-if="bodyStats" class="summary-body-hint">
         基于正文 {{ bodyStats.body }} 段计算<template v-if="bodyStats.excluded > 0">，已排除 {{ bodyStats.excluded }} 段（参考文献/图表等）</template>
@@ -509,6 +551,51 @@ function toggleExpand(idx) {
   font-weight: 500;
   color: rgba(60,60,67,0.60);
   text-transform: uppercase;
+  letter-spacing: 1rpx;
+}
+
+/* 环形进度 */
+.ring-wrap {
+  position: relative;
+  width: 440rpx;
+  height: 440rpx;
+  margin: 32rpx auto 24rpx;
+}
+.ring-svg-wrap {
+  width: 100%;
+  height: 100%;
+}
+.ring-svg {
+  width: 440rpx;
+  height: 440rpx;
+  display: block;
+}
+.ring-center {
+  position: absolute;
+  left: 0; right: 0; top: 0; bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.ring-rate {
+  font-size: 100rpx;
+  font-weight: 700;
+  letter-spacing: -2rpx;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.ring-unit {
+  font-size: 40rpx;
+  font-weight: 600;
+  color: rgba(60,60,67,0.60);
+  margin-left: 4rpx;
+}
+.ring-cap {
+  display: block;
+  font-size: 24rpx;
+  color: rgba(60,60,67,0.60);
+  margin-top: 12rpx;
   letter-spacing: 1rpx;
 }
 .summary-rate-line {

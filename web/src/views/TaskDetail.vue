@@ -54,6 +54,25 @@ const summaryColor = computed(() => {
   if (d.aiRate <= d.threshold * 1.5) return 'var(--system-orange)'
   return 'var(--system-red)'
 })
+
+/**
+ * 环形进度（SVG r=86 → 周长 ≈ 540.354）
+ * AI 率 0-100% 映射为整圈；stroke-dashoffset = 周长 * (1 - rate/100)
+ * 红线刻度定位在圈上 (threshold / 100) 的位置，作为一小段高亮
+ */
+const ringCircumference = 2 * Math.PI * 86  // ≈ 540.354
+const ringOffset = computed(() => {
+  const d = detail.value
+  if (!d || d.aiRate == null) return ringCircumference
+  const pct = Math.min(100, Math.max(0, d.aiRate)) / 100
+  return ringCircumference * (1 - pct)
+})
+const ringThresholdOffset = computed(() => {
+  const d = detail.value
+  if (!d || d.threshold == null) return ringCircumference
+  const pct = Math.min(100, Math.max(0, d.threshold)) / 100
+  return ringCircumference * (1 - pct)
+})
 const sortedSources = computed(() => {
   if (!detail.value?.sourceLabels) return []
   return Object.entries(detail.value.sourceLabels).sort(([, a], [, b]) => b - a).map(([label, ratio]) => ({ label, ratio }))
@@ -224,16 +243,56 @@ function suggestionBg(sev: 'info' | 'warn' | 'danger'): string {
             style="margin-bottom: 20px"
           />
 
-          <!-- Hero 大数字（Fitness 风） -->
+          <!-- Hero 环形进度（Apple Fitness / Health 风）-->
           <el-card v-if="detail.status === 'DONE'" class="hero" body-style="padding: 40px 32px">
             <div class="hero-inner">
               <div class="hero-label">整体 AI 率</div>
-              <div class="hero-rate-line">
-                <span class="hero-rate" :style="{ color: summaryColor }">{{ detail.aiRate?.toFixed(1) }}</span>
-                <span class="hero-unit">%</span>
+
+              <!-- Circular progress ring：SVG stroke-dasharray 动画 -->
+              <div class="ring-wrap">
+                <svg class="ring" viewBox="0 0 200 200">
+                  <!-- 背景圈 -->
+                  <circle
+                    cx="100" cy="100" r="86"
+                    fill="none"
+                    stroke="rgba(120, 120, 128, 0.16)"
+                    stroke-width="14"
+                  />
+                  <!-- AI 率进度（顶端起，顺时针）-->
+                  <circle
+                    cx="100" cy="100" r="86"
+                    fill="none"
+                    :stroke="summaryColor"
+                    stroke-width="14"
+                    stroke-linecap="round"
+                    :stroke-dasharray="ringCircumference"
+                    :stroke-dashoffset="ringOffset"
+                    transform="rotate(-90 100 100)"
+                    style="transition: stroke-dashoffset 900ms cubic-bezier(0.32, 0.72, 0, 1)"
+                  />
+                  <!-- 红线刻度：一小段亮点标示阈值位置 -->
+                  <circle
+                    cx="100" cy="100" r="86"
+                    fill="none"
+                    :stroke="pass ? 'var(--system-green)' : 'var(--system-red)'"
+                    stroke-width="14"
+                    stroke-linecap="butt"
+                    :stroke-dasharray="`3 ${ringCircumference - 3}`"
+                    :stroke-dashoffset="ringThresholdOffset"
+                    transform="rotate(-90 100 100)"
+                    opacity="0.9"
+                  />
+                </svg>
+                <div class="ring-center">
+                  <div class="ring-rate" :style="{ color: summaryColor }">
+                    {{ detail.aiRate?.toFixed(1) }}<span class="ring-unit">%</span>
+                  </div>
+                  <div class="ring-cap">红线 {{ detail.threshold }}%</div>
+                </div>
               </div>
+
               <div class="hero-verdict" :style="{ color: summaryColor }">
-                {{ pass ? '低于红线 ' + detail.threshold + '%，达标' : '超过红线 ' + detail.threshold + '%，建议修改后重检' }}
+                {{ pass ? '✓ 低于红线，达标' : '⚠ 超过红线 ' + detail.threshold + '%，建议修改后重检' }}
               </div>
               <div v-if="bodyStats" class="hero-body-hint">
                 基于正文 {{ bodyStats.body }} 段计算<template v-if="bodyStats.excluded > 0">，已自动排除 {{ bodyStats.excluded }} 段（参考文献 / 图表标题 等）</template>
@@ -369,6 +428,47 @@ function suggestionBg(sev: 'info' | 'warn' | 'danger'): string {
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+
+/* ---- 环形进度 ---- */
+.ring-wrap {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  margin: 20px auto 20px;
+}
+.ring {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.ring-rate {
+  font-size: 56px;
+  font-weight: var(--fw-bold);
+  letter-spacing: -1.5px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.ring-unit {
+  font-size: 22px;
+  font-weight: var(--fw-semibold);
+  color: var(--label-secondary);
+  margin-left: 2px;
+}
+.ring-cap {
+  font-size: var(--fs-caption-1);
+  color: var(--label-secondary);
+  margin-top: 6px;
+  letter-spacing: 0.3px;
+}
+
 .hero-rate-line { display: inline-flex; align-items: baseline; margin: 16px 0 12px; }
 .hero-rate {
   font-size: 88px;
