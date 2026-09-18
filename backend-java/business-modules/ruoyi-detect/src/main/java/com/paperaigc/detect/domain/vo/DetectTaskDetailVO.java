@@ -1,6 +1,7 @@
 package com.paperaigc.detect.domain.vo;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.paperaigc.detect.domain.entity.AudioSegmentResult;
 import com.paperaigc.detect.domain.entity.DetectTask;
 import com.paperaigc.detect.domain.entity.ParagraphResult;
 import lombok.AllArgsConstructor;
@@ -23,6 +24,7 @@ public class DetectTaskDetailVO {
 
     private Long id;
     private Long userId;
+    private String modality;   // text / audio / image
     private String paperTitle;
     private String status;
     private String scenario;
@@ -32,13 +34,15 @@ public class DetectTaskDetailVO {
     private Integer wordCount;
     private Long bodyParagraphCount;
     private Integer excludedParagraphCount;
+    private Double audioDurationSec;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime finishedAt;
 
-    private List<ParagraphResult> paragraphs;
+    private List<ParagraphResult> paragraphs;             // text 模态
+    private List<AudioSegmentResult> audioSegments;       // audio 模态
     private Map<String, Double> sourceLabels;
 
     public static DetectTaskDetailVO from(DetectTask t) {
@@ -46,6 +50,7 @@ public class DetectTaskDetailVO {
         return DetectTaskDetailVO.builder()
                 .id(t.getId())
                 .userId(t.getUserId())
+                .modality(t.getModality())
                 .paperTitle(t.getPaperTitle())
                 .status(t.getStatus())
                 .scenario(t.getScenario())
@@ -55,9 +60,11 @@ public class DetectTaskDetailVO {
                 .wordCount(t.getWordCount())
                 .bodyParagraphCount(t.getBodyParagraphCount())
                 .excludedParagraphCount(t.getExcludedParagraphCount())
+                .audioDurationSec(t.getAudioDurationSec())
                 .createdAt(t.getCreatedAt())
                 .finishedAt(t.getFinishedAt())
                 .paragraphs(t.getParagraphs())
+                .audioSegments(t.getAudioSegments())
                 .sourceLabels(t.getSourceLabels())
                 .build();
     }

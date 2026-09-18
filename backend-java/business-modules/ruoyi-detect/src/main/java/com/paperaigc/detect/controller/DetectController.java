@@ -50,8 +50,9 @@ public class DetectController {
             @RequestParam(value = "scenario", required = false) String scenario,
             @RequestParam(value = "degreeType", required = false) String degreeType,   // 兼容旧字段
             @RequestParam(value = "title", required = false) String title,
-            @RequestParam(value = "userId", required = false) Long userId) {  // W3.c 前透传；接入后从 Sa-Token 取
-        DetectTask task = detectTaskService.submit(file, scenario, degreeType, title, userId);
+            @RequestParam(value = "userId", required = false) Long userId,             // W3.c 前透传
+            @RequestParam(value = "modality", required = false) String modality) {     // text / audio / image；不传按后缀猜
+        DetectTask task = detectTaskService.submit(file, scenario, degreeType, title, userId, modality);
         Map<String, Object> resp = new HashMap<>();
         resp.put("taskId",     task.getId());
         resp.put("paperTitle", task.getPaperTitle());

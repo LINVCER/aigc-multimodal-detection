@@ -13,12 +13,21 @@ import java.util.Map;
 public interface IInferenceClient {
 
     /**
-     * 段落 AI 检测
+     * 段落 AI 检测（text 模态）
      * @param text 待检测文本
      * @param returnSentences 是否要句级明细
      * @return Python 原始响应（含 ai_prob / calibrated_prob / interval / sentences 等）
      */
     Map<String, Object> detectParagraph(String text, boolean returnSentences);
+
+    /**
+     * 音频 AI 检测（audio 模态）
+     * @param audioBytes 音频文件字节流
+     * @param filename 原始文件名（含后缀，供推理侧识别格式）
+     * @param returnSegments 是否要片段级明细
+     * @return Python 原始响应（含 ai_prob / calibrated_prob / interval / duration_sec / segments 等）
+     */
+    Map<String, Object> detectAudio(byte[] audioBytes, String filename, boolean returnSegments);
 
     /**
      * 降 AIGC 改写

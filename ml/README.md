@@ -12,9 +12,8 @@ C 端产品线的模型训练 / 评估 / 版本管理在这里做，**与 `legac
 | 模态 | 目录 | 状态 |
 |---|---|---|
 | 文本 | `ml/training/text/` | 🟡 骨架就位，训练计划待启动 |
-| 图像 | `ml/training/image/` | ⚪ 未启动 |
-| 音频 | `ml/training/audio/` | ⚪ 未启动 |
-| 篡改 | `ml/training/tampering/` | ⚪ 未启动 |
+| 音频 | `ml/training/audio/` | 🟡 骨架就位（含推理层 stub 兜底），训练计划待启动 |
+| 图像 | `ml/training/image/` | ⚪ 未启动（Wave 5 议） |
 
 ## 目录结构
 

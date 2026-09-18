@@ -26,6 +26,9 @@ public class DetectTask {
     /** 提交者 ID；Sa-Token 接入后从上下文取 */
     private Long userId;
 
+    /** 模态：text / audio / image（对齐 DetectConstants.MODALITY_*），默认 text */
+    private String modality;
+
     /** 论文标题（缺省用文件名） */
     private String paperTitle;
     /** 状态：PENDING / RUNNING / DONE / FAILED */
@@ -59,8 +62,12 @@ public class DetectTask {
     private LocalDateTime createdAt;
     private LocalDateTime finishedAt;
 
-    /** 段落级明细（列表接口不携带，详情才附） */
+    /** 段落级明细（text 模态；列表接口不携带，详情才附） */
     private List<ParagraphResult> paragraphs;
+    /** 音频片段级明细（audio 模态；同样只在详情附带） */
+    private List<AudioSegmentResult> audioSegments;
+    /** 音频总时长（秒；audio 模态） */
+    private Double audioDurationSec;
     /** 溯源汇总 sourceLabel -> 比例 */
     private Map<String, Double> sourceLabels;
 }

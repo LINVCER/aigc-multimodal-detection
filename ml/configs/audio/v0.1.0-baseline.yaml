@@ -1,0 +1,58 @@
+# v0.1.0-baseline · 音频检测首个基线（Wave 5）
+# 目标：wav2vec2 微调 → 短段 AI 语音 vs 真人语音二分类，输出温度 + Platt 校准
+
+version: v0.1.0-baseline
+codename: baseline
+modality: audio
+
+# ---------------- 模型 ----------------
+model:
+  backbone: facebook/wav2vec2-base    # 或 xls-r-300m（多语；显存 8GB+ 才够）
+  hidden_size: 768                    # xls-r 是 1024
+  classifier_hidden: 128
+  num_classes: 2                      # 0=real_human, 1=ai_generated
+  dropout: 0.1
+  pooling: mean                       # mean / attention
+
+# ---------------- 音频 ----------------
+audio:
+  target_sample_rate: 16000           # wav2vec2 要求 16kHz
+  window_sec: 3.0                     # 单片段窗口
+  stride_sec: 1.0                     # 步长（overlap 66%）
+  max_duration_sec: 600               # 单文件最大时长 10min，超过截断
+
+# ---------------- 数据 ----------------
+data:
+  train_jsonl: ml/datasets/audio/train.jsonl
+  val_jsonl:   ml/datasets/audio/val.jsonl
+  test_jsonl:  ml/datasets/audio/test.jsonl
+  # 每样本 { audio_path, label, source }：
+  #   source: real_human / tts / cloned_voice / mixed
+  source_mix:
+    real_human: 0.40
+    tts:        0.30
+    cloned_voice: 0.20
+    mixed:      0.10
+
+# ---------------- 训练 ----------------
+train:
+  epochs: 3
+  batch_size: 8                        # 音频 3s @ 16kHz batch 大不了
+  lr: 3.0e-5
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  grad_clip: 1.0
+  freeze_feature_encoder: true         # wav2vec2 前段 CNN 冻结，只训 transformer + 分类头
+  seed: 42
+  early_stop_patience: 2
+
+# ---------------- 校准 ----------------
+calibration:
+  temperature_lbfgs_max_iter: 200
+  platt_c_regularization: 1.0
+
+# ---------------- 输出 ----------------
+output:
+  checkpoint_dir: ml/checkpoints/audio/v0.1.0-baseline/
+  save_best_only: true
+  metric_for_best: val_f1

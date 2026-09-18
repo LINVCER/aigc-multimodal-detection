@@ -47,6 +47,26 @@
 
 ---
 
+## v0.1.0-baseline · audio（📋 待启动）
+
+| 字段 | 值 |
+|---|---|
+| 训练日期 | — |
+| 训练人 | — |
+| 数据集 | 待准备（AISHELL-3 / OpenAI TTS / ElevenLabs / XTTS · 20k 片段 3s 窗口） |
+| Backbone | facebook/wav2vec2-base（可选 xls-r-300m 对比） |
+| 超参配置 | `ml/configs/audio/v0.1.0-baseline.yaml` |
+| val F1 | — |
+| val AUROC | — |
+| val ECE | — |
+| 温度 T | — |
+| Platt (a, b) | — |
+| checkpoint | 未产出 |
+| 部署时间 | 未部署 |
+| 备注 | 首个 baseline · 3s 窗口 + 1s stride 段级 AI 语音判定；Java + Python 骨架已就位（stub 兜底），训完直接替换 `AUDIO_CHECKPOINT_PATH` 即可 |
+
+---
+
 ## legacy/aigc_detector_v3_thesis（⚠ 兜底不算正式版本）
 
 | 字段 | 值 |

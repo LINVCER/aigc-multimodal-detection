@@ -7,9 +7,8 @@ FastAPI 推理服务，对齐 `backend-java/.../proto/detection.proto` 的 HTTP 
 | 模态 | 骨架 | 权重 | 状态 |
 |---|---|---|---|
 | 文本 | chinese-roberta-wwm-ext + 分类头 | `aigc_detector_v3_thesis.pth` | ✅ 真实推理（Wave 4 · Batch 1） |
-| 图像 | CLIP-ViT + DINOv2 + CNN 三分支 | `cnn_detection.pth` + `*_linear_head.pth` | ⏳ stub |
-| 音频 | wav2vec2 / xls-r-300m | `aigc_audio_classifier.pth` | ⏳ stub |
-| 篡改 | Mask R-CNN | `best_model.pth` | ⏳ stub |
+| 音频 | wav2vec2 / xls-r-300m | 待训练（`ml/checkpoints/audio/v0.1.0-baseline/`） | 🟡 骨架就位 · stub 兜底（Wave 5） |
+| 图像 | — | — | ⚪ Wave 5 议 |
 | 降 AIGC 改写 | — | — | ⏳ stub |
 | 溯源 attribute | — | — | ⏳ stub |
 
