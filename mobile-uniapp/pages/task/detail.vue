@@ -13,6 +13,8 @@ const retrying = ref(false)
 const rewrittenMap = ref({})
 const humanizingMap = ref({})
 const diffOpenMap = ref({})
+const expandedMap = ref({})    // 段落卡默认折叠，点击展开
+const scrollIntoId = ref('')   // scroll-view 定位锚点，速览点击后设置
 let pollTimer = null
 let taskId = null
 
@@ -111,6 +113,19 @@ function paragraphDiff(idx, original) {
   if (!rewritten) return []
   return diffChars(original, rewritten)
 }
+
+/**
+ * 点段落速览 chip：展开对应段 + 滚动定位
+ */
+function jumpTo(idx) {
+  expandedMap.value[idx] = true
+  // 微延迟保证 DOM 展开完成后再触发 scroll-into-view
+  setTimeout(() => { scrollIntoId.value = 'para-' + idx }, 30)
+}
+
+function toggleExpand(idx) {
+  expandedMap.value[idx] = !expandedMap.value[idx]
+}
 </script>
 
 <template>
@@ -127,7 +142,12 @@ function paragraphDiff(idx, original) {
     </view>
   </view>
 
-  <scroll-view v-else-if="detail" scroll-y class="page">
+  <scroll-view
+    v-else-if="detail"
+    scroll-y class="page"
+    :scroll-into-view="scrollIntoId"
+    :scroll-with-animation="true"
+  >
     <!-- 处理中 -->
     <view v-if="detail.status === 'RUNNING' || detail.status === 'PENDING'" class="processing group-card">
       <text class="processing-icon">⏳</text>
@@ -181,6 +201,30 @@ function paragraphDiff(idx, original) {
       </view>
     </view>
 
+    <!-- 段落速览：一屏定位所有段的 AI 率，chip 点击展开+滚动到该段 -->
+    <view v-if="detail.status === 'DONE' && (detail.paragraphs || []).length > 1" class="section">
+      <text class="section-header">段落速览 · 点击查看</text>
+      <view class="group-card overview-card">
+        <view class="chip-grid">
+          <view
+            v-for="p in detail.paragraphs" :key="'ov-' + p.paragraphIdx"
+            class="para-chip"
+            :style="{
+              color: paragraphRisk(p.calibratedProb).color,
+              background: paragraphRisk(p.calibratedProb).bg === 'transparent'
+                ? 'rgba(52,199,89,0.14)'
+                : paragraphRisk(p.calibratedProb).bg
+            }"
+            hover-class="para-chip-hover"
+            @click="jumpTo(p.paragraphIdx)"
+          >
+            <text class="chip-idx">段 {{ p.paragraphIdx + 1 }}</text>
+            <text class="chip-rate">{{ (p.calibratedProb * 100).toFixed(0) }}%</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
     <!-- 段落列表 -->
     <view v-if="detail.status === 'DONE'" class="section">
       <view class="section-header-line">
@@ -191,50 +235,65 @@ function paragraphDiff(idx, original) {
         </view>
       </view>
 
-      <view v-for="p in detail.paragraphs" :key="p.paragraphIdx" class="para-card group-card">
-        <view class="para-header">
-          <text class="para-idx">段 {{ p.paragraphIdx + 1 }}</text>
-          <text class="para-prob" :style="{ color: paragraphRisk(p.calibratedProb).color }">
-            {{ (p.calibratedProb * 100).toFixed(0) }}%
-            <text v-if="p.sourceLabel && p.sourceLabel !== 'human'">
-              · 疑似 {{ SOURCE_MAP[p.sourceLabel]?.label || p.sourceLabel }}
-            </text>
-          </text>
-        </view>
-
-        <view class="para-text">
-          <text
-            v-for="s in p.sentences" :key="s.sentenceIdx"
-            :style="{ background: paragraphRisk(s.aiProb).bg }"
-          >{{ s.text }}</text>
-        </view>
-
-        <!-- 高危：改写 -->
-        <button
-          v-if="p.calibratedProb >= 0.7 && !rewrittenMap[p.paragraphIdx]"
-          class="tinted-btn"
-          :loading="humanizingMap[p.paragraphIdx]"
-          @click="humanize(p.paragraphIdx)"
-        >✨  降 AIGC 改写建议</button>
-
-        <view v-if="rewrittenMap[p.paragraphIdx]" class="rewritten">
-          <view class="rewritten-header">
-            <text class="rewritten-label">改写建议</text>
-            <view class="rewritten-actions">
-              <text class="link-btn" @click="diffOpenMap[p.paragraphIdx] = !diffOpenMap[p.paragraphIdx]">
-                {{ diffOpenMap[p.paragraphIdx] ? '隐藏对比' : '看差异' }}
+      <view
+        v-for="p in detail.paragraphs" :key="p.paragraphIdx"
+        :id="'para-' + p.paragraphIdx"
+        class="para-card group-card"
+      >
+        <!-- 折叠头：全宽点击区，右侧 chevron -->
+        <view class="para-header" hover-class="para-header-hover" @click="toggleExpand(p.paragraphIdx)">
+          <view class="para-header-left">
+            <text class="para-idx">段 {{ p.paragraphIdx + 1 }}</text>
+            <text class="para-prob" :style="{ color: paragraphRisk(p.calibratedProb).color }">
+              {{ (p.calibratedProb * 100).toFixed(0) }}%
+              <text v-if="p.sourceLabel && p.sourceLabel !== 'human'">
+                · 疑似 {{ SOURCE_MAP[p.sourceLabel]?.label || p.sourceLabel }}
               </text>
-              <text class="link-btn primary" @click="copyRewritten(p.paragraphIdx)">复制</text>
-            </view>
+            </text>
+          </view>
+          <text class="chevron" :class="{ expanded: expandedMap[p.paragraphIdx] }">›</text>
+        </view>
+
+        <!-- 折叠体：默认展示前 60 字预览 + 三档色高亮；展开后完整段落 -->
+        <view v-if="!expandedMap[p.paragraphIdx]" class="para-preview">
+          {{ (p.text || '').slice(0, 60) }}{{ (p.text || '').length > 60 ? '…' : '' }}
+        </view>
+
+        <view v-if="expandedMap[p.paragraphIdx]" class="para-body">
+          <view class="para-text">
+            <text
+              v-for="s in p.sentences" :key="s.sentenceIdx"
+              :style="{ background: paragraphRisk(s.aiProb).bg }"
+            >{{ s.text }}</text>
           </view>
 
-          <view v-if="diffOpenMap[p.paragraphIdx]" class="diff-text">
-            <text
-              v-for="(seg, i) in paragraphDiff(p.paragraphIdx, p.text)" :key="i"
-              :class="'diff-' + seg.type"
-            >{{ seg.text }}</text>
+          <!-- 高危：改写 -->
+          <button
+            v-if="p.calibratedProb >= 0.7 && !rewrittenMap[p.paragraphIdx]"
+            class="tinted-btn"
+            :loading="humanizingMap[p.paragraphIdx]"
+            @click="humanize(p.paragraphIdx)"
+          >✨  降 AIGC 改写建议</button>
+
+          <view v-if="rewrittenMap[p.paragraphIdx]" class="rewritten">
+            <view class="rewritten-header">
+              <text class="rewritten-label">改写建议</text>
+              <view class="rewritten-actions">
+                <text class="link-btn" @click="diffOpenMap[p.paragraphIdx] = !diffOpenMap[p.paragraphIdx]">
+                  {{ diffOpenMap[p.paragraphIdx] ? '隐藏对比' : '看差异' }}
+                </text>
+                <text class="link-btn primary" @click="copyRewritten(p.paragraphIdx)">复制</text>
+              </view>
+            </view>
+
+            <view v-if="diffOpenMap[p.paragraphIdx]" class="diff-text">
+              <text
+                v-for="(seg, i) in paragraphDiff(p.paragraphIdx, p.text)" :key="i"
+                :class="'diff-' + seg.type"
+              >{{ seg.text }}</text>
+            </view>
+            <text v-else class="rewritten-text">{{ rewrittenMap[p.paragraphIdx] }}</text>
           </view>
-          <text v-else class="rewritten-text">{{ rewrittenMap[p.paragraphIdx] }}</text>
         </view>
       </view>
     </view>
@@ -417,17 +476,74 @@ function paragraphDiff(idx, original) {
   background: rgba(60,60,67,0.18);
 }
 
+/* 段落速览 chip grid */
+.overview-card { padding: 24rpx 20rpx 12rpx !important; }
+.chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+.para-chip {
+  min-width: 130rpx;
+  padding: 16rpx 24rpx;
+  border-radius: 20rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.para-chip-hover { transform: scale(0.94); }
+.chip-idx {
+  font-size: 20rpx;
+  font-weight: 600;
+  opacity: 0.85;
+  letter-spacing: 0.5rpx;
+  text-transform: uppercase;
+}
+.chip-rate {
+  font-size: 32rpx;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin-top: 4rpx;
+  letter-spacing: -0.5rpx;
+}
+
 /* Para cards */
 .para-card {
   margin-bottom: 20rpx;
-  padding: 32rpx;
+  padding: 0;                /* 交给 header/body 各自 padding，方便点击展开动画 */
+  overflow: hidden;
 }
 .para-header {
-  display: flex; justify-content: space-between;
-  margin-bottom: 20rpx;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 28rpx 32rpx;
+  transition: background 150ms;
 }
+.para-header-hover { background: rgba(60,60,67,0.06); }
+.para-header-left { display: flex; align-items: baseline; gap: 20rpx; }
 .para-idx { font-size: 22rpx; color: rgba(60,60,67,0.60); font-weight: 600; letter-spacing: 1rpx; text-transform: uppercase; }
-.para-prob { font-size: 24rpx; font-weight: 600; }
+.para-prob { font-size: 26rpx; font-weight: 600; }
+.chevron {
+  font-size: 40rpx;
+  color: rgba(60,60,67,0.30);
+  line-height: 1;
+  transition: transform 300ms cubic-bezier(0.32, 0.72, 0, 1);
+  transform: rotate(0deg);
+}
+.chevron.expanded { transform: rotate(90deg); }
+
+.para-preview {
+  padding: 0 32rpx 28rpx;
+  font-size: 28rpx;
+  line-height: 1.5;
+  color: rgba(60,60,67,0.60);
+}
+
+.para-body {
+  padding: 8rpx 32rpx 32rpx;
+  border-top: 1rpx solid rgba(60,60,67,0.10);
+  padding-top: 24rpx;
+}
 .para-text { font-size: 32rpx; line-height: 1.7; color: #000; }
 
 /* Tinted 按钮（iOS Tinted style） */
