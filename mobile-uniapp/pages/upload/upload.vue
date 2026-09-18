@@ -73,17 +73,13 @@ function pickFile() {
 async function submit() {
   if (!file.value) return uni.showToast({ title: '请先选择论文文件', icon: 'none' })
   submitting.value = true
-  // 大文件上传给全屏遮罩，避免用户在等待时误触其它按钮
   uni.showLoading({ title: '上传中…', mask: true })
   try {
     const task = await uploadPaper(file.value.path, file.value.name, scenario.value, auth.userId)
     uni.hideLoading()
-    if (!task?.id) {
-      throw new Error('提交成功但未拿到任务号')
-    }
+    if (!task?.id) throw new Error('提交成功但未拿到任务号')
     uni.showToast({ title: '提交成功', icon: 'success', duration: 800 })
     file.value = null
-    // 直接跳报告详情，用户马上看到"检测中"进度；详情页自带轮询直到 DONE
     setTimeout(() => uni.navigateTo({ url: `/pages/task/detail?id=${task.id}` }), 500)
   } catch (e) {
     uni.hideLoading()
@@ -98,28 +94,38 @@ function humanBytes(n) {
   const mb = n / 1024 / 1024
   return mb >= 1 ? `${mb.toFixed(1)} MB` : `${Math.round(n / 1024)} KB`
 }
+
+function scenarioOf(k) { return SCENARIO_MAP[k] || SCENARIO_MAP.other }
 </script>
 
 <template>
   <view class="page">
-    <view class="large-title-bar">
+    <!-- Large Title -->
+    <view class="hero-header">
       <text class="large-title">上传检测</text>
+      <text class="hero-sub">选择场景 · 上传或粘贴，几十秒拿到 AI 率报告</text>
     </view>
 
-    <!-- Mode segmented：文件 / 粘贴 -->
+    <!-- Mode Segmented：文件 / 粘贴 -->
     <view class="mode-tabs">
-      <view class="mode-seg" :class="{ active: mode === 'file' }" @click="mode = 'file'">📄 文件</view>
-      <view class="mode-seg" :class="{ active: mode === 'paste' }" @click="mode = 'paste'">✍ 粘贴</view>
+      <view class="mode-seg" :class="{ active: mode === 'file' }" @click="mode = 'file'">
+        <text>文件</text>
+      </view>
+      <view class="mode-seg" :class="{ active: mode === 'paste' }" @click="mode = 'paste'">
+        <text>粘贴</text>
+      </view>
     </view>
 
     <!-- ============ 文件模式 ============ -->
     <template v-if="mode === 'file'">
       <text class="group-label">使用场景</text>
-      <view class="group-card scenario-card">
+      <view class="scenario-card">
         <view class="scenario-grid">
           <view
             v-for="s in SCENARIOS" :key="s.key"
-            class="scenario-tile" :class="{ active: scenario === s.key }"
+            class="scenario-tile"
+            :class="{ active: scenario === s.key }"
+            :style="scenario === s.key ? { borderColor: scenarioOf(s.key).tint, background: scenarioOf(s.key).wash } : {}"
             @click="scenario = s.key"
           >
             <text class="scenario-label">{{ s.label }}</text>
@@ -134,9 +140,9 @@ function humanBytes(n) {
 
       <text class="group-label">论文文件</text>
       <view class="group-card">
-        <view class="file-row" @click="pickFile">
+        <view class="file-row" hover-class="file-row-hover" @click="pickFile">
           <view v-if="!file" class="file-empty">
-            <text class="file-icon">􀈕</text>
+            <view class="file-icon file-icon-empty" />
             <view class="file-empty-text">
               <text class="file-empty-title">选择文件</text>
               <text class="file-empty-sub">PDF / Word / TXT · 最大 20MB</text>
@@ -144,7 +150,7 @@ function humanBytes(n) {
             <text class="chevron">›</text>
           </view>
           <view v-else class="file-picked">
-            <text class="file-icon-picked">📄</text>
+            <view class="file-icon file-icon-picked" />
             <view class="file-info">
               <text class="file-name">{{ file.name }}</text>
               <text class="file-size">{{ humanBytes(file.size) }}</text>
@@ -158,12 +164,12 @@ function humanBytes(n) {
     <!-- ============ 粘贴模式 ============ -->
     <template v-else>
       <view class="group-label-line">
-        <text class="group-label">段落文本</text>
+        <text class="group-label no-pad">段落文本</text>
         <text class="paste-count" :class="{ over: pasteText.length > PASTE_MAX }">
           {{ pasteText.length }} / {{ PASTE_MAX }}
         </text>
       </view>
-      <view class="group-card paste-card">
+      <view class="paste-card">
         <textarea
           v-model="pasteText"
           class="paste-input"
@@ -176,22 +182,21 @@ function humanBytes(n) {
 
       <view class="paste-actions">
         <button
-          class="paste-btn paste-btn-plain"
+          class="btn-secondary"
           @click="clearPaste"
           :disabled="!pasteText && !pasteResult"
         >清空</button>
         <button
-          class="paste-btn paste-btn-primary"
+          class="btn-primary"
           :loading="pasteChecking"
           :disabled="!pasteText.trim() || pasteText.length > PASTE_MAX"
           @click="checkPaste"
         >即时检测</button>
       </view>
 
-      <!-- 粘贴结果 -->
       <template v-if="pasteResult">
         <text class="group-label">检测结果</text>
-        <view class="group-card paste-result-card">
+        <view class="paste-result-card">
           <view class="paste-result-head">
             <text class="paste-result-rate" :style="{ color: paragraphRisk(pasteResult.calibratedProb).color }">
               {{ (pasteResult.calibratedProb * 100).toFixed(1) }}%
@@ -223,11 +228,10 @@ function humanBytes(n) {
       </template>
     </template>
 
-    <!-- Action Button（仅文件模式） -->
+    <!-- 文件模式主 CTA -->
     <button
       v-if="mode === 'file'"
-      class="submit"
-      :class="{ disabled: !file || submitting }"
+      class="btn-primary submit-cta"
       :loading="submitting"
       :disabled="!file || submitting"
       @click="submit"
@@ -242,279 +246,271 @@ function humanBytes(n) {
 <style lang="scss" scoped>
 .page {
   min-height: 100vh;
-  background: #F2F2F7;
-  padding: 40rpx 32rpx 100rpx;
+  padding: $sp-3 $sp-4 100rpx;
+  background: $bg-grouped-primary;
 }
-.large-title-bar { padding-bottom: 32rpx; }
+
+/* ---------- Large Title Hero ---------- */
+.hero-header { padding: $sp-3 $sp-1 $sp-3; }
 .large-title {
-  font-size: 68rpx;
-  font-weight: 700;
-  letter-spacing: -1rpx;
-  color: #000;
-}
-
-.group-label {
   display: block;
-  font-size: 26rpx;
-  font-weight: 500;
-  color: rgba(60,60,67,0.60);
-  text-transform: uppercase;
-  letter-spacing: 1rpx;
-  padding: 32rpx 20rpx 12rpx;
+  font-size: $fs-large-title;
+  font-weight: $fw-bold;
+  line-height: $lh-tight;
+  letter-spacing: $tracking-tight;
+  color: $label-primary;
 }
-.group-card {
-  background: #FFFFFF;
-  border-radius: 28rpx;
-  overflow: hidden;
+.hero-sub {
+  display: block;
+  font-size: $fs-subhead;
+  color: $label-secondary;
+  margin-top: $sp-1;
 }
 
-/* Segmented Control（iOS 风） */
-.segmented {
+/* ---------- Mode Segmented ---------- */
+.mode-tabs {
   display: flex;
-  padding: 8rpx;
-  background: rgba(120,120,128,0.12);
-  border-radius: 20rpx;
-  margin: 20rpx;
+  padding: 6rpx;
+  background: $fill-tertiary;
+  border-radius: $radius-btn;
+  margin-top: $sp-2;
 }
-.seg {
+.mode-seg {
   flex: 1;
-  text-align: center;
-  padding: 16rpx 0;
-  font-size: 30rpx;
-  color: #000;
+  height: 72rpx;
+  display: flex; align-items: center; justify-content: center;
   border-radius: 16rpx;
-  transition: all 200ms cubic-bezier(0.32, 0.72, 0, 1);
+  transition: all $duration-fast $ease-standard;
+  text {
+    font-size: $fs-callout;
+    color: $label-primary;
+    font-weight: $fw-medium;
+  }
   &.active {
-    background: #FFFFFF;
-    font-weight: 600;
-    box-shadow: 0 3rpx 8rpx rgba(0,0,0,0.05);
+    background: $bg-primary;
+    box-shadow: 0 3rpx 8rpx rgba(0, 0, 0, 0.05);
+    text { font-weight: $fw-semibold; }
   }
 }
 
-/* 场景网格（W3.b） */
-.scenario-card { padding: 0 !important; }
+/* ---------- Group Label ---------- */
+.group-label {
+  display: block;
+  padding: $sp-5 $sp-3 $sp-2;
+  font-size: $fs-footnote;
+  font-weight: $fw-medium;
+  color: $label-secondary;
+  text-transform: uppercase;
+  letter-spacing: $tracking-wide;
+  &.no-pad { padding: 0; }
+}
+.group-label-line {
+  padding: $sp-5 $sp-3 $sp-2;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.paste-count {
+  font-size: $fs-caption-1;
+  color: $label-secondary;
+  font-variant-numeric: tabular-nums;
+  &.over { color: $danger-solid; }
+}
+.group-card {
+  @include card-flush;
+}
+
+/* ---------- 场景网格 ---------- */
+.scenario-card {
+  @include card-flush;
+}
 .scenario-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16rpx;
-  padding: 24rpx;
+  gap: $sp-2;
+  padding: $sp-3;
 }
 .scenario-tile {
-  padding: 20rpx;
-  border-radius: 20rpx;
-  background: rgba(120,120,128,0.08);
+  padding: $sp-3;
+  border-radius: $radius-btn;
+  background: $fill-quaternary;
   border: 2rpx solid transparent;
-  transition: all 200ms cubic-bezier(0.32, 0.72, 0, 1);
-  &.active {
-    border-color: #007AFF;
-    background: rgba(0,122,255,0.08);
-  }
+  transition: all $duration-fast $ease-standard;
 }
 .scenario-label {
   display: block;
-  font-size: 30rpx;
-  font-weight: 600;
-  color: #000;
+  font-size: $fs-subhead;
+  font-weight: $fw-semibold;
+  color: $label-primary;
+  letter-spacing: $tracking-snug;
 }
 .scenario-desc {
   display: block;
-  font-size: 22rpx;
-  color: rgba(60,60,67,0.60);
+  font-size: $fs-caption-1;
+  color: $label-secondary;
   margin-top: 6rpx;
 }
 .scenario-th {
   display: block;
-  font-size: 22rpx;
-  color: #FF9500;
-  margin-top: 8rpx;
-  font-weight: 500;
+  font-size: $fs-caption-1;
+  color: $warning-solid;
+  margin-top: $sp-1;
+  font-weight: $fw-medium;
 }
 
 .footnote {
   display: block;
-  font-size: 24rpx;
-  color: rgba(60,60,67,0.60);
-  padding: 12rpx 20rpx 0;
+  font-size: $fs-caption-1;
+  color: $label-secondary;
+  padding: $sp-2 $sp-3 0;
 }
-.footnote-strong { color: #FF9500; font-weight: 600; }
+.footnote-strong {
+  color: $warning-solid;
+  font-weight: $fw-semibold;
+}
 
-/* 文件行 */
-.file-row { padding: 32rpx; }
+/* ---------- 文件行 ---------- */
+.file-row {
+  padding: $sp-4;
+  transition: background $duration-fast $ease-standard;
+}
+.file-row-hover { background: rgba(60, 60, 67, 0.05); }
 .file-empty, .file-picked {
   display: flex; align-items: center;
 }
 .file-icon {
-  font-size: 40rpx;
-  color: #007AFF;
+  position: relative;
   width: 72rpx; height: 72rpx;
-  line-height: 72rpx;
-  text-align: center;
-  background: rgba(0,122,255,0.10);
-  border-radius: 18rpx;
-  margin-right: 24rpx;
+  border-radius: $radius-md;
+  margin-right: $sp-3;
+  flex-shrink: 0;
+  /* SVG 文件图标（PDF/DOC 文档样式，折角 + 三条内容线） · 蓝色 stroke */
+  background: $brand-primary-wash url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23007AFF' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z'/><polyline points='14 3 14 8 19 8'/><line x1='8' y1='13' x2='16' y2='13'/><line x1='8' y1='17' x2='13' y2='17'/></svg>") no-repeat center / 44rpx 44rpx;
 }
 .file-icon-picked {
-  font-size: 40rpx;
-  width: 72rpx; height: 72rpx;
-  line-height: 72rpx;
-  text-align: center;
-  margin-right: 24rpx;
+  background-color: $success-bg;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231B7F3E' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z'/><polyline points='14 3 14 8 19 8'/><polyline points='9 15 11 17 15 13'/></svg>");
 }
 .file-empty-text, .file-info { flex: 1; min-width: 0; }
 .file-empty-title, .file-name {
   display: block;
-  font-size: 32rpx;
-  color: #000;
-  font-weight: 500;
+  font-size: $fs-callout;
+  color: $label-primary;
+  font-weight: $fw-medium;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .file-empty-sub, .file-size {
   display: block;
-  font-size: 24rpx;
-  color: rgba(60,60,67,0.60);
+  font-size: $fs-caption-1;
+  color: $label-secondary;
   margin-top: 4rpx;
 }
-.chevron   { color: rgba(60,60,67,0.30); font-size: 40rpx; }
-.reselect  { color: #007AFF; font-size: 28rpx; font-weight: 500; }
-
-/* 主按钮 */
-.submit {
-  margin-top: 48rpx;
-  height: 100rpx;
-  line-height: 100rpx;
-  background: #007AFF;
-  color: #FFFFFF;
-  font-size: 34rpx;
-  font-weight: 600;
-  border-radius: 9999rpx;
-  letter-spacing: 2rpx;
-  transition: transform 200ms cubic-bezier(0.32, 0.72, 0, 1),
-              opacity 200ms;
-  &:active { transform: scale(0.98); opacity: 0.88; }
-  &.disabled { opacity: 0.4; }
+.chevron {
+  color: $label-tertiary;
+  font-size: $icon-md;
+  margin-left: $sp-2;
+}
+.reselect {
+  color: $brand-primary;
+  font-size: $fs-subhead;
+  font-weight: $fw-medium;
+  margin-left: $sp-2;
 }
 
-.privacy {
-  display: block;
-  margin-top: 32rpx;
-  font-size: 24rpx;
-  color: rgba(60,60,67,0.60);
-  text-align: center;
-  line-height: 1.5;
-  padding: 0 40rpx;
+/* ---------- 主 & 次按钮 ---------- */
+.btn-primary   { @include btn-primary; }
+.btn-secondary { @include btn-secondary; }
+.submit-cta {
+  margin-top: $sp-6;
 }
 
-/* ============ Mode Tabs（文件 / 粘贴） ============ */
-.mode-tabs {
-  display: flex;
-  padding: 8rpx;
-  background: rgba(120,120,128,0.12);
-  border-radius: 24rpx;
-  margin-bottom: 32rpx;
+/* ---------- 粘贴模式 ---------- */
+.paste-card {
+  @include card-flush;
+  padding: $sp-3;
 }
-.mode-seg {
-  flex: 1;
-  text-align: center;
-  padding: 20rpx 0;
-  font-size: 30rpx;
-  color: #000;
-  border-radius: 18rpx;
-  transition: all 200ms cubic-bezier(0.32, 0.72, 0, 1);
-  &.active {
-    background: #FFFFFF;
-    font-weight: 600;
-    box-shadow: 0 3rpx 8rpx rgba(0,0,0,0.05);
-  }
-}
-
-/* ============ 粘贴模式 ============ */
-.group-label-line {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 40rpx 20rpx 12rpx;
-}
-.group-label-line .group-label { padding: 0; }
-.paste-count {
-  font-size: 24rpx;
-  color: rgba(60,60,67,0.60);
-  font-variant-numeric: tabular-nums;
-  &.over { color: #FF3B30; }
-}
-
-.paste-card { padding: 20rpx !important; }
 .paste-input {
   width: 100%;
-  min-height: 300rpx;
-  font-size: 30rpx;
-  line-height: 1.6;
-  color: #000;
+  min-height: 320rpx;
+  font-size: $fs-callout;
+  line-height: $lh-normal;
+  color: $label-primary;
 }
 
 .paste-actions {
-  display: flex; justify-content: flex-end; gap: 20rpx;
-  margin: 20rpx 0 8rpx;
-}
-.paste-btn {
-  min-width: 200rpx;
-  height: 80rpx;
-  line-height: 80rpx;
-  font-size: 28rpx;
-  font-weight: 600;
-  border-radius: 9999rpx;
-  transition: opacity 200ms, transform 200ms cubic-bezier(0.32, 0.72, 0, 1);
-  &:active { transform: scale(0.96); }
-  &[disabled] { opacity: 0.4; }
-}
-.paste-btn-plain {
-  background: rgba(120,120,128,0.12);
-  color: #000;
-}
-.paste-btn-primary {
-  background: #007AFF;
-  color: #fff;
+  display: flex; justify-content: flex-end; gap: $sp-2;
+  margin: $sp-3 0 $sp-1;
+  .btn-primary, .btn-secondary {
+    min-width: 200rpx;
+    height: $size-btn-h-md;
+    line-height: $size-btn-h-md;
+    font-size: $fs-subhead;
+  }
 }
 
-/* 结果卡 */
-.paste-result-card { padding: 32rpx !important; }
+/* ---------- 粘贴结果卡 ---------- */
+.paste-result-card {
+  @include card;
+  padding: $sp-4;
+}
 .paste-result-head {
-  display: flex; align-items: center;
-  gap: 24rpx;
-  padding-bottom: 24rpx;
-  border-bottom: 1rpx solid rgba(60,60,67,0.18);
-  margin-bottom: 24rpx;
+  display: flex; align-items: center; gap: $sp-3;
+  padding-bottom: $sp-3;
+  border-bottom: $stroke-hairline solid $separator;
+  margin-bottom: $sp-3;
 }
 .paste-result-rate {
   font-size: 72rpx;
-  font-weight: 700;
-  letter-spacing: -1rpx;
+  font-weight: $fw-bold;
+  letter-spacing: $tracking-tight;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 .paste-result-meta { flex: 1; }
-.paste-result-verdict { display: block; font-size: 30rpx; font-weight: 600; }
+.paste-result-verdict {
+  display: block;
+  font-size: $fs-headline;
+  font-weight: $fw-semibold;
+}
 .paste-result-warn {
-  display: block; font-size: 22rpx;
-  color: rgba(60,60,67,0.60); margin-top: 4rpx;
+  display: block;
+  font-size: $fs-caption-1;
+  color: $label-secondary;
+  margin-top: 4rpx;
 }
 
 .paste-highlight {
-  font-size: 30rpx;
-  line-height: 1.7;
-  color: #000;
+  font-size: $fs-body;
+  line-height: $lh-relaxed;
+  color: $label-primary;
 }
 
 .paste-branches {
-  display: flex; flex-wrap: wrap; gap: 12rpx;
-  margin-top: 24rpx;
+  display: flex; flex-wrap: wrap; gap: $sp-2;
+  margin-top: $sp-3;
 }
 .branch-chip {
-  background: rgba(120,120,128,0.14);
-  padding: 6rpx 20rpx;
-  border-radius: 9999rpx;
-  font-size: 22rpx;
-  color: rgba(60,60,67,0.60);
+  background: $fill-tertiary;
+  padding: 6rpx $sp-2;
+  border-radius: $radius-pill;
+  font-size: $fs-caption-1;
+  color: $label-secondary;
   font-variant-numeric: tabular-nums;
 }
-.branch-val { color: #000; font-weight: 600; margin-left: 4rpx; }
+.branch-val {
+  color: $label-primary;
+  font-weight: $fw-semibold;
+  margin-left: 4rpx;
+}
+
+/* ---------- 隐私提示 ---------- */
+.privacy {
+  display: block;
+  margin-top: $sp-4;
+  font-size: $fs-caption-1;
+  color: $label-secondary;
+  text-align: center;
+  line-height: $lh-normal;
+  padding: 0 $sp-5;
+}
 </style>
