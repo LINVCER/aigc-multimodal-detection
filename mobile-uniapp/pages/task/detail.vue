@@ -87,6 +87,101 @@ const sortedSources = computed(() => {
     .map(([label, ratio]) => ({ label, ratio }))
 })
 
+// 底部副标题：X 段正文 · 已排除 Y 段
+const bodyStats = computed(() => {
+  if (!detail.value?.paragraphs) return null
+  const body = detail.value.paragraphs.filter(p => !p.excluded).length
+  const excluded = detail.value.paragraphs.length - body
+  return { body, excluded }
+})
+
+const EXCLUDE_REASON_LABEL = {
+  reference: '参考文献',
+  acknowledgement: '致谢',
+  appendix: '附录',
+  sectionTitle: '章节标题',
+  caption: '图表标题',
+}
+
+/**
+ * 改进建议（Wave 1 · 2.4）：纯前端规则驱动
+ */
+const suggestions = computed(() => {
+  const d = detail.value
+  if (!d || d.status !== 'DONE' || d.aiRate == null) return []
+  const out = []
+
+  if (d.aiRate > d.threshold) {
+    const gap = (d.aiRate - d.threshold).toFixed(1)
+    out.push({
+      icon: '📉',
+      title: `AI 率超线 ${gap} 个百分点`,
+      body: `你的 AI 率 ${d.aiRate.toFixed(1)}% 超过 ${d.threshold}% 红线。建议重点修改标红段落，用自己的话重写核心观点。`,
+      severity: 'danger',
+    })
+  } else if (d.aiRate > d.threshold * 0.7) {
+    out.push({
+      icon: '⚠️',
+      title: '接近红线，仍有修改空间',
+      body: `AI 率 ${d.aiRate.toFixed(1)}%，距 ${d.threshold}% 红线不足 ${(d.threshold - d.aiRate).toFixed(1)} 个百分点。建议对标黄段落小幅改写。`,
+      severity: 'warn',
+    })
+  } else {
+    out.push({
+      icon: '✓',
+      title: '整体达标',
+      body: `AI 率 ${d.aiRate.toFixed(1)}%，明显低于 ${d.threshold}% 红线。继续保持原创性写作。`,
+      severity: 'info',
+    })
+  }
+
+  const highRisk = (d.paragraphs || []).filter(p => !p.excluded && (p.calibratedProb || 0) >= 0.7)
+  if (highRisk.length > 0) {
+    const idxList = highRisk.slice(0, 5).map(p => '段' + (p.paragraphIdx + 1)).join('、')
+    out.push({
+      icon: '🎯',
+      title: `${highRisk.length} 段高疑似 AI，优先处理`,
+      body: `${idxList}${highRisk.length > 5 ? ' 等' : ''}被判为高疑似（≥70%）。展开对应段落可一键改写。`,
+      severity: 'warn',
+    })
+  }
+
+  if (d.sourceLabels) {
+    const entries = Object.entries(d.sourceLabels)
+      .filter(([k]) => k !== 'human')
+      .sort((a, b) => b[1] - a[1])
+    if (entries.length && entries[0][1] >= 0.4) {
+      const src = SOURCE_MAP[entries[0][0]]?.label || entries[0][0]
+      out.push({
+        icon: '🔎',
+        title: `疑似大量使用 ${src}`,
+        body: `${(entries[0][1] * 100).toFixed(0)}% 段落被判为 ${src} 风格。建议避免连续段落使用同一 AI 助手。`,
+        severity: 'info',
+      })
+    }
+  }
+
+  if (bodyStats.value && bodyStats.value.excluded > bodyStats.value.body) {
+    out.push({
+      icon: '📄',
+      title: '识别到大量非正文段落',
+      body: `${bodyStats.value.excluded} 段被识别为参考文献 / 图表 / 章节标题（未参与 AI 率计算）。若不符合预期请检查论文格式。`,
+      severity: 'info',
+    })
+  }
+
+  return out
+})
+
+function suggestionColor(sev) {
+  return sev === 'danger' ? '#FF3B30' : sev === 'warn' ? '#FF9500' : '#007AFF'
+}
+function suggestionBg(sev) {
+  return sev === 'danger' ? 'rgba(255,59,48,0.08)'
+    : sev === 'warn' ? 'rgba(255,149,0,0.08)'
+    : 'rgba(0,122,255,0.06)'
+}
+
 async function humanize(idx) {
   humanizingMap.value[idx] = true
   try {
@@ -178,7 +273,29 @@ function toggleExpand(idx) {
       <text class="summary-verdict" :style="{ color: summaryColor }">
         {{ pass ? '低于红线 ' + detail.threshold + '%，达标' : '超过红线 ' + detail.threshold + '%，建议修改' }}
       </text>
+      <text v-if="bodyStats" class="summary-body-hint">
+        基于正文 {{ bodyStats.body }} 段计算<template v-if="bodyStats.excluded > 0">，已排除 {{ bodyStats.excluded }} 段（参考文献/图表等）</template>
+      </text>
       <text class="summary-paper">{{ detail.paperTitle }}</text>
+    </view>
+
+    <!-- 改进建议（Wave 1 · 2.4） -->
+    <view v-if="suggestions.length" class="section">
+      <text class="section-header">改进建议</text>
+      <view class="group-card">
+        <view
+          v-for="(s, i) in suggestions" :key="i"
+          class="sug-item"
+          :class="{ 'has-sep': i < suggestions.length - 1 }"
+          :style="{ background: suggestionBg(s.severity) }"
+        >
+          <text class="sug-icon" :style="{ color: suggestionColor(s.severity) }">{{ s.icon }}</text>
+          <view class="sug-body">
+            <text class="sug-title" :style="{ color: suggestionColor(s.severity) }">{{ s.title }}</text>
+            <text class="sug-text">{{ s.body }}</text>
+          </view>
+        </view>
+      </view>
     </view>
 
     <!-- 溯源分布 -->
@@ -209,17 +326,22 @@ function toggleExpand(idx) {
           <view
             v-for="p in detail.paragraphs" :key="'ov-' + p.paragraphIdx"
             class="para-chip"
-            :style="{
-              color: paragraphRisk(p.calibratedProb).color,
-              background: paragraphRisk(p.calibratedProb).bg === 'transparent'
+            :style="p.excluded ? {
+              color: 'rgba(60,60,67,0.60)',
+              background: 'rgba(120,120,128,0.14)'
+            } : {
+              color: paragraphRisk(p.calibratedProb || 0).color,
+              background: paragraphRisk(p.calibratedProb || 0).bg === 'transparent'
                 ? 'rgba(52,199,89,0.14)'
-                : paragraphRisk(p.calibratedProb).bg
+                : paragraphRisk(p.calibratedProb || 0).bg
             }"
             hover-class="para-chip-hover"
             @click="jumpTo(p.paragraphIdx)"
           >
             <text class="chip-idx">段 {{ p.paragraphIdx + 1 }}</text>
-            <text class="chip-rate">{{ (p.calibratedProb * 100).toFixed(0) }}%</text>
+            <text class="chip-rate">
+              {{ p.excluded ? '—' : ((p.calibratedProb || 0) * 100).toFixed(0) + '%' }}
+            </text>
           </view>
         </view>
       </view>
@@ -239,13 +361,17 @@ function toggleExpand(idx) {
         v-for="p in detail.paragraphs" :key="p.paragraphIdx"
         :id="'para-' + p.paragraphIdx"
         class="para-card group-card"
+        :class="{ 'para-excluded': p.excluded }"
       >
         <!-- 折叠头：全宽点击区，右侧 chevron -->
         <view class="para-header" hover-class="para-header-hover" @click="toggleExpand(p.paragraphIdx)">
           <view class="para-header-left">
             <text class="para-idx">段 {{ p.paragraphIdx + 1 }}</text>
-            <text class="para-prob" :style="{ color: paragraphRisk(p.calibratedProb).color }">
-              {{ (p.calibratedProb * 100).toFixed(0) }}%
+            <text v-if="p.excluded" class="excluded-badge">
+              已排除 · {{ EXCLUDE_REASON_LABEL[p.excludeReason] || '非正文' }}
+            </text>
+            <text v-else class="para-prob" :style="{ color: paragraphRisk(p.calibratedProb || 0).color }">
+              {{ ((p.calibratedProb || 0) * 100).toFixed(0) }}%
               <text v-if="p.sourceLabel && p.sourceLabel !== 'human'">
                 · 疑似 {{ SOURCE_MAP[p.sourceLabel]?.label || p.sourceLabel }}
               </text>
@@ -260,16 +386,17 @@ function toggleExpand(idx) {
         </view>
 
         <view v-if="expandedMap[p.paragraphIdx]" class="para-body">
-          <view class="para-text">
+          <view v-if="p.excluded" class="para-excluded-text">{{ p.text }}</view>
+          <view v-else class="para-text">
             <text
               v-for="s in p.sentences" :key="s.sentenceIdx"
               :style="{ background: paragraphRisk(s.aiProb).bg }"
             >{{ s.text }}</text>
           </view>
 
-          <!-- 高危：改写 -->
+          <!-- 高危：改写（excluded 段不显示） -->
           <button
-            v-if="p.calibratedProb >= 0.7 && !rewrittenMap[p.paragraphIdx]"
+            v-if="!p.excluded && (p.calibratedProb || 0) >= 0.7 && !rewrittenMap[p.paragraphIdx]"
             class="tinted-btn"
             :loading="humanizingMap[p.paragraphIdx]"
             @click="humanize(p.paragraphIdx)"
@@ -407,6 +534,13 @@ function toggleExpand(idx) {
   font-size: 30rpx;
   font-weight: 600;
 }
+.summary-body-hint {
+  display: block;
+  font-size: 24rpx;
+  color: rgba(60,60,67,0.60);
+  margin-top: 12rpx;
+  padding: 0 20rpx;
+}
 .summary-paper {
   display: block;
   font-size: 26rpx;
@@ -414,6 +548,56 @@ function toggleExpand(idx) {
   margin-top: 32rpx;
   padding-top: 24rpx;
   border-top: 1rpx solid rgba(60,60,67,0.18);
+}
+
+/* 改进建议 */
+.sug-item {
+  display: flex;
+  padding: 24rpx 28rpx;
+  position: relative;
+  gap: 20rpx;
+}
+.sug-item.has-sep::after {
+  content: ''; position: absolute; left: 28rpx; right: 0; bottom: 0;
+  height: 1rpx; background: rgba(60,60,67,0.18);
+}
+.sug-icon {
+  font-size: 40rpx;
+  line-height: 1.3;
+  flex-shrink: 0;
+  width: 60rpx;
+  text-align: center;
+}
+.sug-body { flex: 1; }
+.sug-title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 600;
+  margin-bottom: 8rpx;
+}
+.sug-text {
+  display: block;
+  font-size: 26rpx;
+  color: #000;
+  opacity: 0.85;
+  line-height: 1.5;
+}
+
+/* 非正文段 excluded */
+.para-excluded { opacity: 0.7; }
+.excluded-badge {
+  font-size: 22rpx;
+  color: rgba(60,60,67,0.60);
+  background: rgba(120,120,128,0.14);
+  padding: 4rpx 16rpx;
+  border-radius: 9999rpx;
+  font-weight: 500;
+  margin-left: 16rpx;
+}
+.para-excluded-text {
+  font-size: 28rpx;
+  line-height: 1.6;
+  color: rgba(60,60,67,0.60);
 }
 
 /* Sections */

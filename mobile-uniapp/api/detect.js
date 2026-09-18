@@ -106,6 +106,45 @@ export function retryTask(id) {
   return http({ url: `/api/v1/detect/tasks/${id}/retry`, method: 'POST' })
 }
 
+/**
+ * §8.2 直接文本检测（不生成任务）· Wave 1 · 1.4 文本粘贴
+ */
+export function detectTextDirect(text) {
+  if (MOCK_MODE) {
+    const hash = [...text].reduce((s, c) => (s * 31 + c.charCodeAt(0)) >>> 0, 5381)
+    const rate = (hash % 10000) / 10000
+    const sents = text.split(/(?<=[。！？!?.])/).filter((s) => s.trim()).map((t, i) => ({
+      sentenceIdx: i,
+      text: t,
+      aiProb: ((hash + i * 7919) % 10000) / 10000,
+    }))
+    return Promise.resolve({
+      aiProb: rate,
+      calibratedProb: rate,
+      riskLevel: rate >= 0.7 ? 'high' : rate >= 0.4 ? 'medium' : 'low',
+      warning: '',
+      branchScores: { statistical: rate * 0.9, deberta: rate, roberta: Math.min(1, rate * 1.05) },
+      sentences: sents,
+    })
+  }
+  return http({
+    url: '/api/v1/detect/paragraph',
+    method: 'POST',
+    data: { text, returnSentences: true },
+  }).then((d) => ({
+    aiProb: d.ai_prob ?? d.aiProb ?? 0,
+    calibratedProb: d.calibrated_prob ?? d.calibratedProb ?? 0,
+    riskLevel: d.risk_level ?? d.riskLevel ?? 'low',
+    warning: d.warning || '',
+    branchScores: d.branch_scores || d.branchScores || {},
+    sentences: (d.sentences || []).map((s) => ({
+      sentenceIdx: s.sentence_idx ?? s.sentenceIdx,
+      text: text.substring(s.offset_start ?? 0, Math.min(s.offset_end ?? text.length, text.length)),
+      aiProb: s.ai_prob ?? s.aiProb,
+    })),
+  }))
+}
+
 export function requestHumanize(taskId, paragraphIdx) {
   if (MOCK_MODE) {
     return Promise.resolve(

@@ -1,5 +1,5 @@
 import { http } from './client'
-import type { DetectTask, TaskDetail, PageResp, HumanizeResp } from './types'
+import type { DetectTask, TaskDetail, PageResp, HumanizeResp, SentenceScore } from './types'
 
 /** §3.1 提交论文 */
 export async function submitPaper(file: File, degreeType: string, title?: string): Promise<{ taskId: number; paperTitle: string; status: string; createdAt: string }> {
@@ -47,6 +47,36 @@ export async function deleteTask(id: number): Promise<void> {
 export async function requestHumanize(taskId: number, paragraphIdx: number, style = 'academic'): Promise<HumanizeResp> {
   const resp = await http.post('/api/v1/humanize', { taskId, paragraphIdx, style })
   return resp.data.data
+}
+
+/**
+ * §8.2 直接文本检测（不生成任务）· Wave 1 · 1.4 文本粘贴
+ * 返回段落级 + 句子级打分，前端内联展示
+ */
+export interface DirectDetectResp {
+  aiProb: number
+  calibratedProb: number
+  riskLevel: 'low' | 'medium' | 'high'
+  warning?: string
+  branchScores?: Record<string, number>
+  sentences: SentenceScore[]
+}
+
+export async function detectTextDirect(text: string): Promise<DirectDetectResp> {
+  const resp = await http.post('/api/v1/detect/paragraph', { text, returnSentences: true })
+  const d = resp.data.data || {}
+  return {
+    aiProb: d.ai_prob ?? d.aiProb ?? 0,
+    calibratedProb: d.calibrated_prob ?? d.calibratedProb ?? 0,
+    riskLevel: d.risk_level ?? d.riskLevel ?? 'low',
+    warning: d.warning || undefined,
+    branchScores: d.branch_scores || d.branchScores,
+    sentences: (d.sentences || []).map((s: any) => ({
+      sentenceIdx: s.sentence_idx ?? s.sentenceIdx,
+      text: text.substring(s.offset_start ?? 0, Math.min(s.offset_end ?? text.length, text.length)),
+      aiProb: s.ai_prob ?? s.aiProb,
+    })),
+  }
 }
 
 /**

@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { UploadFile, UploadRawFile } from 'element-plus'
-import { submitPaper } from '@/api/detect'
+import { submitPaper, detectTextDirect, type DirectDetectResp } from '@/api/detect'
 
 const router = useRouter()
 
@@ -13,10 +13,39 @@ const DEGREES = [
   { key: 'PHD',      label: '博士', threshold: 10 },
 ] as const
 
+const mode = ref<'file' | 'paste'>('file')
 const degree = ref<'BACHELOR' | 'MASTER' | 'PHD'>('BACHELOR')
 const file = ref<UploadRawFile | null>(null)
 const submitting = ref(false)
 const threshold = computed(() => DEGREES.find(d => d.key === degree.value)?.threshold)
+
+// 粘贴模式状态
+const pasteText = ref('')
+const pasteResult = ref<DirectDetectResp | null>(null)
+const pasteChecking = ref(false)
+const PASTE_MAX = 5000
+
+function pasteBg(prob: number): string {
+  if (prob >= 0.7) return 'rgba(255, 59, 48, 0.14)'
+  if (prob >= 0.4) return 'rgba(255, 149, 0, 0.16)'
+  return 'transparent'
+}
+function pasteColor(prob: number): string {
+  if (prob >= 0.7) return 'var(--system-red)'
+  if (prob >= 0.4) return 'var(--system-orange)'
+  return 'var(--system-green)'
+}
+
+async function checkPaste() {
+  if (!pasteText.value.trim()) return ElMessage.warning('请粘贴或输入文本')
+  if (pasteText.value.length > PASTE_MAX) return ElMessage.warning(`文本超过 ${PASTE_MAX} 字，请分段检测`)
+  pasteChecking.value = true
+  pasteResult.value = null
+  try {
+    pasteResult.value = await detectTextDirect(pasteText.value)
+  } finally { pasteChecking.value = false }
+}
+function clearPaste() { pasteText.value = ''; pasteResult.value = null }
 
 function onChange(uploadFile: UploadFile) {
   const raw = uploadFile.raw
@@ -61,56 +90,131 @@ async function submit() {
       <div class="wrap">
         <h1 class="large-title">上传检测</h1>
 
-        <!-- Group 1: 学位类型 -->
-        <div class="group-label">学位类型</div>
-        <el-card class="group-card">
-          <el-radio-group v-model="degree">
-            <el-radio-button v-for="d in DEGREES" :key="d.key" :value="d.key">
-              {{ d.label }}
-            </el-radio-button>
+        <!-- Mode segmented (文件 / 粘贴) -->
+        <div class="mode-tabs">
+          <el-radio-group v-model="mode">
+            <el-radio-button label="file"  value="file">📄 文件上传</el-radio-button>
+            <el-radio-button label="paste" value="paste">✍ 粘贴文本</el-radio-button>
           </el-radio-group>
-          <div class="footnote">
-            教育部红线：AI 率 <span class="footnote-strong">≤ {{ threshold }}%</span>
-          </div>
-        </el-card>
-
-        <!-- Group 2: 文件 -->
-        <div class="group-label">论文文件</div>
-        <el-card class="group-card">
-          <el-upload
-            drag
-            accept=".pdf,.doc,.docx,.txt"
-            :auto-upload="false"
-            :limit="1"
-            :on-change="onChange"
-            :on-remove="onRemove"
-            :on-exceed="() => ElMessage.warning('只能选择一个文件')"
-          >
-            <div class="upload-inner">
-              <div class="upload-icon">􀈕</div>
-              <div class="upload-text">
-                <div class="upload-title">拖入文件 或 <em>点击选择</em></div>
-                <div class="upload-sub">PDF / Word / TXT · 最大 20MB</div>
-              </div>
-            </div>
-          </el-upload>
-          <div v-if="file" class="file-picked">
-            <span class="file-name">{{ file.name }}</span>
-            <span class="file-size">{{ humanBytes(file.size) }}</span>
-          </div>
-        </el-card>
-
-        <!-- Submit -->
-        <el-button
-          type="primary" round size="large"
-          :loading="submitting" :disabled="!file"
-          style="width: 100%; margin-top: 24px; height: 50px; font-size: 17px"
-          @click="submit"
-        >提交检测</el-button>
-
-        <div class="privacy">
-          论文原文加密存储，30 天后自动删除；检测报告保留 3 年
         </div>
+
+        <!-- ===== 文件模式 ===== -->
+        <template v-if="mode === 'file'">
+          <div class="group-label">学位类型</div>
+          <el-card class="group-card">
+            <el-radio-group v-model="degree">
+              <el-radio-button v-for="d in DEGREES" :key="d.key" :value="d.key">
+                {{ d.label }}
+              </el-radio-button>
+            </el-radio-group>
+            <div class="footnote">
+              教育部红线：AI 率 <span class="footnote-strong">≤ {{ threshold }}%</span>
+            </div>
+          </el-card>
+
+          <div class="group-label">论文文件</div>
+          <el-card class="group-card">
+            <el-upload
+              drag
+              accept=".pdf,.doc,.docx,.txt"
+              :auto-upload="false"
+              :limit="1"
+              :on-change="onChange"
+              :on-remove="onRemove"
+              :on-exceed="() => ElMessage.warning('只能选择一个文件')"
+            >
+              <div class="upload-inner">
+                <div class="upload-icon">􀈕</div>
+                <div class="upload-text">
+                  <div class="upload-title">拖入文件 或 <em>点击选择</em></div>
+                  <div class="upload-sub">PDF / Word / TXT · 最大 20MB</div>
+                </div>
+              </div>
+            </el-upload>
+            <div v-if="file" class="file-picked">
+              <span class="file-name">{{ file.name }}</span>
+              <span class="file-size">{{ humanBytes(file.size) }}</span>
+            </div>
+          </el-card>
+
+          <el-button
+            type="primary" round size="large"
+            :loading="submitting" :disabled="!file"
+            style="width: 100%; margin-top: 24px; height: 50px; font-size: 17px"
+            @click="submit"
+          >提交检测</el-button>
+
+          <div class="privacy">
+            论文原文加密存储，30 天后自动删除；检测报告保留 3 年
+          </div>
+        </template>
+
+        <!-- ===== 粘贴模式 ===== -->
+        <template v-else>
+          <div class="group-label">
+            段落文本
+            <span class="paste-count" :class="{ over: pasteText.length > PASTE_MAX }">
+              {{ pasteText.length }} / {{ PASTE_MAX }}
+            </span>
+          </div>
+          <el-card class="group-card" body-style="padding: 12px">
+            <el-input
+              v-model="pasteText"
+              type="textarea"
+              :rows="10"
+              placeholder="粘贴 50-5000 字的段落，即时看到 AI 率与句子级高亮"
+              resize="vertical"
+              maxlength="6000"
+            />
+          </el-card>
+
+          <div class="paste-actions">
+            <el-button plain round @click="clearPaste" :disabled="!pasteText && !pasteResult">清空</el-button>
+            <el-button
+              type="primary" round
+              :loading="pasteChecking"
+              :disabled="!pasteText.trim() || pasteText.length > PASTE_MAX"
+              @click="checkPaste"
+            >即时检测</el-button>
+          </div>
+
+          <!-- 粘贴结果 -->
+          <template v-if="pasteResult">
+            <div class="group-label">检测结果</div>
+            <el-card class="group-card paste-result-card">
+              <div class="paste-result-head">
+                <div class="paste-result-rate" :style="{ color: pasteColor(pasteResult.calibratedProb) }">
+                  {{ (pasteResult.calibratedProb * 100).toFixed(1) }}%
+                </div>
+                <div class="paste-result-meta">
+                  <div class="paste-result-verdict" :style="{ color: pasteColor(pasteResult.calibratedProb) }">
+                    <template v-if="pasteResult.riskLevel === 'high'">高疑似 AI 生成</template>
+                    <template v-else-if="pasteResult.riskLevel === 'medium'">中等疑似</template>
+                    <template v-else>判定人类写作</template>
+                  </div>
+                  <div v-if="pasteResult.warning" class="paste-result-warn">{{ pasteResult.warning }}</div>
+                </div>
+              </div>
+
+              <div v-if="pasteResult.sentences.length" class="paste-highlight">
+                <span
+                  v-for="s in pasteResult.sentences" :key="s.sentenceIdx"
+                  :style="{ background: pasteBg(s.aiProb) }"
+                >{{ s.text }}</span>
+              </div>
+
+              <div v-if="pasteResult.branchScores" class="paste-branches">
+                <span v-for="(v, k) in pasteResult.branchScores" :key="k" class="branch-chip">
+                  {{ k }} <b>{{ (Number(v) * 100).toFixed(0) }}%</b>
+                </span>
+              </div>
+            </el-card>
+          </template>
+
+          <div class="privacy">
+            粘贴文本不落库、不生成任务，仅用于即时预览
+          </div>
+        </template>
       </div>
     </el-main>
   </el-container>
@@ -185,4 +289,65 @@ async function submit() {
   color: var(--label-secondary);
   text-align: center;
 }
+
+/* Mode Tabs */
+.mode-tabs {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+/* Paste 模式 */
+.paste-count {
+  float: right;
+  font-weight: var(--fw-medium);
+  font-variant-numeric: tabular-nums;
+  color: var(--label-secondary);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.paste-count.over { color: var(--system-red); }
+
+.paste-actions {
+  display: flex; justify-content: flex-end; gap: 12px;
+  margin-top: 16px; margin-bottom: 8px;
+}
+
+.paste-result-card {}
+.paste-result-head {
+  display: flex; align-items: center; gap: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--label-quaternary);
+  margin-bottom: 16px;
+}
+.paste-result-rate {
+  font-size: 44px;
+  font-weight: var(--fw-bold);
+  letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.paste-result-meta { flex: 1; }
+.paste-result-verdict { font-size: var(--fs-headline); font-weight: var(--fw-semibold); }
+.paste-result-warn { font-size: var(--fs-caption-1); color: var(--label-secondary); margin-top: 4px; }
+
+.paste-highlight {
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--label);
+}
+
+.paste-branches {
+  margin-top: 16px;
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.branch-chip {
+  background: rgba(120, 120, 128, 0.14);
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-caption-1);
+  color: var(--label-secondary);
+  font-variant-numeric: tabular-nums;
+}
+.branch-chip b { color: var(--label); font-weight: var(--fw-semibold); margin-left: 4px; }
 </style>
