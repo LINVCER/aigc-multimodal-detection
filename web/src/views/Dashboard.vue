@@ -2,11 +2,11 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { listTasks, deleteTask, retryTask } from '@/api/detect'
+import { listTasks, deleteTask, retryTask, getStatistics } from '@/api/detect'
 import { useAuthStore } from '@/stores/auth'
 import EmptyState from '@/components/EmptyState.vue'
 import Skeleton from '@/components/Skeleton.vue'
-import type { DetectTask } from '@/api/types'
+import type { DetectTask, StatisticsResp } from '@/api/types'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -18,6 +18,59 @@ const firstLoad = ref(true)
 const error = ref('')
 const keyword = ref('')
 const statusFilter = ref('')
+
+// Dashboard 统计（Wave 2.c）
+const stats = ref<StatisticsResp | null>(null)
+async function loadStats() {
+  try { stats.value = await getStatistics() } catch { /* 静默：拦截器已 toast */ }
+}
+
+// 折线：把 dailyTrend 转成 SVG 路径。图 W=560 H=120，左右各留 4px padding
+const trendChart = computed(() => {
+  const s = stats.value
+  if (!s || !s.dailyTrend || s.dailyTrend.length === 0) return null
+
+  const W = 560, H = 120, PAD = 4
+  const pts = s.dailyTrend
+  const maxCount = Math.max(1, ...pts.map(p => p.count))
+  // 双 y 轴：折线（count）占主坐标，AI 率线用同一坐标系映射到 0-100
+
+  const barW = (W - PAD * 2) / pts.length
+  const stepX = (W - PAD * 2 - barW) / Math.max(pts.length - 1, 1)
+
+  // 折线路径（当日检测量）
+  let countPath = ''
+  const countPts: { x: number; y: number; count: number; date: string }[] = []
+  pts.forEach((p, i) => {
+    const x = PAD + barW / 2 + i * stepX
+    const y = H - PAD - (p.count / maxCount) * (H - PAD * 2)
+    countPts.push({ x, y, count: p.count, date: p.date })
+    countPath += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' '
+  })
+
+  // 面积填充路径（同 count 折线 + 底部收口）
+  let areaPath = countPath.replace(/^M/, 'M') +
+    'L' + countPts[countPts.length - 1].x.toFixed(1) + ',' + (H - PAD) +
+    'L' + countPts[0].x.toFixed(1) + ',' + (H - PAD) + ' Z'
+
+  // AI 率折线（0-100 → H 内映射）
+  let rateSegments: string[] = []
+  let seg = ''
+  const ratePts: { x: number; y: number; rate: number; date: string }[] = []
+  pts.forEach((p, i) => {
+    if (p.avgRate == null) {
+      if (seg) { rateSegments.push(seg); seg = '' }
+      return
+    }
+    const x = PAD + barW / 2 + i * stepX
+    const y = H - PAD - (p.avgRate / 100) * (H - PAD * 2)
+    ratePts.push({ x, y, rate: p.avgRate, date: p.date })
+    seg += (seg === '' ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' '
+  })
+  if (seg) rateSegments.push(seg)
+
+  return { W, H, countPath, areaPath, countPts, ratePts, rateSegments, maxCount }
+})
 
 let pollTimer: any = null
 
@@ -51,7 +104,11 @@ function ensurePolling() {
 }
 function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null } }
 
-onMounted(async () => { await load(); ensurePolling() })
+onMounted(async () => {
+  // 并发拉列表与统计，首屏尽快出
+  await Promise.all([load(), loadStats()])
+  ensurePolling()
+})
 onUnmounted(stopPolling)
 
 function aiRateColor(rate: number | null, threshold: number): string {
@@ -119,6 +176,73 @@ const showEmptyFiltered = computed(() =>
           <h1 class="large-title">检测记录</h1>
           <el-button type="primary" round size="large" @click="router.push('/upload')">+ 提交检测</el-button>
         </div>
+
+        <!-- Stats overview (Wave 2.c) -->
+        <div v-if="stats" class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">今日</div>
+            <div class="stat-value">{{ stats.today }}</div>
+            <div class="stat-hint">篇检测</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">本月</div>
+            <div class="stat-value">{{ stats.thisMonth }}</div>
+            <div class="stat-hint">篇检测</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">平均 AI 率</div>
+            <div class="stat-value">
+              <template v-if="stats.avgAiRate != null">
+                {{ stats.avgAiRate.toFixed(1) }}<span class="stat-value-unit">%</span>
+              </template>
+              <template v-else>—</template>
+            </div>
+            <div class="stat-hint">已完成任务</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">达标率</div>
+            <div class="stat-value" :style="{ color: (stats.passRate ?? 0) >= 60 ? 'var(--system-green)' : (stats.passRate ?? 0) >= 30 ? 'var(--system-orange)' : 'var(--system-red)' }">
+              <template v-if="stats.passRate != null">
+                {{ stats.passRate.toFixed(0) }}<span class="stat-value-unit">%</span>
+              </template>
+              <template v-else>—</template>
+            </div>
+            <div class="stat-hint">低于红线比例</div>
+          </div>
+        </div>
+
+        <!-- 30 天趋势折线（SVG 手绘，避免引 echarts） -->
+        <el-card v-if="trendChart" class="trend-card" body-style="padding: 20px 24px">
+          <div class="trend-header">
+            <div class="trend-title">近 30 天趋势</div>
+            <div class="trend-legend">
+              <span><span class="legend-dot count"></span> 检测量</span>
+              <span><span class="legend-dot rate"></span> 平均 AI 率</span>
+            </div>
+          </div>
+          <svg :viewBox="`0 0 ${trendChart.W} ${trendChart.H}`" class="trend-svg">
+            <!-- 网格：3 条水平参考线 -->
+            <line v-for="y in [0.25, 0.5, 0.75]" :key="y"
+              :x1="4" :y1="trendChart.H * y" :x2="trendChart.W - 4" :y2="trendChart.H * y"
+              stroke="rgba(60,60,67,0.10)" stroke-width="1" stroke-dasharray="3 4"/>
+            <!-- 检测量：淡蓝面积 + 蓝线 -->
+            <path :d="trendChart.areaPath" fill="rgba(0,122,255,0.10)" />
+            <path :d="trendChart.countPath" fill="none" stroke="var(--system-blue)" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+            <circle v-for="p in trendChart.countPts" :key="'c-' + p.date"
+              :cx="p.x" :cy="p.y" r="2.4" fill="var(--system-blue)"/>
+            <!-- AI 率：橙色，虚线段（缺失日不连） -->
+            <path v-for="(seg, i) in trendChart.rateSegments" :key="'r-' + i"
+              :d="seg" fill="none" stroke="var(--system-orange)" stroke-width="1.6"
+              stroke-linejoin="round" stroke-linecap="round"/>
+            <circle v-for="p in trendChart.ratePts" :key="'rp-' + p.date"
+              :cx="p.x" :cy="p.y" r="2.2" fill="var(--system-orange)"/>
+          </svg>
+          <div class="trend-axis">
+            <span>{{ trendChart.countPts[0]?.date }}</span>
+            <span>{{ trendChart.countPts[Math.floor(trendChart.countPts.length / 2)]?.date }}</span>
+            <span>今天</span>
+          </div>
+        </el-card>
 
         <!-- Toolbar -->
         <div class="toolbar">
@@ -247,6 +371,70 @@ const showEmptyFiltered = computed(() =>
 }
 
 .toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; }
+
+/* ============ 统计面板（Wave 2.c） ============ */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.stat-card {
+  background: var(--system-background);
+  border-radius: var(--radius-card);
+  padding: 20px 22px;
+  box-shadow: var(--shadow-card);
+}
+.stat-label {
+  font-size: var(--fs-caption-1);
+  font-weight: var(--fw-medium);
+  color: var(--label-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+.stat-value {
+  font-size: 34px;
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.8px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--label);
+}
+.stat-value-unit { font-size: 16px; font-weight: var(--fw-semibold); color: var(--label-secondary); margin-left: 2px; }
+.stat-hint { margin-top: 4px; font-size: var(--fs-caption-1); color: var(--label-secondary); }
+
+/* 折线卡 */
+.trend-card { margin-bottom: 20px; }
+.trend-header {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 12px;
+}
+.trend-title { font-size: var(--fs-headline); font-weight: var(--fw-semibold); color: var(--label); }
+.trend-legend {
+  display: flex; gap: 16px;
+  font-size: var(--fs-caption-1); color: var(--label-secondary);
+}
+.legend-dot {
+  display: inline-block;
+  width: 8px; height: 8px; border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.legend-dot.count { background: var(--system-blue); }
+.legend-dot.rate  { background: var(--system-orange); }
+.trend-svg {
+  width: 100%;
+  height: 120px;
+  display: block;
+}
+.trend-axis {
+  display: flex; justify-content: space-between;
+  margin-top: 4px;
+  font-size: var(--fs-caption-2);
+  color: var(--label-tertiary);
+  font-variant-numeric: tabular-nums;
+}
 
 .title-link { color: var(--system-blue); cursor: pointer; }
 .title-link:hover { text-decoration: underline; }

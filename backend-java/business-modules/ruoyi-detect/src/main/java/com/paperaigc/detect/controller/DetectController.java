@@ -397,6 +397,84 @@ public class DetectController {
         return R.ok();
     }
 
+    /* ==================== §3.7 Dashboard 统计（Wave 2.c） ==================== */
+
+    /**
+     * 概览统计：今日 / 本月 / 累计任务量、正文段整体平均 AI 率、达标率、近 30 天趋势。
+     * Phase 0：从内存 tasks Map 聚合；生产走 SQL group by。
+     */
+    @GetMapping("/detect/statistics")
+    public R<Map<String, Object>> statistics() {
+        LocalDateTime now = LocalDateTime.now();
+        java.time.LocalDate today = now.toLocalDate();
+        java.time.YearMonth thisMonth = java.time.YearMonth.from(today);
+
+        int todayCount = 0, monthCount = 0, totalCount = 0, doneCount = 0, passCount = 0;
+        double sumRate = 0;
+        int rateCount = 0;
+
+        // 30 天数组：末位是今天
+        int windowDays = 30;
+        int[] dailyCount = new int[windowDays];
+        double[] dailyRateSum = new double[windowDays];
+        int[] dailyRateN = new int[windowDays];
+        java.time.LocalDate startDate = today.minusDays(windowDays - 1L);
+
+        for (Map<String, Object> t : tasks.values()) {
+            totalCount++;
+            String createdAt = (String) t.get("createdAt");
+            java.time.LocalDate d;
+            try {
+                d = LocalDateTime.parse(createdAt).toLocalDate();
+            } catch (Exception e) { continue; }
+
+            if (d.equals(today)) todayCount++;
+            if (java.time.YearMonth.from(d).equals(thisMonth)) monthCount++;
+
+            if ("DONE".equals(t.get("status"))) {
+                doneCount++;
+                Number aiRate = (Number) t.get("aiRate");
+                Number threshold = (Number) t.get("threshold");
+                if (aiRate != null) {
+                    sumRate += aiRate.doubleValue();
+                    rateCount++;
+                    if (threshold != null && aiRate.doubleValue() <= threshold.doubleValue()) passCount++;
+                }
+            }
+
+            // 30 天窗口内的日趋势
+            if (!d.isBefore(startDate) && !d.isAfter(today)) {
+                int idx = (int) java.time.temporal.ChronoUnit.DAYS.between(startDate, d);
+                dailyCount[idx]++;
+                Number aiRate = (Number) t.get("aiRate");
+                if (aiRate != null) {
+                    dailyRateSum[idx] += aiRate.doubleValue();
+                    dailyRateN[idx]++;
+                }
+            }
+        }
+
+        List<Map<String, Object>> trend = new ArrayList<>(windowDays);
+        for (int i = 0; i < windowDays; i++) {
+            Map<String, Object> row = new HashMap<>();
+            row.put("date", startDate.plusDays(i).toString());
+            row.put("count", dailyCount[i]);
+            row.put("avgRate", dailyRateN[i] == 0 ? null
+                    : Math.round(dailyRateSum[i] / dailyRateN[i] * 10) / 10.0);
+            trend.add(row);
+        }
+
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("today", todayCount);
+        resp.put("thisMonth", monthCount);
+        resp.put("total", totalCount);
+        resp.put("done", doneCount);
+        resp.put("avgAiRate", rateCount == 0 ? null : Math.round(sumRate / rateCount * 10) / 10.0);
+        resp.put("passRate", doneCount == 0 ? null : Math.round((double) passCount / doneCount * 1000) / 10.0);
+        resp.put("dailyTrend", trend);
+        return R.ok(resp);
+    }
+
     /* ==================== §4 降 AIGC ==================== */
 
     @PostMapping("/humanize")

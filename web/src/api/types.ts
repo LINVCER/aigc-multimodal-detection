@@ -68,3 +68,19 @@ export interface HumanizeResp {
   qualityScore: number
   modelVersion: string
 }
+
+/** Dashboard 统计（Wave 2.c）*/
+export interface DailyTrendPoint {
+  date: string          // YYYY-MM-DD
+  count: number         // 当日检测量
+  avgRate: number | null
+}
+export interface StatisticsResp {
+  today: number
+  thisMonth: number
+  total: number
+  done: number
+  avgAiRate: number | null   // 整体平均 AI 率（DONE 任务）
+  passRate: number | null    // 达标率 % (0-100)
+  dailyTrend: DailyTrendPoint[]  // 长度 30，末位 = 今日
+}

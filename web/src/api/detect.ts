@@ -1,5 +1,5 @@
 import { http } from './client'
-import type { DetectTask, TaskDetail, PageResp, HumanizeResp, SentenceScore } from './types'
+import type { DetectTask, TaskDetail, PageResp, HumanizeResp, SentenceScore, StatisticsResp } from './types'
 
 /** §3.1 提交论文 */
 export async function submitPaper(file: File, degreeType: string, title?: string): Promise<{ taskId: number; paperTitle: string; status: string; createdAt: string }> {
@@ -77,6 +77,12 @@ export async function detectTextDirect(text: string): Promise<DirectDetectResp> 
       aiProb: s.ai_prob ?? s.aiProb,
     })),
   }
+}
+
+/** §3.7 Dashboard 统计（Wave 2.c） */
+export async function getStatistics(): Promise<StatisticsResp> {
+  const resp = await http.get('/api/v1/detect/statistics')
+  return resp.data.data
 }
 
 /**
