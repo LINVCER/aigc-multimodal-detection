@@ -1,80 +1,453 @@
 /* ============================================================
- * Apple Design tokens — 参考 s1gmamale1/apple-design-skills
- * 原则：Clarity / Deference / Depth + 2025 Liquid Glass
- * 单位：uni-app 用 rpx，750rpx = 375pt（iPhone 逻辑宽），即 1pt = 2rpx
+ * Design Tokens — Apple iOS 风 · 精致化版
+ *
+ * 原则（Apple 三原则 + 内部约束）：
+ *   Clarity     内容优先，UI 隐退；分层字号 / 色板 / 间距全部走 token
+ *   Deference   通过留白、材质、圆角制造深度，而非阴影堆叠
+ *   Depth       透明分层、语义色、层次感靠 Fill / Label 分级达成
+ *
+ * 单位：uni-app 使用 rpx，750rpx = 375pt（iPhone 逻辑宽）→ 1pt = 2rpx
+ *
+ * 使用：uni-app 会把本文件注入每个 .vue 的 <style lang="scss">，直接引用即可
+ * 分组：Brand → System Color → Label/Fill → Background → Semantic → Typography
+ *       → Spacing → Radius → Shadow → Motion → Component → Mixins
  * ============================================================ */
 
-/* ---- 系统色板（Apple systemXxx，语义优先，禁硬编码）---- */
-$system-blue:        #007AFF;   /* 交互主色 */
-$system-blue-dark:   #0A84FF;   /* Dark Mode 变体 */
-$system-green:       #34C759;   /* 成功 / 通过 */
-$system-orange:      #FF9500;   /* 警告 / 中风险 */
-$system-red:         #FF3B30;   /* 错误 / 高风险 */
+
+/* ========== 1. Brand & Accent ========== */
+
+/* iOS system-blue 作为主 tint；保留品牌延展色供 Hero / 场景高亮使用 */
+$brand-primary:        #007AFF;   /* 主交互色 = accent */
+$brand-primary-dark:   #0A84FF;   /* Dark 变体 */
+$brand-primary-tint:   #4DA2FF;   /* hover / active 上层 */
+$brand-primary-wash:   rgba(0, 122, 255, 0.10);  /* 淡背景 */
+
+/* Apple Health / Fitness 常见的双色梯度，做 AIGC 智能感 */
+$brand-gradient:       linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%);
+$brand-gradient-vivid: linear-gradient(135deg, #5E5CE6 0%, #64D2FF 100%);   /* 更 AI 一点 */
+
+
+/* ========== 2. System Colors（iOS systemXxx 全色板，语义优先） ========== */
+
+$system-blue:        #007AFF;
+$system-green:       #34C759;
+$system-orange:      #FF9500;
+$system-red:         #FF3B30;
 $system-yellow:      #FFCC00;
 $system-purple:      #AF52DE;
 $system-pink:        #FF2D55;
 $system-teal:        #5AC8FA;
+$system-indigo:      #5856D6;
+$system-mint:        #00C7BE;
+$system-brown:       #A2845E;
 
-/* ---- 中性 / 分层背景 ---- */
-$label:              #000000;                /* 一级文本 */
-$label-secondary:    rgba(60, 60, 67, 0.60); /* 二级文本 */
-$label-tertiary:     rgba(60, 60, 67, 0.30); /* 三级文本 / placeholder */
-$label-quaternary:   rgba(60, 60, 67, 0.18); /* 分割线 */
+$system-gray:        #8E8E93;
+$system-gray-2:      #AEAEB2;
+$system-gray-3:      #C7C7CC;
+$system-gray-4:      #D1D1D6;
+$system-gray-5:      #E5E5EA;
+$system-gray-6:      #F2F2F7;
 
-$system-background:           #FFFFFF;       /* 卡片背景 */
-$system-grouped-background:   #F2F2F7;       /* 分组表格外层 */
-$secondary-system-background: #F2F2F7;       /* 次级背景 */
+
+/* ========== 3. Label / Fill 分层（iOS 4 级） ========== */
+
+/* 文本 4 级 —— 用透明度分层，能在任意背景上保持对比 */
+$label-primary:      #000000;
+$label-secondary:    rgba(60, 60, 67, 0.60);
+$label-tertiary:     rgba(60, 60, 67, 0.30);
+$label-quaternary:   rgba(60, 60, 67, 0.18);
+
+/* 兼容旧代码 */
+$label:              $label-primary;
+$label-secondary-c:  $label-secondary;   /* 别名，避免命名冲突 */
+
+/* 填充色 4 级 —— iOS 系统 fill（可点区域底色、Tag 背景） */
+$fill-primary:       rgba(120, 120, 128, 0.20);
+$fill-secondary:     rgba(120, 120, 128, 0.16);
+$fill-tertiary:      rgba(118, 118, 128, 0.12);
+$fill-quaternary:    rgba(116, 116, 128, 0.08);
+
+
+/* ========== 4. Background 分层 ========== */
+
+$bg-primary:                  #FFFFFF;      /* 卡片 / 弹层 */
+$bg-secondary:                #F2F2F7;      /* Grouped 表格外层 */
+$bg-tertiary:                 #FFFFFF;      /* 二级组内层 */
+$bg-grouped-primary:          #F2F2F7;      /* Grouped 页面底 */
+$bg-grouped-secondary:        #FFFFFF;      /* Grouped 内卡 */
+$bg-elevated:                 #FFFFFF;      /* 弹层 / sheet */
+
+/* 兼容旧代码 */
+$system-background:           $bg-primary;
+$system-grouped-background:   $bg-grouped-primary;
+$secondary-system-background: $bg-secondary;
+
+/* 分割线：hairline 0.5pt = 1rpx（iOS 视觉密度）*/
 $separator:                   rgba(60, 60, 67, 0.29);
 $separator-opaque:            #C6C6C8;
+$stroke-hairline:             1rpx;
+$stroke-thin:                 2rpx;
 
-/* ---- 8pt Grid ---- */
-$sp-0:  0;
-$sp-1:  8rpx;      /*  4pt */
-$sp-2:  16rpx;     /*  8pt */
-$sp-3:  24rpx;     /* 12pt */
-$sp-4:  32rpx;     /* 16pt */
-$sp-5:  40rpx;     /* 20pt */
-$sp-6:  48rpx;     /* 24pt */
-$sp-8:  64rpx;     /* 32pt */
-$sp-10: 80rpx;     /* 40pt */
-$sp-12: 96rpx;     /* 48pt */
 
-/* ---- 圆角（苹果标准）---- */
-$radius-btn:    20rpx;    /* 10pt · 按钮 */
-$radius-card:   28rpx;    /* 14pt · 卡片 */
-$radius-sheet:  40rpx;    /* 20pt · 底部 sheet / 大卡片 */
-$radius-pill:   9999rpx;  /* 药丸 */
+/* ========== 5. Semantic Tokens（每语义三配色：solid + bg wash + fg） ========== */
 
-/* ---- Typography（SF Pro；中文回落 PingFang SC） ---- */
+/* Success（通过 / 低风险 / 达标） */
+$success-solid:      #34C759;
+$success-bg:         rgba(52, 199, 89, 0.14);
+$success-fg:         #1B7F3E;
+
+/* Warning（中风险 / 待确认 / 检测中） */
+$warning-solid:      #FF9500;
+$warning-bg:         rgba(255, 149, 0, 0.16);
+$warning-fg:         #B26200;
+
+/* Danger（失败 / 高风险 / 超红线） */
+$danger-solid:       #FF3B30;
+$danger-bg:          rgba(255, 59, 48, 0.14);
+$danger-fg:          #C62A22;
+
+/* Info（信息 / 排队中 / 中性提示） */
+$info-solid:         #007AFF;
+$info-bg:            rgba(0, 122, 255, 0.10);
+$info-fg:            #0056B3;
+
+/* Neutral（次要动作 / 灰态 / disabled） */
+$neutral-solid:      #8E8E93;
+$neutral-bg:         rgba(142, 142, 147, 0.14);
+$neutral-fg:         #48484A;
+
+
+/* ========== 6. Typography（Apple Dynamic Type，rpx = pt × 2） ========== */
+
 $font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display',
               'PingFang SC', 'Helvetica Neue', Helvetica, 'Microsoft YaHei', sans-serif;
+$font-family-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+$font-family-number: 'SF Pro Display', -apple-system, sans-serif;
 
-/* Apple 阶梯（size / weight / tracking），rpx = pt × 2 */
-$fs-large-title: 68rpx;   /* 34pt · 页面 hero 大标题 */
+/* size */
+$fs-large-title: 68rpx;   /* 34pt · 页面 hero */
 $fs-title-1:     56rpx;   /* 28pt */
-$fs-title-2:     44rpx;   /* 22pt · 段落大标题 */
+$fs-title-2:     44rpx;   /* 22pt */
 $fs-title-3:     40rpx;   /* 20pt */
-$fs-headline:    34rpx;   /* 17pt semi-bold */
-$fs-body:        34rpx;   /* 17pt regular · 正文 */
+$fs-headline:    34rpx;   /* 17pt semibold */
+$fs-body:        34rpx;   /* 17pt regular */
 $fs-callout:     32rpx;   /* 16pt */
 $fs-subhead:     30rpx;   /* 15pt */
 $fs-footnote:    26rpx;   /* 13pt */
 $fs-caption-1:   24rpx;   /* 12pt */
 $fs-caption-2:   22rpx;   /* 11pt */
 
+/* line-height（iOS 官方比例，中文密排） */
+$lh-tight:   1.15;    /* Large Title / 大数字 */
+$lh-snug:    1.30;    /* Title / Headline */
+$lh-normal:  1.45;    /* Body */
+$lh-relaxed: 1.70;    /* 段落长文 */
+
+/* letter-spacing（iOS SF 系统会自动 kerning，此处按 pt 换算） */
+$tracking-tight:   -1rpx;
+$tracking-snug:    -0.5rpx;
+$tracking-normal:   0;
+$tracking-wide:     0.5rpx;
+
+/* weight */
 $fw-regular:  400;
 $fw-medium:   500;
-$fw-semibold: 600;   /* 苹果 headline / 强调用 */
-$fw-bold:     700;   /* Large Title */
+$fw-semibold: 600;
+$fw-bold:     700;
 
-/* ---- 动效（Apple spring 曲线）---- */
-$ease-standard: cubic-bezier(0.32, 0.72, 0, 1);   /* iOS 系统曲线 */
-$ease-decel:    cubic-bezier(0, 0, 0.2, 1);
-$duration-fast: 200ms;
-$duration-base: 300ms;
-$duration-slow: 500ms;
 
-/* ---- 阴影（苹果偏爱几乎无阴影 / 微阴影 / 用材质代替）---- */
-$shadow-hair:  0 1rpx 0 rgba(0, 0, 0, 0.06);
-$shadow-card:  0 2rpx 12rpx rgba(0, 0, 0, 0.04);
-$shadow-lift:  0 8rpx 24rpx rgba(0, 0, 0, 0.08);
+/* ========== 7. Spacing（8pt Grid） ========== */
+
+$sp-0:   0;
+$sp-1:   8rpx;      /*  4pt · icon 间距 */
+$sp-2:   16rpx;     /*  8pt · 元素间距 */
+$sp-3:   24rpx;     /* 12pt · 卡内 padding */
+$sp-4:   32rpx;     /* 16pt · 标准 padding */
+$sp-5:   40rpx;     /* 20pt · 大 padding */
+$sp-6:   48rpx;     /* 24pt · 分组间距 */
+$sp-7:   56rpx;     /* 28pt */
+$sp-8:   64rpx;     /* 32pt · 页面 margin */
+$sp-10:  80rpx;     /* 40pt */
+$sp-12:  96rpx;     /* 48pt */
+$sp-16: 128rpx;     /* 64pt · Hero 上下留白 */
+
+
+/* ========== 8. Radius ========== */
+
+$radius-xs:    8rpx;     /*  4pt · chip / tag */
+$radius-sm:   12rpx;     /*  6pt · input inner */
+$radius-md:   16rpx;     /*  8pt · 中卡片 */
+$radius-btn:  20rpx;     /* 10pt · 按钮 */
+$radius-lg:   24rpx;     /* 12pt · list row */
+$radius-card: 28rpx;     /* 14pt · 标准卡片 */
+$radius-xl:   32rpx;     /* 16pt */
+$radius-sheet: 40rpx;    /* 20pt · bottom sheet */
+$radius-hero: 44rpx;     /* 22pt · hero card */
+$radius-pill: 9999rpx;   /* 药丸 */
+
+
+/* ========== 9. Shadow / Elevation ========== */
+
+/* iOS 惜用阴影；三级 elevation 已足够 */
+$shadow-hair:  0 1rpx 0 rgba(0, 0, 0, 0.06);                                  /* 边界暗示 */
+$shadow-card:  0 2rpx 12rpx rgba(0, 0, 0, 0.04);                              /* 常规卡片 */
+$shadow-lift:  0 8rpx 24rpx rgba(0, 0, 0, 0.08);                              /* 悬浮 / 弹层 */
+$shadow-modal: 0 16rpx 48rpx rgba(0, 0, 0, 0.12);                             /* 模态背景 */
+$shadow-inset: inset 0 0 0 1rpx rgba(60, 60, 67, 0.08);                       /* 描边内阴影 */
+$shadow-tap:   0 0 0 8rpx rgba(0, 122, 255, 0.10);                            /* focus ring */
+
+
+/* ========== 10. Motion（Apple spring 曲线族） ========== */
+
+$ease-standard:  cubic-bezier(0.32, 0.72, 0, 1);    /* iOS 系统主曲线 · 万能 */
+$ease-accel:     cubic-bezier(0.4, 0, 1, 1);        /* 消失 */
+$ease-decel:     cubic-bezier(0, 0, 0.2, 1);        /* 出现 */
+$ease-spring:    cubic-bezier(0.5, 1.4, 0.5, 1);    /* 弹性回弹 */
+$ease-back:      cubic-bezier(0.68, -0.55, 0.27, 1.55);
+
+$duration-instant: 100ms;
+$duration-fast:    200ms;
+$duration-base:    300ms;
+$duration-slow:    500ms;
+$duration-slower:  800ms;
+
+$tap-scale:    0.97;                                  /* 按压缩放常量 */
+
+
+/* ========== 11. Z-Index scale ========== */
+
+$z-base:       0;
+$z-sticky:     10;
+$z-navbar:     100;
+$z-dropdown:   500;
+$z-sheet:      900;
+$z-modal:      1000;
+$z-toast:      1500;
+$z-topmost:    9999;
+
+
+/* ========== 12. Component Tokens ========== */
+
+/* 组件尺寸约束（用 token 保证一致性） */
+$size-touch-min:   88rpx;   /* 44pt · Apple 触控最小尺寸 */
+$size-btn-h-sm:    56rpx;   /* 28pt */
+$size-btn-h-md:    76rpx;   /* 38pt */
+$size-btn-h-lg:    96rpx;   /* 48pt · 主 CTA */
+$size-input-h:     88rpx;   /* 44pt */
+$size-row-h:       88rpx;   /* 44pt · list row min */
+$size-avatar-sm:   64rpx;
+$size-avatar-md:   96rpx;
+$size-avatar-lg:  120rpx;
+
+$icon-xs:  24rpx;
+$icon-sm:  32rpx;
+$icon-md:  40rpx;
+$icon-lg:  56rpx;
+$icon-xl:  80rpx;
+
+/* 材质模糊（H5 backdrop-filter；小程序不支持时用实心 fallback） */
+$blur-thin:      12rpx;
+$blur-material:  20rpx;
+$blur-thick:     40rpx;
+
+
+/* ============================================================
+ * Mixins —— 复用样式，避免每页手写
+ * ============================================================ */
+
+/* iOS Large Title 大标题栏（Profile / Dashboard 主页顶部） */
+@mixin large-title-bar {
+  padding: $sp-5 $sp-4 $sp-4;
+  .large-title {
+    display: block;
+    font-size: $fs-large-title;
+    font-weight: $fw-bold;
+    line-height: $lh-tight;
+    letter-spacing: $tracking-tight;
+    color: $label-primary;
+  }
+  .large-subtitle {
+    display: block;
+    font-size: $fs-subhead;
+    color: $label-secondary;
+    margin-top: $sp-1;
+  }
+}
+
+/* iOS 顶部窄导航栏 */
+@mixin nav-bar {
+  height: 88rpx;
+  padding: 0 $sp-4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: $bg-primary;
+  border-bottom: $stroke-hairline solid $separator;
+  .nav-title { font-size: $fs-headline; font-weight: $fw-semibold; color: $label-primary; }
+  .nav-btn   { color: $brand-primary; font-size: $fs-body; }
+}
+
+/* iOS Inset Grouped 卡片（标准） */
+@mixin card {
+  background: $bg-primary;
+  border-radius: $radius-card;
+  overflow: hidden;
+  box-shadow: $shadow-card;
+}
+
+/* 卡片 · 无内 padding（内部自定义结构时用） */
+@mixin card-flush {
+  background: $bg-primary;
+  border-radius: $radius-card;
+  overflow: hidden;
+}
+
+/* Hero 卡（首屏 KPI / 主 CTA 展示） */
+@mixin card-hero {
+  background: $bg-primary;
+  border-radius: $radius-hero;
+  padding: $sp-6 $sp-4;
+  box-shadow: $shadow-lift;
+}
+
+/* iOS 分组 label（Grouped Section header 小字） */
+@mixin group-label {
+  display: block;
+  padding: $sp-5 $sp-3 $sp-2;
+  font-size: $fs-footnote;
+  font-weight: $fw-medium;
+  color: $label-secondary;
+  text-transform: uppercase;
+  letter-spacing: $tracking-wide;
+}
+
+/* iOS Inset Grouped 单行（左标题 · 右值 · chevron） */
+@mixin group-row {
+  min-height: $size-row-h;
+  padding: $sp-3 $sp-4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: background $duration-fast $ease-standard;
+  .row-title { font-size: $fs-body; color: $label-primary; }
+  .row-value { font-size: $fs-body; color: $label-primary; }
+  .row-value-muted { color: $label-secondary; }
+  .chevron { color: $label-tertiary; font-size: $icon-sm; line-height: 1; margin-left: $sp-2; }
+}
+
+/* 卡内分割线（左缩进对齐 title） */
+@mixin row-separator($inset: $sp-4) {
+  height: $stroke-hairline;
+  background: $separator;
+  margin-left: $inset;
+}
+
+/* iOS 按钮 · 主 CTA */
+@mixin btn-primary {
+  height: $size-btn-h-lg;
+  line-height: $size-btn-h-lg;
+  border-radius: $radius-btn;
+  background: $brand-primary;
+  color: #FFFFFF;
+  font-size: $fs-headline;
+  font-weight: $fw-semibold;
+  text-align: center;
+  transition: transform $duration-fast $ease-standard, background $duration-fast;
+  &:active:not(:disabled) { transform: scale(#{$tap-scale}); background: $brand-primary-tint; }
+  &:disabled, &.disabled { background: rgba(0, 122, 255, 0.35); }
+}
+
+/* iOS 按钮 · 次要（灰底黑字） */
+@mixin btn-secondary {
+  height: $size-btn-h-lg;
+  line-height: $size-btn-h-lg;
+  border-radius: $radius-btn;
+  background: $fill-tertiary;
+  color: $label-primary;
+  font-size: $fs-headline;
+  font-weight: $fw-medium;
+  text-align: center;
+  transition: transform $duration-fast $ease-standard, background $duration-fast;
+  &:active:not(:disabled) { transform: scale(#{$tap-scale}); background: $fill-secondary; }
+}
+
+/* iOS 按钮 · 文字（inline 蓝字） */
+@mixin btn-text {
+  color: $brand-primary;
+  font-size: $fs-body;
+  font-weight: $fw-medium;
+  transition: opacity $duration-fast;
+  &:active { opacity: 0.5; }
+}
+
+/* iOS 按钮 · 危险 */
+@mixin btn-destructive {
+  @include btn-primary;
+  background: $danger-solid;
+  &:active:not(:disabled) { background: rgba(255, 59, 48, 0.85); }
+}
+
+/* iOS Chip / Tag（状态胶囊） */
+@mixin chip($fg, $bg) {
+  display: inline-flex;
+  align-items: center;
+  height: 40rpx;
+  padding: 0 $sp-2;
+  border-radius: $radius-pill;
+  background: $bg;
+  color: $fg;
+  font-size: $fs-caption-1;
+  font-weight: $fw-medium;
+  line-height: 1;
+}
+
+/* 按压反馈（iOS hover） */
+@mixin tap-highlight($bg: rgba(60, 60, 67, 0.06)) {
+  transition: background $duration-fast $ease-standard;
+  &:active { background: $bg; }
+}
+
+/* 缩放按压反馈 */
+@mixin tap-scale {
+  transition: transform $duration-fast $ease-standard;
+  &:active { transform: scale(#{$tap-scale}); }
+}
+
+/* Backdrop blur 磨砂材质 · H5 有效；小程序 fallback 半透明白 */
+@mixin backdrop-blur($intensity: $blur-material, $tint: rgba(255, 255, 255, 0.72)) {
+  background: $tint;
+  /* stylelint-disable-next-line */
+  backdrop-filter: saturate(180%) blur($intensity);
+  -webkit-backdrop-filter: saturate(180%) blur($intensity);
+}
+
+/* 骨架屏 shimmer 动画 */
+@mixin skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    $fill-quaternary 0%,
+    $fill-tertiary 50%,
+    $fill-quaternary 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer $duration-slower ease-in-out infinite;
+}
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* 场景色 tint（solid 前景 + wash 背景，由调用方传入两色；小程序不支持相对颜色语法） */
+@mixin scenario-tint($fg, $wash) {
+  color: $fg;
+  background: $wash;
+}
+
+/* 圆点指示器 */
+@mixin dot($size: 12rpx, $color: $brand-primary) {
+  display: inline-block;
+  width: $size;
+  height: $size;
+  border-radius: $radius-pill;
+  background: $color;
+}
