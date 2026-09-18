@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { uploadPaper, detectTextDirect } from '@/api/detect'
 import { SCENARIO_MAP, paragraphRisk } from '@/utils/constants'
 import { useAuth } from '@/store/auth'
@@ -21,6 +22,16 @@ const scenario = ref('academic_bachelor')
 const file = ref(null)
 const submitting = ref(false)
 const threshold = computed(() => SCENARIOS.find(s => s.key === scenario.value)?.threshold)
+
+// 首页场景 chip 跳来时预选场景（switchTab 不支持传参，用 storage 兜底）
+onShow(() => {
+  const pending = uni.getStorageSync('pending_scenario')
+  if (pending && SCENARIOS.some(s => s.key === pending)) {
+    scenario.value = pending
+    mode.value = 'file'
+  }
+  uni.removeStorageSync('pending_scenario')
+})
 
 // 粘贴模式
 const PASTE_MAX = 5000

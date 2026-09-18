@@ -9,6 +9,15 @@
       }
     },
     {
+      "path": "pages/home/home",
+      "style": {
+        "navigationBarTitleText": "首页",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true,
+        "backgroundColor": "#F2F2F7"
+      }
+    },
+    {
       "path": "pages/index/index",
       "style": {
         "navigationBarTitleText": "检测记录",
@@ -54,6 +63,7 @@
     "borderStyle": "white",
     "backgroundColor": "#FFFFFF",
     "list": [
+      { "pagePath": "pages/home/home",       "text": "首页" },
       { "pagePath": "pages/index/index",     "text": "记录" },
       { "pagePath": "pages/upload/upload",   "text": "上传" },
       { "pagePath": "pages/profile/profile", "text": "我的" }

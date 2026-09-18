@@ -13,7 +13,7 @@ async function onSubmit() {
   }
   try {
     await auth.login(username.value, password.value)
-    uni.reLaunch({ url: '/pages/index/index' })
+    uni.reLaunch({ url: '/pages/home/home' })
   } catch (e) {
     uni.showToast({ title: e?.message || '登录失败', icon: 'none' })
   }
