@@ -1,10 +1,21 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useAuth } from '@/store/auth'
 import FeedbackSheet from '@/components/FeedbackSheet.vue'
 
 const auth = useAuth()
 const feedbackOpen = ref(false)
+
+const avatarLetter = computed(() => (auth.username || 'U')[0].toUpperCase())
+const roleText = computed(() =>
+  auth.role === 'OPS_ADMIN' ? '运营团队 · 内部账号'
+    : auth.role === 'ADMIN' ? '系统管理员'
+    : '个人版 · AI 检测'
+)
+
+// manifest.json 里 versionName；uni.getSystemInfoSync().appVersion 在 H5 拿不到
+// 简单硬编码，Wave 4 · Batch 4.4 引 .env.example 时同步暴露 VITE_APP_VERSION
+const appVersion = '0.2.0'
 
 function logout() {
   uni.showModal({
@@ -15,63 +26,80 @@ function logout() {
     success: (res) => { if (res.confirm) auth.logout() },
   })
 }
+
+function comingSoon(name) {
+  uni.showToast({ title: `${name} 即将上线`, icon: 'none' })
+}
 </script>
 
 <template>
   <view class="page">
-    <view class="large-title-bar">
+    <!-- Large Title -->
+    <view class="hero-header">
       <text class="large-title">我的</text>
     </view>
 
     <!-- 用户卡 -->
     <view class="user-card">
       <view class="avatar">
-        <text>{{ (auth.username || 'U')[0].toUpperCase() }}</text>
+        <text>{{ avatarLetter }}</text>
       </view>
       <view class="user-info">
         <text class="user-name">{{ auth.username || '已登录用户' }}</text>
-        <text class="user-role">学生 · 教育部合规检测</text>
+        <text class="user-role">{{ roleText }}</text>
       </view>
     </view>
 
-    <!-- 分组列表 1 -->
+    <!-- 账户 -->
     <text class="group-label">账户</text>
     <view class="group-card">
-      <view class="row">
+      <view class="row" hover-class="row-hover" @click="comingSoon('额度余额')">
         <text class="row-title">额度余额</text>
-        <view class="row-value">
-          <text class="value-text">接入后端后展示</text>
+        <view class="row-tail">
+          <text class="row-value muted">接入后展示</text>
           <text class="chevron">›</text>
         </view>
       </view>
-      <view class="separator"></view>
-      <view class="row">
+      <view class="separator" />
+      <view class="row" hover-class="row-hover" @click="comingSoon('历史报告')">
         <text class="row-title">历史报告</text>
         <text class="chevron">›</text>
       </view>
     </view>
 
-    <!-- 分组列表 2 -->
-    <text class="group-label">关于</text>
+    <!-- 反馈 -->
+    <text class="group-label">反馈</text>
     <view class="group-card">
       <view class="row" hover-class="row-hover" @click="feedbackOpen = true">
         <text class="row-title">意见反馈</text>
         <text class="chevron">›</text>
       </view>
-      <view class="separator"></view>
-      <view class="row">
-        <text class="row-title">隐私政策</text>
-        <text class="chevron">›</text>
-      </view>
-      <view class="separator"></view>
-      <view class="row">
-        <text class="row-title">版本</text>
-        <text class="value-text">v0.1.0</text>
+      <view class="separator" />
+      <view class="row" hover-class="row-hover" @click="comingSoon('我的反馈')">
+        <text class="row-title">我的反馈</text>
+        <view class="row-tail">
+          <text class="row-value muted">查看回复</text>
+          <text class="chevron">›</text>
+        </view>
       </view>
     </view>
 
-    <!-- 退出登录（危险按钮，独立分组卡） -->
-    <view class="group-card danger-card" hover-class="row-hover" @click="logout">
+    <!-- 关于 -->
+    <text class="group-label">关于</text>
+    <view class="group-card">
+      <view class="row" hover-class="row-hover" @click="comingSoon('隐私政策')">
+        <text class="row-title">隐私政策</text>
+        <text class="chevron">›</text>
+      </view>
+      <view class="separator" />
+      <view class="row">
+        <text class="row-title">版本</text>
+        <text class="row-value muted">v{{ appVersion }}</text>
+      </view>
+    </view>
+
+    <!-- 退出登录 -->
+    <view class="danger-card" hover-class="danger-card-hover" @click="logout">
       <text class="danger-text">退出登录</text>
     </view>
 
@@ -80,83 +108,111 @@ function logout() {
 </template>
 
 <style lang="scss" scoped>
-.page { min-height: 100vh; padding: 40rpx 32rpx 100rpx; background: #F2F2F7; }
-
-.large-title-bar { padding-bottom: 32rpx; }
-.large-title {
-  font-size: 68rpx;
-  font-weight: 700;
-  letter-spacing: -1rpx;
-  color: #000;
+.page {
+  min-height: 100vh;
+  padding: $sp-3 $sp-4 100rpx;
+  background: $bg-grouped-primary;
 }
 
-/* 用户卡：大 Avatar + 姓名 */
+/* Large Title */
+.hero-header { padding: $sp-3 $sp-1 $sp-3; }
+.large-title {
+  display: block;
+  font-size: $fs-large-title;
+  font-weight: $fw-bold;
+  line-height: $lh-tight;
+  letter-spacing: $tracking-tight;
+  color: $label-primary;
+}
+
+/* 用户卡 · gradient avatar + 姓名 */
 .user-card {
-  background: #FFFFFF;
-  border-radius: 28rpx;
-  padding: 40rpx 32rpx;
+  @include card;
+  padding: $sp-5 $sp-4;
   display: flex;
   align-items: center;
 }
 .avatar {
-  width: 120rpx; height: 120rpx;
-  border-radius: 9999rpx;
-  background: linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%);
-  color: #fff;
+  width: $size-avatar-lg; height: $size-avatar-lg;
+  border-radius: $radius-pill;
+  background: $brand-gradient;
+  color: #FFFFFF;
   font-size: 52rpx;
-  font-weight: 600;
+  font-weight: $fw-semibold;
   display: flex; align-items: center; justify-content: center;
-  margin-right: 32rpx;
+  margin-right: $sp-4;
+  flex-shrink: 0;
 }
-.user-info { flex: 1; }
-.user-name { display: block; font-size: 40rpx; font-weight: 600; color: #000; letter-spacing: -0.5rpx; }
-.user-role { display: block; font-size: 26rpx; color: rgba(60,60,67,0.60); margin-top: 8rpx; }
-
-/* Inset Grouped Sections */
-.group-label {
+.user-info { flex: 1; min-width: 0; }
+.user-name {
   display: block;
-  font-size: 26rpx;
-  font-weight: 500;
-  color: rgba(60,60,67,0.60);
-  text-transform: uppercase;
-  letter-spacing: 1rpx;
-  padding: 40rpx 20rpx 12rpx;
+  font-size: $fs-title-3;
+  font-weight: $fw-semibold;
+  color: $label-primary;
+  letter-spacing: $tracking-snug;
+}
+.user-role {
+  display: block;
+  font-size: $fs-subhead;
+  color: $label-secondary;
+  margin-top: 8rpx;
+}
+
+/* Inset Grouped Section */
+.group-label {
+  @include group-label;
 }
 .group-card {
-  background: #FFFFFF;
-  border-radius: 28rpx;
-  overflow: hidden;
-  position: relative;
+  @include card-flush;
 }
+
+/* Row（Inset Grouped 单行） */
 .row {
-  padding: 32rpx;
+  min-height: $size-row-h;
+  padding: $sp-3 $sp-4;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  transition: background 150ms;
+  transition: background $duration-fast $ease-standard;
 }
-.row-hover { background: rgba(60,60,67,0.06); }
-.row-title { font-size: 32rpx; color: #000; }
-.row-value { display: flex; align-items: center; }
-.value-text { font-size: 30rpx; color: rgba(60,60,67,0.60); margin-right: 12rpx; }
-.chevron   { color: rgba(60,60,67,0.30); font-size: 36rpx; }
-
+.row-hover { background: rgba(60, 60, 67, 0.06); }
+.row-title {
+  font-size: $fs-body;
+  color: $label-primary;
+}
+.row-tail {
+  display: flex; align-items: center;
+}
+.row-value {
+  font-size: $fs-subhead;
+  color: $label-primary;
+  margin-right: $sp-1;
+  &.muted { color: $label-secondary; }
+}
+.chevron {
+  color: $label-tertiary;
+  font-size: $icon-md;
+  line-height: 1;
+  margin-left: $sp-1;
+}
 .separator {
-  height: 1rpx;
-  background: rgba(60,60,67,0.18);
-  margin-left: 32rpx;
+  height: $stroke-hairline;
+  background: $separator;
+  margin-left: $sp-4;
 }
 
-/* 危险卡：单独一个按钮式卡片 */
+/* 危险卡 · 单独按钮式卡片 */
 .danger-card {
-  margin-top: 48rpx;
-  padding: 32rpx;
+  @include card-flush;
+  margin-top: $sp-6;
+  padding: $sp-4;
   text-align: center;
-  transition: background 150ms;
+  transition: background $duration-fast $ease-standard;
 }
+.danger-card-hover { background: rgba(60, 60, 67, 0.06); }
 .danger-text {
-  font-size: 34rpx;
-  color: #FF3B30;
-  font-weight: 500;
+  font-size: $fs-headline;
+  color: $danger-solid;
+  font-weight: $fw-medium;
 }
 </style>
