@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getTaskDetail, requestHumanize } from '@/api/detect'
+import { getTaskDetail, requestHumanize, downloadReportPdf } from '@/api/detect'
 import Skeleton from '@/components/Skeleton.vue'
 import type { TaskDetail, ParagraphResult } from '@/api/types'
 
@@ -82,6 +82,34 @@ async function copyText(text: string) {
   try { await navigator.clipboard.writeText(text); ElMessage.success('已复制') }
   catch { ElMessage.warning('复制失败') }
 }
+
+const downloading = ref(false)
+async function onDownloadPdf() {
+  if (!detail.value) return
+  downloading.value = true
+  try {
+    await downloadReportPdf(Number(props.id), detail.value.paperTitle)
+    ElMessage.success('报告已下载')
+  } catch (e: any) {
+    ElMessage.error(e?.message || '下载失败')
+  } finally { downloading.value = false }
+}
+
+const EXCLUDE_REASON_LABEL: Record<string, string> = {
+  reference: '参考文献',
+  acknowledgement: '致谢',
+  appendix: '附录',
+  sectionTitle: '章节标题',
+  caption: '图表标题',
+}
+
+// 底部副标题：X 段正文 · 已排除 Y 段（参考文献/图表/…）
+const bodyStats = computed(() => {
+  if (!detail.value?.paragraphs) return null
+  const body = detail.value.paragraphs.filter(p => !p.excluded).length
+  const excluded = detail.value.paragraphs.length - body
+  return { body, excluded }
+})
 </script>
 
 <template>
@@ -90,7 +118,12 @@ async function copyText(text: string) {
       <div class="header-inner">
         <el-button link @click="router.back()">← 返回</el-button>
         <span class="header-title">检测报告</span>
-        <span></span>
+        <el-button
+          v-if="detail && detail.status === 'DONE'"
+          type="primary" round size="small"
+          :loading="downloading" @click="onDownloadPdf"
+        >⬇  下载 PDF</el-button>
+        <span v-else></span>
       </div>
     </el-header>
 
@@ -117,6 +150,9 @@ async function copyText(text: string) {
               </div>
               <div class="hero-verdict" :style="{ color: summaryColor }">
                 {{ pass ? '低于红线 ' + detail.threshold + '%，达标' : '超过红线 ' + detail.threshold + '%，建议修改后重检' }}
+              </div>
+              <div v-if="bodyStats" class="hero-body-hint">
+                基于正文 {{ bodyStats.body }} 段计算<template v-if="bodyStats.excluded > 0">，已自动排除 {{ bodyStats.excluded }} 段（参考文献 / 图表标题 等）</template>
               </div>
               <div class="hero-paper">{{ detail.paperTitle }}</div>
             </div>
@@ -157,17 +193,28 @@ async function copyText(text: string) {
               </div>
             </div>
 
-            <el-card v-for="p in detail.paragraphs || []" :key="p.paragraphIdx" class="para">
+            <el-card
+              v-for="p in detail.paragraphs || []" :key="p.paragraphIdx"
+              class="para" :class="{ 'para-excluded': p.excluded }"
+            >
               <div class="para-header">
                 <span class="para-idx">段 {{ p.paragraphIdx + 1 }}</span>
-                <span class="para-prob" :style="{ color: paragraphProbColor(p.calibratedProb) }">
-                  {{ (p.calibratedProb * 100).toFixed(0) }}%
+                <span v-if="p.excluded" class="excluded-badge">
+                  未参与计算 · {{ EXCLUDE_REASON_LABEL[p.excludeReason || ''] || '非正文' }}
+                </span>
+                <span
+                  v-else
+                  class="para-prob"
+                  :style="{ color: paragraphProbColor(p.calibratedProb || 0) }"
+                >
+                  {{ ((p.calibratedProb || 0) * 100).toFixed(0) }}%
                   <template v-if="p.sourceLabel && p.sourceLabel !== 'human'">
                     · 疑似 {{ SOURCE_LABEL[p.sourceLabel] || p.sourceLabel }}
                   </template>
                 </span>
               </div>
-              <div class="para-text">
+              <div v-if="p.excluded" class="para-excluded-text">{{ p.text }}</div>
+              <div v-else class="para-text">
                 <span
                   v-for="s in p.sentences" :key="s.sentenceIdx"
                   :style="{ background: sentenceBg(s.aiProb) }"
@@ -175,7 +222,7 @@ async function copyText(text: string) {
               </div>
 
               <el-button
-                v-if="p.calibratedProb >= 0.7 && !rewrittenMap[p.paragraphIdx]"
+                v-if="!p.excluded && (p.calibratedProb || 0) >= 0.7 && !rewrittenMap[p.paragraphIdx]"
                 type="primary" plain size="default" style="margin-top: 14px"
                 :loading="humanizingMap[p.paragraphIdx]" @click="humanize(p)"
               >✨ 降 AIGC 改写建议</el-button>
@@ -229,6 +276,11 @@ async function copyText(text: string) {
 }
 .hero-unit { font-size: 32px; font-weight: var(--fw-semibold); color: var(--label-secondary); margin-left: 6px; }
 .hero-verdict { font-size: var(--fs-headline); font-weight: var(--fw-semibold); }
+.hero-body-hint {
+  font-size: var(--fs-footnote);
+  color: var(--label-secondary);
+  margin-top: 12px;
+}
 .hero-paper {
   font-size: var(--fs-subhead); color: var(--label-secondary);
   margin-top: 20px; padding-top: 20px;
@@ -277,6 +329,23 @@ async function copyText(text: string) {
 }
 .para-prob { font-size: var(--fs-footnote); font-weight: var(--fw-semibold); }
 .para-text { font-size: 15px; line-height: 1.7; color: var(--label); }
+
+/* 非正文段：整卡去饱和，徽章灰 */
+.para-excluded { opacity: 0.7; }
+.excluded-badge {
+  font-size: var(--fs-caption-1);
+  color: var(--label-secondary);
+  background: rgba(120, 120, 128, 0.14);
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  font-weight: var(--fw-medium);
+}
+.para-excluded-text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--label-secondary);
+  font-style: normal;
+}
 
 .rewritten {
   margin-top: 14px;

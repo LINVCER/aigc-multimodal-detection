@@ -48,3 +48,22 @@ export async function requestHumanize(taskId: number, paragraphIdx: number, styl
   const resp = await http.post('/api/v1/humanize', { taskId, paragraphIdx, style })
   return resp.data.data
 }
+
+/**
+ * §5 下载 PDF 报告（Wave 1 · 1.1）
+ * 用 axios responseType blob 拿二进制，浏览器 saveAs 触发下载
+ */
+export async function downloadReportPdf(taskId: number, paperTitle: string): Promise<void> {
+  const resp = await http.get(`/api/v1/report/tasks/${taskId}/pdf`, {
+    responseType: 'blob',
+  })
+  const blob = new Blob([resp.data], { type: 'application/pdf' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `AIGC检测报告-${paperTitle}.pdf`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}

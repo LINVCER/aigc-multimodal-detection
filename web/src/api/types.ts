@@ -24,12 +24,14 @@ export interface SentenceScore {
 export interface ParagraphResult {
   paragraphIdx: number
   text: string
-  aiProb: number
-  calibratedProb: number
+  aiProb: number | null           // excluded 段为 null
+  calibratedProb: number | null
   confidenceInterval?: { lower: number; upper: number }
   sourceLabel: string | null
   warnings?: string[]
   sentences: SentenceScore[]
+  excluded?: boolean              // 非正文（参考文献 / 图表 caption / 章节标题 等）
+  excludeReason?: 'reference' | 'acknowledgement' | 'appendix' | 'sectionTitle' | 'caption'
 }
 
 export interface TaskDetail extends DetectTask {

@@ -297,6 +297,16 @@ public class DetectController {
         return out;
     }
 
+    /* ==================== 内部访问（供 ReportController 读取任务） ==================== */
+
+    /**
+     * 供同模块 ReportController 直接读取任务原始 Map。
+     * 生产替换为通过 Service 层读 DB。
+     */
+    public Map<String, Object> getTaskRaw(long id) {
+        return tasks.get(id);
+    }
+
     /* ==================== §3.2 列表 ==================== */
 
     @GetMapping("/detect/tasks")
