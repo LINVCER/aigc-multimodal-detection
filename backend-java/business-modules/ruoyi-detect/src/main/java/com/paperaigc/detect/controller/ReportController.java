@@ -2,13 +2,13 @@ package com.paperaigc.detect.controller;
 
 import com.itextpdf.io.font.FontProgram;
 import com.itextpdf.io.font.FontProgramFactory;
-import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.font.PdfFont;
 import com.itextpdf.kernel.font.PdfFontFactory;
 import com.itextpdf.kernel.geom.PageSize;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.kernel.pdf.canvas.draw.SolidLine;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.borders.SolidBorder;
 import com.itextpdf.layout.element.Cell;
@@ -16,11 +16,16 @@ import com.itextpdf.layout.element.LineSeparator;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
 import com.itextpdf.layout.element.Text;
-import com.itextpdf.layout.properties.HorizontalAlignment;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
-import com.itextpdf.kernel.pdf.canvas.draw.SolidLine;
+import com.paperaigc.detect.common.constant.DetectConstants;
+import com.paperaigc.detect.common.constant.ScenarioConstants;
+import com.paperaigc.detect.common.enums.ErrorCode;
+import com.paperaigc.detect.domain.entity.DetectTask;
+import com.paperaigc.detect.domain.entity.ParagraphResult;
+import com.paperaigc.detect.repository.IDetectTaskRepository;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,27 +35,24 @@ import org.springframework.web.bind.annotation.RestController;
 import java.io.OutputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
 /**
- * 报告导出（§5.2 下载）：iText 8 生成 PDF，含封面 + 溯源 + 段落表
+ * 报告导出（§5.2 下载）：iText 8 生成 PDF
  *
- * <p>为了不引入模板引擎与 CSS，直接用 iText Layout API 画；中文字体走 iText 内置
- * Adobe CJK STSong-Light（依赖 font-asian）无需额外 ttf。</p>
+ * <p>字段全部从 DetectTask entity 读取，不再依赖 DetectController Map。
+ * 中文字体走 iText 内置 Adobe CJK STSong-Light（依赖 font-asian）无需额外 ttf。</p>
  */
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/report")
+@RequiredArgsConstructor
 public class ReportController {
 
-    private final DetectController detectController;
+    private final IDetectTaskRepository taskRepository;
 
-    public ReportController(DetectController detectController) {
-        this.detectController = detectController;
-    }
-
-    // 颜色常量（Apple systemXxx 对齐前端）
     private static final DeviceRgb C_PRIMARY = new DeviceRgb(0, 122, 255);
     private static final DeviceRgb C_GREEN   = new DeviceRgb(52, 199, 89);
     private static final DeviceRgb C_ORANGE  = new DeviceRgb(255, 149, 0);
@@ -60,17 +62,20 @@ public class ReportController {
     private static final DeviceRgb C_MUTED   = new DeviceRgb(99, 99, 102);
     private static final DeviceRgb C_BG_SOFT = new DeviceRgb(242, 242, 247);
 
+    private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     @GetMapping("/tasks/{id}/pdf")
     public void downloadPdf(@PathVariable long id, HttpServletResponse response) throws Exception {
-        Map<String, Object> task = detectController.getTaskRaw(id);
+        DetectTask task = taskRepository.findById(id).orElse(null);
         if (task == null) {
             response.setStatus(404);
             response.setContentType("application/json;charset=UTF-8");
-            response.getWriter().write("{\"code\":3003,\"msg\":\"任务不存在\"}");
+            response.getWriter().write("{\"code\":" + ErrorCode.DETECT_TASK_NOT_FOUND.getCode()
+                    + ",\"msg\":\"" + ErrorCode.DETECT_TASK_NOT_FOUND.getMsg() + "\"}");
             return;
         }
 
-        String paperTitle = (String) task.getOrDefault("paperTitle", "未命名论文");
+        String paperTitle = task.getPaperTitle() == null ? "未命名论文" : task.getPaperTitle();
         String filename = URLEncoder.encode("AIGC检测报告-" + paperTitle + ".pdf", StandardCharsets.UTF_8)
                 .replaceAll("\\+", "%20");
         response.setContentType("application/pdf");
@@ -81,7 +86,6 @@ public class ReportController {
              PdfDocument pdf = new PdfDocument(writer);
              Document doc = new Document(pdf, PageSize.A4)) {
 
-            // 中文字体（iText 内置 Adobe CJK，无需 ttf）
             FontProgram fp = FontProgramFactory.createFont("STSong-Light", "UniGB-UCS2-H", true);
             PdfFont cn = PdfFontFactory.createFont(fp, "UniGB-UCS2-H");
             doc.setFont(cn).setFontSize(11).setFontColor(C_LABEL);
@@ -98,15 +102,12 @@ public class ReportController {
 
     /* ==================== 封面 ==================== */
 
-    private void renderCover(Document doc, Map<String, Object> task) {
-        String paperTitle = str(task, "paperTitle", "未命名论文");
-        String scenario   = str(task, "scenario", str(task, "degreeType", ""));
-        String createdAt  = str(task, "createdAt", "");
-        Number aiRateNum  = (Number) task.get("aiRate");
-        Number threshold  = (Number) task.getOrDefault("threshold", 20);
-        boolean done      = "DONE".equals(task.get("status"));
+    private void renderCover(Document doc, DetectTask task) {
+        String paperTitle = task.getPaperTitle() == null ? "未命名论文" : task.getPaperTitle();
+        Integer threshold = task.getThreshold() == null ? 20 : task.getThreshold();
+        Double  aiRate    = task.getAiRate();
+        boolean done      = DetectConstants.STATUS_DONE.equals(task.getStatus());
 
-        // 平台名
         doc.add(new Paragraph("论文 AIGC 检测报告")
                 .setFontSize(10).setFontColor(C_MUTED)
                 .setTextAlignment(TextAlignment.CENTER)
@@ -115,18 +116,13 @@ public class ReportController {
                 .setFontSize(8).setFontColor(C_MUTED)
                 .setTextAlignment(TextAlignment.CENTER).setMarginBottom(60));
 
-        // 论文标题
         doc.add(new Paragraph(paperTitle)
                 .setFontSize(22).setBold().setFontColor(C_LABEL)
                 .setTextAlignment(TextAlignment.CENTER).setMarginBottom(80));
 
-        // 主 AI 率大数字
-        if (done && aiRateNum != null) {
-            double aiRate = aiRateNum.doubleValue();
-            double thr = threshold.doubleValue();
-            DeviceRgb color = rateColor(aiRate, thr);
-            boolean pass = aiRate <= thr;
-
+        if (done && aiRate != null) {
+            DeviceRgb color = rateColor(aiRate, threshold);
+            boolean pass = aiRate <= threshold;
             doc.add(new Paragraph("整体 AI 率")
                     .setFontSize(10).setFontColor(C_MUTED)
                     .setTextAlignment(TextAlignment.CENTER).setMarginBottom(4));
@@ -143,16 +139,18 @@ public class ReportController {
                     .setTextAlignment(TextAlignment.CENTER).setMarginBottom(40));
         }
 
-        // 元信息表
+        String createdAt = task.getCreatedAt() == null ? "-" : task.getCreatedAt().format(FMT);
+        String bodyPara = String.valueOf(task.getBodyParagraphCount() == null ? "-" : task.getBodyParagraphCount());
+        int excludedPara = task.getExcludedParagraphCount() == null ? 0 : task.getExcludedParagraphCount();
+
         Table meta = new Table(UnitValue.createPercentArray(new float[]{1, 2}))
                 .useAllAvailableWidth()
                 .setMarginLeft(60).setMarginRight(60).setMarginTop(20);
-        addMetaRow(meta, "使用场景", scenarioLabel(scenario) + "  ·  红线 ≤ " + threshold + "%");
+        addMetaRow(meta, "使用场景", ScenarioConstants.label(task.getScenario()) + "  ·  红线 ≤ " + threshold + "%");
         addMetaRow(meta, "检测时间", createdAt);
-        addMetaRow(meta, "论文段落", task.getOrDefault("bodyParagraphCount", "-") + " 正文 / "
-                + task.getOrDefault("excludedParagraphCount", 0) + " 已排除");
-        addMetaRow(meta, "字符数",   String.valueOf(task.getOrDefault("wordCount", "-")));
-        addMetaRow(meta, "模型版本", str(task, "modelVersion", "stub-v0"));
+        addMetaRow(meta, "论文段落", bodyPara + " 正文 / " + excludedPara + " 已排除");
+        addMetaRow(meta, "字符数",   String.valueOf(task.getWordCount() == null ? "-" : task.getWordCount()));
+        addMetaRow(meta, "模型版本", task.getModelVersion() == null ? "stub-v0" : task.getModelVersion());
         doc.add(meta);
 
         doc.add(new Paragraph("\n").setFontSize(1));
@@ -171,9 +169,8 @@ public class ReportController {
 
     /* ==================== 溯源分布 ==================== */
 
-    @SuppressWarnings("unchecked")
-    private void renderSourceLabels(Document doc, Map<String, Object> task) {
-        Map<String, Number> labels = (Map<String, Number>) task.get("sourceLabels");
+    private void renderSourceLabels(Document doc, DetectTask task) {
+        Map<String, Double> labels = task.getSourceLabels();
         if (labels == null || labels.isEmpty()) return;
 
         doc.add(new Paragraph("\n\n"));
@@ -183,23 +180,17 @@ public class ReportController {
         Table t = new Table(UnitValue.createPercentArray(new float[]{2, 5, 1}))
                 .useAllAvailableWidth();
         labels.entrySet().stream()
-                .sorted((a, b) -> Double.compare(b.getValue().doubleValue(), a.getValue().doubleValue()))
+                .sorted((a, b) -> Double.compare(b.getValue(), a.getValue()))
                 .forEach(e -> {
-                    double ratio = e.getValue().doubleValue();
-                    // 名字
-                    t.addCell(new Cell()
-                            .add(new Paragraph(sourceName(e.getKey())))
+                    double ratio = e.getValue();
+                    t.addCell(new Cell().add(new Paragraph(sourceName(e.getKey())))
                             .setBorder(null).setFontSize(10).setPaddingTop(4).setPaddingBottom(4));
-                    // 简易条形（用空格文字宽度模拟）
                     int cells = (int) Math.round(ratio * 40);
                     StringBuilder bar = new StringBuilder();
                     for (int i = 0; i < cells; i++) bar.append('█');
-                    t.addCell(new Cell()
-                            .add(new Paragraph(bar.toString()).setFontColor(sourceColor(e.getKey())))
+                    t.addCell(new Cell().add(new Paragraph(bar.toString()).setFontColor(sourceColor(e.getKey())))
                             .setBorder(null).setFontSize(8).setPaddingTop(4).setPaddingBottom(4));
-                    // 百分比
-                    t.addCell(new Cell()
-                            .add(new Paragraph(String.format("%.0f%%", ratio * 100)))
+                    t.addCell(new Cell().add(new Paragraph(String.format("%.0f%%", ratio * 100)))
                             .setBorder(null).setFontSize(10).setTextAlignment(TextAlignment.RIGHT)
                             .setPaddingTop(4).setPaddingBottom(4));
                 });
@@ -208,9 +199,8 @@ public class ReportController {
 
     /* ==================== 段落表 ==================== */
 
-    @SuppressWarnings("unchecked")
-    private void renderParagraphTable(Document doc, Map<String, Object> task) {
-        List<Map<String, Object>> paragraphs = (List<Map<String, Object>>) task.get("paragraphs");
+    private void renderParagraphTable(Document doc, DetectTask task) {
+        List<ParagraphResult> paragraphs = task.getParagraphs();
         if (paragraphs == null || paragraphs.isEmpty()) return;
 
         doc.add(new Paragraph("\n\n"));
@@ -220,59 +210,53 @@ public class ReportController {
         Table t = new Table(UnitValue.createPercentArray(new float[]{0.6f, 1.2f, 1.4f, 8}))
                 .useAllAvailableWidth();
 
-        // 表头
         addHeaderCell(t, "段");
         addHeaderCell(t, "AI 率");
         addHeaderCell(t, "疑似来源");
         addHeaderCell(t, "段落文本（前 120 字）");
 
-        for (Map<String, Object> p : paragraphs) {
-            int idx = ((Number) p.get("paragraphIdx")).intValue();
-            String text = (String) p.get("text");
-            boolean excluded = Boolean.TRUE.equals(p.get("excluded"));
-            String excludeReason = (String) p.get("excludeReason");
-            Number cp = (Number) p.get("calibratedProb");
-            String source = (String) p.get("sourceLabel");
+        for (ParagraphResult p : paragraphs) {
+            int idx = p.getParagraphIdx() == null ? 0 : p.getParagraphIdx();
+            String text = p.getText();
+            boolean excluded = p.isExcluded();
+            String excludeReason = p.getExcludeReason();
+            Double cp = p.getCalibratedProb();
+            String source = p.getSourceLabel();
 
-            // idx
             t.addCell(new Cell().add(new Paragraph(String.valueOf(idx + 1)))
                     .setBorder(new SolidBorder(C_BG_SOFT, 0.5f))
                     .setFontSize(9).setFontColor(C_MUTED).setPadding(6));
 
-            // AI 率
             if (excluded) {
                 t.addCell(new Cell().add(new Paragraph("—"))
                         .setBorder(new SolidBorder(C_BG_SOFT, 0.5f))
                         .setFontSize(9).setFontColor(C_GRAY).setPadding(6));
             } else if (cp != null) {
-                double rate = cp.doubleValue() * 100;
-                DeviceRgb color = probColor(cp.doubleValue());
+                DeviceRgb color = probColor(cp);
                 t.addCell(new Cell()
-                        .add(new Paragraph(String.format("%.0f%%", rate)).setBold().setFontColor(color))
+                        .add(new Paragraph(String.format("%.0f%%", cp * 100)).setBold().setFontColor(color))
                         .setBorder(new SolidBorder(C_BG_SOFT, 0.5f)).setFontSize(10).setPadding(6));
             } else {
                 t.addCell(new Cell().add(new Paragraph("-"))
                         .setBorder(new SolidBorder(C_BG_SOFT, 0.5f)).setFontSize(9).setPadding(6));
             }
 
-            // 来源 / excluded 徽章
             String sourceCell;
-            DeviceRgb sourceColor = C_MUTED;
+            DeviceRgb sourceCellColor;
             if (excluded) {
                 sourceCell = "已排除·" + excludeReasonLabel(excludeReason);
-                sourceColor = C_GRAY;
+                sourceCellColor = C_GRAY;
             } else if (source != null && !"human".equals(source)) {
                 sourceCell = "疑似 " + sourceName(source);
-                sourceColor = sourceColor(source);
+                sourceCellColor = sourceColor(source);
             } else {
                 sourceCell = "人类";
-                sourceColor = C_GREEN;
+                sourceCellColor = C_GREEN;
             }
-            t.addCell(new Cell().add(new Paragraph(sourceCell).setFontColor(sourceColor))
+            t.addCell(new Cell().add(new Paragraph(sourceCell).setFontColor(sourceCellColor))
                     .setBorder(new SolidBorder(C_BG_SOFT, 0.5f))
                     .setFontSize(9).setPadding(6));
 
-            // 段落文本
             String preview = text == null ? ""
                     : (text.length() > 120 ? text.substring(0, 120) + "…" : text);
             Cell textCell = new Cell().add(new Paragraph(preview))
@@ -322,10 +306,10 @@ public class ReportController {
         return switch (s) {
             case "human" -> C_GREEN;
             case "qwen" -> C_ORANGE;
-            case "gpt" -> new DeviceRgb(175, 82, 222);       // systemPurple
-            case "claude" -> new DeviceRgb(255, 45, 85);     // systemPink
+            case "gpt" -> new DeviceRgb(175, 82, 222);
+            case "claude" -> new DeviceRgb(255, 45, 85);
             case "deepseek" -> C_PRIMARY;
-            case "glm" -> new DeviceRgb(90, 200, 250);       // systemTeal
+            case "glm" -> new DeviceRgb(90, 200, 250);
             case "kimi" -> new DeviceRgb(175, 82, 222);
             case "ernie" -> C_RED;
             default -> C_MUTED;
@@ -347,23 +331,6 @@ public class ReportController {
         };
     }
 
-    private String scenarioLabel(String s) {
-        if (s == null || s.isBlank()) return "-";
-        return switch (s) {
-            case "academic_bachelor" -> "学术·本科";
-            case "academic_master"   -> "学术·硕士";
-            case "academic_phd"      -> "学术·博士";
-            case "job_report"        -> "职业报告";
-            case "self_media"        -> "自媒体";
-            case "other"             -> "其他";
-            // 兼容旧数据
-            case "BACHELOR" -> "学术·本科";
-            case "MASTER"   -> "学术·硕士";
-            case "PHD"      -> "学术·博士";
-            default -> s;
-        };
-    }
-
     private String excludeReasonLabel(String r) {
         if (r == null) return "非正文";
         return switch (r) {
@@ -374,10 +341,5 @@ public class ReportController {
             case "caption" -> "图表标题";
             default -> "非正文";
         };
-    }
-
-    private String str(Map<String, Object> m, String k, String dft) {
-        Object v = m.get(k);
-        return v == null ? dft : v.toString();
     }
 }
