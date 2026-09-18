@@ -1,3 +1,8 @@
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
 pydantic==2.10.3
+
+# 文本检测：RoBERTa 编码 + 分类头 + 温度/Platt 校准
+# CPU 推理 ~5s/段；GPU 装对应 cuda 版本可到 ~100ms/段
+torch>=2.2,<3.0
+transformers>=4.44,<5.0
