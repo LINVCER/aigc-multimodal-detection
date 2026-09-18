@@ -60,8 +60,8 @@ public class DetectController {
 
     // 内存态：任务表；生产替换为 detect_task + detect_paragraph_result + detect_sentence_result 三表
     private final Map<Long, Map<String, Object>> tasks = new ConcurrentHashMap<>();
-    /** 任务 → 抽出的段落原文列表，供 completeMock 用真实文本调 Python */
-    private final Map<Long, List<String>> taskParagraphs = new ConcurrentHashMap<>();
+    /** 任务 → 抽出的段落元信息列表 {text, excluded, excludeReason}，供 completeMock 调 Python */
+    private final Map<Long, List<Map<String, Object>>> taskParagraphs = new ConcurrentHashMap<>();
     private final AtomicLong idGen = new AtomicLong(1000);
 
     private String inferenceBase() {
@@ -101,17 +101,19 @@ public class DetectController {
             return R.fail(3000, "论文格式不支持，请上传 PDF / DOC / DOCX / TXT");
         }
 
-        // Tika 抽真实文本 → 切段
-        List<String> paragraphs;
+        // Tika 抽真实文本 → 切段 → 过滤非正文（参考文献 / 图表 caption / 章节标题 / 公式）
+        List<Map<String, Object>> paragraphs;
         try {
             String fullText = extractText(file);
-            paragraphs = splitParagraphs(fullText);
+            List<String> raw = splitParagraphs(fullText);
+            paragraphs = filterNonBody(raw);
         } catch (Exception e) {
             log.error("extract text failed: {}", file.getOriginalFilename(), e);
             return R.fail(3002, "文档解析失败：" + e.getMessage());
         }
-        if (paragraphs.isEmpty()) {
-            return R.fail(3002, "未能从文件中提取到有效文本（可能是扫描件或加密文档）");
+        long bodyCount = paragraphs.stream().filter(p -> !Boolean.TRUE.equals(p.get("excluded"))).count();
+        if (bodyCount == 0) {
+            return R.fail(3002, "未能从文件中提取到有效正文（可能是扫描件、加密文档或仅含参考文献）");
         }
 
         long id = idGen.incrementAndGet();
@@ -129,7 +131,9 @@ public class DetectController {
         task.put("createdAt", LocalDateTime.now().toString());
         task.put("finishedAt", null);
         task.put("modelVersion", "stub-v0");
-        task.put("wordCount", paragraphs.stream().mapToInt(String::length).sum());
+        task.put("wordCount", paragraphs.stream().mapToInt(p -> ((String) p.get("text")).length()).sum());
+        task.put("bodyParagraphCount", bodyCount);
+        task.put("excludedParagraphCount", paragraphs.size() - bodyCount);
         tasks.put(id, task);
         taskParagraphs.put(id, paragraphs);
 
@@ -231,6 +235,66 @@ public class DetectController {
             if (chunk.length() > 0) normalized.add(chunk.toString().trim());
         }
         return normalized;
+    }
+
+    /* ==================== 非正文过滤器（对齐知网/维普的"参考文献/图表/公式不算 AI 率"） ==================== */
+
+    // 参考文献 / 致谢 / 附录 起始段：命中后其后所有段落一并排除
+    private static final java.util.regex.Pattern REF_START = java.util.regex.Pattern.compile(
+            "^\\s*(参考\\s*文献|references?|bibliography|致\\s*谢|acknowledge?ments?|附\\s*录|appendix)\\s*$",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    // 章节标题：短段 + 中文数字/阿拉伯数字/Chapter 前缀 或 常见节名
+    private static final java.util.regex.Pattern SECTION_TITLE = java.util.regex.Pattern.compile(
+            "^\\s*(第[一二三四五六七八九十百千0-9]+[章节篇]|chapter\\s+\\d+|\\d+(\\.\\d+)*\\s+\\S{1,20}|摘\\s*要|abstract|引\\s*言|introduction|结\\s*论|conclusion|讨\\s*论|discussion|方\\s*法|methods?|背\\s*景|background|相关工作|related\\s+work|实\\s*验|experiments?|结\\s*果|results?)\\s*$",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    // 图/表/公式 caption：段首匹配
+    private static final java.util.regex.Pattern CAPTION = java.util.regex.Pattern.compile(
+            "^\\s*(图|表|figure|table|fig\\.|tab\\.|公式|equation|eq\\.)\\s*\\d",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    // 单条参考文献行：常见形如 [1] 张三. xxx / 1. 张三, xxx / 张三, 2020
+    private static final java.util.regex.Pattern REF_ITEM = java.util.regex.Pattern.compile(
+            "^\\s*(\\[\\d+\\]|\\(\\d+\\)|\\d+\\.)\\s+\\S");
+
+    /**
+     * 过滤非正文段：给每段打 {text, excluded, excludeReason}。
+     * 命中"参考文献/致谢/附录"起始后，其后所有段落一并 excluded=true（reason=后置区）。
+     */
+    private List<Map<String, Object>> filterNonBody(List<String> raw) {
+        List<Map<String, Object>> out = new ArrayList<>(raw.size());
+        boolean afterRefSection = false;
+        String afterReason = null;
+
+        for (String text : raw) {
+            String reason = null;
+
+            if (!afterRefSection && REF_START.matcher(text).matches()) {
+                // 起始段本身也排除，且后续全部排除
+                afterRefSection = true;
+                afterReason = text.matches("(?i).*致谢.*|(?i).*acknowledge.*") ? "acknowledgement"
+                        : text.matches("(?i).*附录.*|(?i).*appendix.*") ? "appendix"
+                        : "reference";
+                reason = afterReason;
+            } else if (afterRefSection) {
+                reason = afterReason;
+            } else if (SECTION_TITLE.matcher(text).matches() && text.length() < 30) {
+                reason = "sectionTitle";
+            } else if (CAPTION.matcher(text).find()) {
+                reason = "caption";
+            } else if (REF_ITEM.matcher(text).find() && text.length() < 300) {
+                // 落单的参考文献行（前面没识别到"参考文献"标题就直接开始编号）
+                reason = "reference";
+            }
+
+            Map<String, Object> meta = new HashMap<>();
+            meta.put("text", text);
+            meta.put("excluded", reason != null);
+            if (reason != null) meta.put("excludeReason", reason);
+            out.add(meta);
+        }
+        return out;
     }
 
     /* ==================== §3.2 列表 ==================== */
@@ -395,21 +459,42 @@ public class DetectController {
         Map<String, Object> task = tasks.get(id);
         if (task == null) return;
 
-        // 从 taskParagraphs 拿抽出的真实段落；兜底 fallback 保留可跑通
-        List<String> texts = taskParagraphs.getOrDefault(id, List.of(
-                "随着人工智能技术的快速发展，深度学习在自然语言处理领域的应用日益广泛。值得注意的是，情感分析作为其中的重要分支，已经成为学术界和工业界共同关注的焦点。",
-                "我们在实验中发现，当训练数据里混入大量口语化评论时，模型在正式文本上的表现反而下降了两个点，这个现象起初让我们很困惑。"
+        // 从 taskParagraphs 拿抽出的段落元数据；兜底 fallback 保留可跑通
+        List<Map<String, Object>> metas = taskParagraphs.getOrDefault(id, List.of(
+                Map.of("text", "随着人工智能技术的快速发展，深度学习在自然语言处理领域的应用日益广泛。值得注意的是，情感分析作为其中的重要分支，已经成为学术界和工业界共同关注的焦点。",
+                        "excluded", false),
+                Map.of("text", "我们在实验中发现，当训练数据里混入大量口语化评论时，模型在正式文本上的表现反而下降了两个点，这个现象起初让我们很困惑。",
+                        "excluded", false)
         ));
 
         // 大论文只标注前 50 段以控 Phase 0 latency（生产走异步全量）
-        int limit = Math.min(texts.size(), 50);
+        int limit = Math.min(metas.size(), 50);
 
         List<Map<String, Object>> paragraphs = new ArrayList<>();
         double sumRate = 0;
         int rateCount = 0;
 
         for (int i = 0; i < limit; i++) {
-            String text = texts.get(i);
+            Map<String, Object> meta = metas.get(i);
+            String text = (String) meta.get("text");
+            boolean excluded = Boolean.TRUE.equals(meta.get("excluded"));
+            String excludeReason = (String) meta.get("excludeReason");
+
+            // 非正文段直接标注，跳过 Python 调用（节省 latency + 避免误导 AI 率）
+            if (excluded) {
+                Map<String, Object> para = new HashMap<>();
+                para.put("paragraphIdx", i);
+                para.put("text", text);
+                para.put("excluded", true);
+                para.put("excludeReason", excludeReason);   // reference | acknowledgement | appendix | sectionTitle | caption
+                para.put("aiProb", null);
+                para.put("calibratedProb", null);
+                para.put("sourceLabel", null);
+                para.put("sentences", List.of());
+                paragraphs.add(para);
+                continue;
+            }
+
             try {
                 String reqJson = objectMapper.writeValueAsString(Map.of(
                         "text", text,
@@ -427,15 +512,14 @@ public class DetectController {
                 Map<String, Object> para = new HashMap<>();
                 para.put("paragraphIdx", i);
                 para.put("text", text);
+                para.put("excluded", false);
                 para.put("aiProb", py.get("ai_prob"));
                 para.put("calibratedProb", py.get("calibrated_prob"));
                 para.put("confidenceInterval", py.get("interval"));
-                // sourceLabel：真实场景走 §8.2 attribute 接口；stub 期用 calibratedProb 简单映射
                 double cp = ((Number) py.get("calibrated_prob")).doubleValue();
                 para.put("sourceLabel", cp >= 0.7 ? "qwen" : (cp >= 0.4 ? "gpt" : "human"));
                 para.put("warnings", List.of());
 
-                // sentences 字段 snake→camel + 用真实段落文本切片
                 @SuppressWarnings("unchecked")
                 List<Map<String, Object>> pySents = (List<Map<String, Object>>) py.get("sentences");
                 List<Map<String, Object>> sentences = new ArrayList<>();
@@ -460,22 +544,23 @@ public class DetectController {
             }
         }
 
-        // 溯源汇总：按 sourceLabel 计数占比（生产替换为真实 attribute 融合）
+        // 溯源汇总：只统计非 excluded 段
         Map<String, Double> sourceLabels = new HashMap<>();
-        int total = paragraphs.size();
+        long bodyTotal = paragraphs.stream().filter(p -> !Boolean.TRUE.equals(p.get("excluded"))).count();
         for (Map<String, Object> p : paragraphs) {
+            if (Boolean.TRUE.equals(p.get("excluded"))) continue;
             String label = (String) p.getOrDefault("sourceLabel", "other");
             sourceLabels.merge(label, 1.0, Double::sum);
         }
-        sourceLabels.replaceAll((k, v) -> Math.round(v / Math.max(total, 1) * 100) / 100.0);
+        sourceLabels.replaceAll((k, v) -> Math.round(v / Math.max(bodyTotal, 1) * 100) / 100.0);
 
         task.put("paragraphs", paragraphs);
         task.put("sourceLabels", sourceLabels);
+        // aiRate 只算正文段
         task.put("aiRate", rateCount == 0 ? null : Math.round(sumRate / rateCount * 10) / 10.0);
         task.put("status", "DONE");
         task.put("finishedAt", LocalDateTime.now().toString());
 
-        // 释放段落原文（已落进 task.paragraphs，taskParagraphs 不再需要）
         taskParagraphs.remove(id);
     }
 }
