@@ -1,4 +1,4 @@
-import { http, MOCK_MODE } from '@/utils/request'
+import { http, MOCK_MODE, API_BASE } from '@/utils/request'
 
 // ---- mock 数据（未配 VITE_API_BASE 时启用，供离线 UI 联调）----
 
@@ -73,8 +73,9 @@ export function uploadPaper(filePath, name, scenario, userId) {
     const formData = { scenario }
     if (userId != null && userId !== '') formData.userId = String(userId)
     uni.uploadFile({
-      // §3.1 上传端点从 /upload 改为 /submit
-      url: '/api/v1/detect/submit',
+      // §3.1 上传端点 · 必须拼 API_BASE，否则 H5 打到当前源（5175）404
+      // H5 dev 场景 API_BASE 为空 → 相对 /api/v1/... 走 manifest.json 里 vite proxy
+      url: (API_BASE || '') + '/api/v1/detect/submit',
       filePath,
       name: 'file',
       formData,

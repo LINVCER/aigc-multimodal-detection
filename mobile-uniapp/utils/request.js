@@ -1,9 +1,19 @@
 // 跨端请求封装（uni.request 而非 axios，兼容小程序）
-// 环境变量约定：H5 走 vite import.meta.env.VITE_API_BASE；小程序走 manifest 里的编译常量或空字符串
+//
+// 语义（修复自：原逻辑 MOCK_MODE=!API_BASE 造成默认永远走 mock，登录后一切不联后端）：
+//   API_BASE      · 请求前缀。H5 dev 场景保持空串（走 manifest.json 里 vite proxy），
+//                   真实域名部署或直连后端时填绝对地址
+//   MOCK_MODE     · 显式开关。VITE_USE_MOCK=true 时启用离线 mock；默认关，走真实 HTTP
+//
+// 三种典型场景：
+//   1) H5 dev + vite proxy：不配任何 env → API_BASE='' + MOCK_MODE=false → 请求 /api/* 走 proxy
+//   2) 直连远程后端：VITE_API_BASE=https://api.xxx.com + MOCK_MODE=false → 请求带绝对前缀
+//   3) 纯 UI 离线联调：VITE_USE_MOCK=true → 所有 http()/uploadFile 走内置 mock 数据
 
 // eslint-disable-next-line
-const API_BASE = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE) || ''
-export const MOCK_MODE = !API_BASE
+export const API_BASE = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE) || ''
+// eslint-disable-next-line
+export const MOCK_MODE = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_USE_MOCK) === 'true'
 
 /**
  * 统一 HTTP 请求
