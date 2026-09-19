@@ -11,21 +11,19 @@ const tasks = ref([])
 const loading = ref(false)
 
 async function load(silent = false) {
-  console.log('[home] load() called, silent=', silent)
   if (!silent) loading.value = true
   try {
-    console.log('[home] calling listTasks()...')
-    const result = await listTasks()
-    console.log('[home] listTasks() returned', result?.length, 'items')
-    tasks.value = result
-  }
-  catch (e) {
-    console.error('[home] listTasks() FAILED:', e)
-    uni.showToast({ title: e.message || '请求失败，请检查后端服务', icon: 'none', duration: 3000 })
-  }
-  finally {
-    console.log('[home] load() finished')
-    loading.value = false; uni.stopPullDownRefresh()
+    tasks.value = await listTasks()
+  } catch (e) {
+    // request.js 的 fail 回调已按语义弹 toast（超时/网络异常/取消），此处不再重复
+    // 仅在 DEV 环境打错误日志，避免生产 console 泄露内部字段
+    // eslint-disable-next-line
+    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV) {
+      console.warn('[home] listTasks failed:', e?.message)
+    }
+  } finally {
+    loading.value = false
+    uni.stopPullDownRefresh()
   }
 }
 

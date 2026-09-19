@@ -16,6 +16,23 @@ export const API_BASE = (typeof import.meta !== 'undefined' && import.meta.env &
 export const MOCK_MODE = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_USE_MOCK) === 'true'
 
 /**
+ * uni.request fail 语义分类：
+ *   errMsg 含 timeout    → "请求超时"
+ *   errMsg 含 abort      → "已取消"
+ *   fail   / SSL / DNS   → "网络异常，请检查连接"
+ *   其它                 → 原 errMsg
+ * 上层不再重复弹 toast（fail 一律已弹）。
+ */
+function classifyFailMsg(err) {
+  const raw = String(err?.errMsg || err?.message || '')
+  if (!raw) return '网络异常'
+  if (raw.includes('timeout')) return '请求超时，请稍后重试'
+  if (raw.includes('abort'))   return '请求已取消'
+  if (raw.includes('fail'))    return '网络异常，请检查连接'
+  return raw
+}
+
+/**
  * 统一 HTTP 请求
  * @param {object} opts uni.request 原参数 + { auth: 是否携带 token, silent: 是否静默失败 }
  * @returns Promise<data>
@@ -46,8 +63,12 @@ export function http(opts) {
         resolve(body?.data ?? body)
       },
       fail: (err) => {
-        if (!silent) uni.showToast({ title: '网络异常', icon: 'none' })
-        reject(err)
+        // 按 errMsg 区分 timeout / 断连，避免上层再弹造成双重 toast
+        const msg = classifyFailMsg(err)
+        if (!silent) uni.showToast({ title: msg, icon: 'none' })
+        const e = new Error(msg)
+        e.raw = err
+        reject(e)
       },
     })
   })

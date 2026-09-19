@@ -46,6 +46,22 @@ sa-token:
 ⚠ **W3.c 登录正式接入后**：把 `/api/v1/feedback`、`/api/v1/detect/**`、`/api/v1/report/**`
 从 excludes 移除，改由 Sa-Token 正常校验 + Controller 上加 `@SaCheckPermission`。
 
+### Phase B 必须收敛的 7 处类级 @SaIgnore
+
+Phase 0 联调期为快速打通链路加了类级旁路，Phase B 上线**前**逐一收敛为方法级 + 权限点：
+
+| Controller | 当前 | 目标 |
+|---|---|---|
+| `PaperAigcAuthController` | 类级 `@SaIgnore` | 保留（登录/登出/me 必须匿名可访问） |
+| `DetectController` | 类级 `@SaIgnore` | 移除；`/health` 单独 `@SaIgnore`；其余加 `@SaCheckLogin` + `@SaCheckPermission("detect:xxx")` |
+| `ReportController` | 类级 `@SaIgnore` | 移除；`/pdf` 加 `@SaCheckLogin`，仅任务归属人可下载 |
+| `FeedbackController` | 类级 `@SaIgnore` | 移除；C 端接口 `@SaCheckLogin`；`/admin/*` 加 `@SaCheckRole("OPS_ADMIN")` |
+| `AdminDashboardController` | 类级 `@SaIgnore` | 移除；类级或方法级加 `@SaCheckRole("OPS_ADMIN")` |
+| `AdminUserController` | 类级 `@SaIgnore` | 同上；ban/unban 加 `@SaCheckPermission("user:ban")` |
+| `AdminTaskController` | 类级 `@SaIgnore` | 同上 |
+
+对应权限点需在 sys_menu 里配好，参考若依基座 `system:user:*` 命名约定。
+
 ---
 
 ## 3. 服务端口对齐（可选覆盖）
