@@ -2,6 +2,7 @@
 import { ref, computed, onUnmounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getTaskDetail, requestHumanize, retryTask, cancelTask } from '@/api/detect'
+import { downloadReportPdf } from '@/api/report'
 import { SOURCE_MAP, COLOR, paragraphRisk, aiRateColor } from '@/utils/constants'
 import { diffChars } from '@/utils/diff'
 import Skeleton from '@/components/Skeleton.vue'
@@ -71,6 +72,14 @@ async function onCancel() {
     stopPoll()
     await load()
   } finally { cancelling.value = false }
+}
+
+const downloading = ref(false)
+async function onDownload() {
+  if (downloading.value) return
+  downloading.value = true
+  try { await downloadReportPdf(taskId, detail.value?.paperTitle) }
+  finally { downloading.value = false }
 }
 
 function goBack() {
@@ -341,6 +350,15 @@ function toggleExpand(idx) {
         基于正文 {{ bodyStats.body }} 段计算<template v-if="bodyStats.excluded > 0">，已排除 {{ bodyStats.excluded }} 段（参考文献/图表等）</template>
       </text>
       <text class="hero-paper">{{ detail.paperTitle }}</text>
+
+      <!-- 报告操作 · DONE 状态才出现 -->
+      <button
+        v-if="detail.status === 'DONE'"
+        class="btn-tinted download-btn"
+        :loading="downloading"
+        :disabled="downloading"
+        @click="onDownload"
+      >下载 PDF 报告</button>
     </view>
 
     <!-- 改进建议 -->
@@ -590,6 +608,11 @@ function toggleExpand(idx) {
 
 .retry-btn { margin-top: $sp-5; min-width: 320rpx; }
 .cancel-btn { margin-top: $sp-5; min-width: 320rpx; }
+.download-btn {
+  margin-top: $sp-4;
+  min-width: 320rpx;
+  align-self: center;
+}
 
 /* ============ 主 & 次 按钮 ============ */
 .btn-primary {
