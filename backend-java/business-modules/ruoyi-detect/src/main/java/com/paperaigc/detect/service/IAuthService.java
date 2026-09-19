@@ -14,6 +14,16 @@ public interface IAuthService {
     /** 登录 · 任意非空账密放行，admin/admin 派 OPS_ADMIN */
     LoginVO login(LoginDTO dto);
 
+    /**
+     * 微信一键登录（mock）
+     * <p>生产接入需 code2session：wx.login → code → openid/session_key。
+     * 当前 mock 用 code 派生 userId，返 LoginVO。</p>
+     * @param code wx.login 拿到的临时 code
+     * @param nickname 用户昵称（可选 · wx.getUserProfile 拿）
+     * @param avatarUrl 头像 URL（可选）
+     */
+    LoginVO loginByWechat(String code, String nickname, String avatarUrl);
+
     /** 登出 · 清 token */
     void logout(String bearerToken);
 

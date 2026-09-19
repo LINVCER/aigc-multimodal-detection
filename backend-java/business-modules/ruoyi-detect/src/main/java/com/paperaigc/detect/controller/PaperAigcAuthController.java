@@ -36,6 +36,16 @@ public class PaperAigcAuthController {
         return R.ok(authService.login(dto));
     }
 
+    /**
+     * 微信一键登录（Wave 3.1 · mock）
+     * body 期望 { code, nickname?, avatarUrl? }
+     */
+    @PostMapping("/wechat/login")
+    public R<LoginVO> wechatLogin(@RequestBody java.util.Map<String, String> body) {
+        return R.ok(authService.loginByWechat(
+                body.get("code"), body.get("nickname"), body.get("avatarUrl")));
+    }
+
     @PostMapping("/logout")
     public R<Void> logout(@RequestHeader(value = AuthConstants.HEADER_AUTHORIZATION, required = false) String auth) {
         authService.logout(auth);

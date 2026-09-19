@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
+import { onShow, onPullDownRefresh, onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
 import { listTasks, getStatistics } from '@/api/detect'
 import { SCENARIO_MAP, aiRateColor } from '@/utils/constants'
 import { useAuth } from '@/store/auth'
@@ -26,6 +26,17 @@ async function load(silent = false) {
 
 onShow(load)
 onPullDownRefresh(() => load(false))
+
+/* ---------- Wave 3.2 · 微信分享 ---------- */
+onShareAppMessage(() => ({
+  title: '论文 AIGC 检测 · 一键测你的文档 AI 率',
+  path: '/pages/home/home',
+  imageUrl: '',   // 可后续换品牌海报
+}))
+onShareTimeline(() => ({
+  title: '论文 AI 率检测 · 段落热力 + 疑似来源分布',
+  query: '',
+}))
 
 /* ---------- 本周概览 ----------
  * 优先走后端 /detect/statistics：

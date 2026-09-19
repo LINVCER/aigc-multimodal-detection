@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onUnmounted } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShareAppMessage } from '@dcloudio/uni-app'
 import { getTaskDetail, requestHumanize, retryTask, cancelTask } from '@/api/detect'
 import { downloadReportPdf } from '@/api/report'
 import { SOURCE_MAP, COLOR, paragraphRisk, aiRateColor } from '@/utils/constants'
@@ -40,6 +40,16 @@ function ensurePolling() {
 }
 function stopPoll() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null } }
 onUnmounted(stopPoll)
+
+/* Wave 3.2 · 微信分享 · 报告脱敏：只带 taskId 让接收方登录后可见完整详情 */
+onShareAppMessage(() => {
+  const d = detail.value
+  const rate = (d?.status === 'DONE' && d?.aiRate != null) ? ` · AI 率 ${d.aiRate.toFixed(1)}%` : ''
+  return {
+    title: `AIGC 检测报告${rate}`,
+    path: d?.id ? `/pages/task/detail?id=${d.id}` : '/pages/home/home',
+  }
+})
 
 async function onRetry() {
   retrying.value = true

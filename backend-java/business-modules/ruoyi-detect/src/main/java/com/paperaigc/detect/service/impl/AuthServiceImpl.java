@@ -55,6 +55,28 @@ public class AuthServiceImpl implements IAuthService {
     }
 
     @Override
+    public LoginVO loginByWechat(String code, String nickname, String avatarUrl) {
+        if (ParamUtils.isBlank(code)) throw new BizException(ErrorCode.LOGIN_USERNAME_EMPTY, "缺少 wx.login code");
+        // mock 假 openid（生产走 code2session 换真实 openid + session_key）
+        String openid = "wx_mock_" + Integer.toHexString(code.hashCode()).substring(0, Math.min(6, code.length()));
+        String uname = (nickname == null || nickname.isBlank()) ? openid : nickname;
+
+        AuthUser user = AuthUser.builder()
+                .id((long) (Math.abs(openid.hashCode()) % 100_000))
+                .username(uname)
+                .realName(uname)
+                .role(AuthConstants.ROLE_USER)
+                .orgName("微信用户")
+                .build();
+
+        String token = UUID.randomUUID().toString().replace("-", "");
+        tokenRepository.put(token, user);
+        log.info("mock wechat login ok: openid={} nickname={} tokenPrefix={}", openid, nickname, token.substring(0, 8));
+
+        return LoginVO.builder().accessToken(token).user(user).build();
+    }
+
+    @Override
     public void logout(String bearerToken) {
         String token = AuthConstants.stripBearer(bearerToken);
         if (token != null) tokenRepository.remove(token);

@@ -1,5 +1,15 @@
 <script setup>
+import { onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
 import { SCENARIO_MAP } from '@/utils/constants'
+
+/* Wave 3.2 · 微信分享（上传页作为拉新第一入口） */
+onShareAppMessage(() => ({
+  title: '论文 / 音频 / 图像 AI 率检测 · 场景阈值一目了然',
+  path: '/pages/upload/upload',
+}))
+onShareTimeline(() => ({
+  title: '论文 / 音频 / 图像 AI 率检测',
+}))
 
 // 二级模态选择页 · A 方案：tabBar 「上传」→ 3 模态 tile → 三级详情
 // 首页 quick-tile 可直连三级页跳过本页

@@ -52,6 +52,39 @@ export const useAuth = defineStore('auth', {
       }
     },
 
+    /**
+     * 微信一键登录（Wave 3.1 · 小程序端）
+     * 流程：wx.login 拿 code → POST /api/v1/auth/wechat/login → 存 token
+     * @param {{code:string, nickname?:string, avatarUrl?:string}} payload
+     */
+    async loginByWechat(payload) {
+      this.loading = true
+      try {
+        let token = 'mock-wechat-token'
+        let user = { id: '', username: payload.nickname || 'wx-user', role: 'USER' }
+        if (!MOCK_MODE) {
+          const data = await http({
+            url: '/api/v1/auth/wechat/login',
+            method: 'POST',
+            data: payload,
+            auth: false,
+          })
+          token = data.accessToken
+          user = data.user || user
+        }
+        uni.setStorageSync('access_token', token)
+        uni.setStorageSync('username', user.username || 'wx-user')
+        uni.setStorageSync('user_id', user.id || '')
+        uni.setStorageSync('user_role', user.role || '')
+        this.token = token
+        this.username = user.username || 'wx-user'
+        this.userId = user.id || ''
+        this.role = user.role || ''
+      } finally {
+        this.loading = false
+      }
+    },
+
     /** 退出登录 */
     logout() {
       uni.removeStorageSync('access_token')
