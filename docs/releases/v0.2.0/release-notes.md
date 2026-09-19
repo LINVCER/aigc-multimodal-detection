@@ -13,9 +13,38 @@ Repository 用 `@Primary` 顶掉 InMemory，Service / Controller 零改动。
 | Batch | 主题 | 状态 |
 |---|---|---|
 | B1 | Feedback → user_feedback 表 | ✅ 完成（commit 7439204） |
-| B2 | Admin User → 新建 user_profile 表 | ✅ 完成（本版）|
-| B3 | Detect 三表 · detect_task / paragraph / sentence | ⏳ |
+| B2 | Admin User → 新建 user_profile 表 | ✅ 完成（commit b7e7061）|
+| B3 | Detect 三表 · detect_task / paragraph / sentence + 音频列 | ✅ 完成（本版）|
 | B4 | Scenario Threshold → detect_scenario_threshold + Caffeine 5min 缓存 | ⏳ |
+
+## B3 · 本版改动
+
+### 新增文件
+
+- `mapper/DetectTaskMapper.java` · `BaseMapper<DetectTask>` 主表
+- `mapper/DetectParagraphResultMapper.java` · 段级子表
+- `mapper/DetectSentenceResultMapper.java` · 句级子表
+- `repository/impl/MybatisDetectTaskRepository.java` · `@Primary` · 三表事务
+- `docs/releases/v0.2.0/sql/V0.2.0.002__add_detect_task_audio.sql` · 补 modality + audio_duration_sec + audio_segments_json 列 + idx_modality_time
+
+### 改动文件
+
+- `domain/entity/DetectTask.java` · `@TableName(autoResultMap=true)` + `@TableId(AUTO)` + `@TableField(typeHandler=JacksonTypeHandler.class)` 给 sourceLabels/audioSegments · paragraphs 加 `@TableField(exist=false)`
+- `domain/entity/ParagraphResult.java` · `@TableName + @TableId + taskId 外键 + JacksonTypeHandler` 给 confidenceInterval/warnings · sentences 加 `exist=false`
+- `domain/entity/SentenceResult.java` · `@TableName + @TableId + taskId/paragraphIdx 外键`
+- `backend-java/scripts/patch-schema.sql` · detect_task 全量快照补音频列
+
+### 关键决策
+
+- **JSON 字段走 `JacksonTypeHandler`**（MyBatis-Plus 自带；跟项目 Jackson 生态一致）：
+    · `detect_task.source_labels_json` ← `Map<String, Double>`
+    · `detect_task.audio_segments_json` ← `List<AudioSegmentResult>`（不建独立表 · 数据量小 · 只在详情展示）
+    · `detect_paragraph_result.confidence_interval` ← `Object`
+    · `detect_paragraph_result.warnings_json` ← `List<String>`
+- **段/句独立子表**（用户量大 · 需按 task_id 查询）· 事务边界靠 `@Transactional` 覆盖
+- **save/update 段/句"删旧插新"**：策略简单，写放大不严重（每 task 段一般 <100）；生产按 idx 差量更新
+- **findAll 只查主表**：段/句不加载，列表接口性能优先
+- **findById 分两次拉**（主表 + 段全量 + 句全量），Service 层内存组装；生产量大改一次 JOIN + resultMap
 
 ## B2 · 本版改动
 

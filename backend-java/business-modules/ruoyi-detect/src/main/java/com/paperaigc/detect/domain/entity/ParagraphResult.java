@@ -1,5 +1,10 @@
 package com.paperaigc.detect.domain.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -8,36 +13,43 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
- * 段落级检测结果
+ * 段落级检测结果 —— 对齐 docs/releases/v0.1.0/sql · detect_paragraph_result
  *
- * <p>对齐 patch-schema.sql · detect_paragraph_result 表（Phase B 落库）。</p>
+ * <p>Phase B 落库。表主键是自增 id，业务上按 (task_id, paragraph_idx) 唯一（UK 已建）。
+ * sentences 是子表 · @TableField(exist=false)，Repository 层负责组装。</p>
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@TableName(value = "detect_paragraph_result", autoResultMap = true)
 public class ParagraphResult {
 
-    /** 段序号（0 起） */
+    @TableId(type = IdType.AUTO)
+    private Long id;
+
+    /** 外键 → detect_task.id */
+    private Long taskId;
+
     private Integer paragraphIdx;
-    /** 原文 */
     private String text;
-    /** 是否被排除在 AI 率计算之外（参考文献/图表/章节标题等） */
     private boolean excluded;
-    /** 排除理由 reference / acknowledgement / appendix / sectionTitle / caption */
     private String excludeReason;
-    /** 原始 AI 概率（未校准） */
     private Double aiProb;
-    /** 校准后 AI 概率（前端展示与阈值判定用） */
     private Double calibratedProb;
-    /** 置信区间 [lower, upper]；Python 侧返回结构 */
+
+    /** JSON · [lower, upper] · Python 返回结构 */
+    @TableField(value = "confidence_interval", typeHandler = JacksonTypeHandler.class)
     private Object confidenceInterval;
-    /** 疑似 AI 来源标签 gpt / claude / qwen / deepseek / human 等 */
+
     private String sourceLabel;
-    /** 段所在章节名（正文 / 摘要 / 引言 / …） */
     private String sectionName;
-    /** 段落级警告（如 tokens 超上限截断等） */
+
+    /** JSON · 段落级警告 */
+    @TableField(value = "warnings_json", typeHandler = JacksonTypeHandler.class)
     private List<String> warnings;
-    /** 句级明细 */
+
+    /** 句级明细 · 独立子表 detect_sentence_result */
+    @TableField(exist = false)
     private List<SentenceResult> sentences;
 }

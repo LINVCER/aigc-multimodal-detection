@@ -1,5 +1,11 @@
 package com.paperaigc.detect.domain.entity;
 
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,64 +16,59 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 检测任务实体 —— 对齐 patch-schema.sql · detect_task
+ * 检测任务实体 —— 对齐 docs/releases/v0.1.0/sql · detect_task
  *
- * <p>Phase 0 走内存 map；Phase B 接入 MyBatis-Plus 时补 @TableName/@TableField 注解。
- * paragraphs / sourceLabels 是详情视图专用，列表视图不携带。</p>
+ * <p>Phase B 落 MyBatis-Plus。paragraphs / audioSegments 是子表 / JSON 明细，
+ * 详情才拉；列表只查主表。</p>
+ *
+ * <p>autoResultMap=true 让 @TableField(typeHandler) 生效（JSON 列反序列化）。</p>
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@TableName(value = "detect_task", autoResultMap = true)
 public class DetectTask {
 
-    /** 任务 ID */
+    @TableId(type = IdType.AUTO)
     private Long id;
-    /** 提交者 ID；Sa-Token 接入后从上下文取 */
+
     private Long userId;
 
-    /** 模态：text / audio / image（对齐 DetectConstants.MODALITY_*），默认 text */
+    /** 模态：text / audio / image */
     private String modality;
 
-    /** 论文标题（缺省用文件名） */
     private String paperTitle;
-    /** 状态：PENDING / RUNNING / DONE / FAILED */
     private String status;
-
-    /** 使用场景：academic_bachelor / academic_master / … */
     private String scenario;
-    /** 场景对应 AI 率红线（%）；快照存入，避免运营改配置后历史任务变红线 */
     private Integer threshold;
-
-    /** 整体 AI 率（%）；DONE 后填充 */
     private Double aiRate;
 
-    /** 原始文件存储路径；由 IStorageService 生成，本地 FS 或 MinIO key 均可 */
     private String filePath;
-    /** 原始文件名（含后缀） */
     private String originalFilename;
-    /** 文件大小（byte） */
     private Long fileSize;
 
-    /** 模型版本快照，供审计与灰度对齐 */
     private String modelVersion;
 
-    /** 字符总数（正文 + 排除） */
     private Integer wordCount;
-    /** 参与 AI 率计算的正文段数 */
     private Long bodyParagraphCount;
-    /** 被排除的段数 */
     private Integer excludedParagraphCount;
 
+    /** 溯源汇总 · JSON 列 source_labels_json 反序列化到 Map */
+    @TableField(value = "source_labels_json", typeHandler = JacksonTypeHandler.class)
+    private Map<String, Double> sourceLabels;
+
+    /** 音频段级明细 · JSON 列 audio_segments_json（V0.2.0.002 迁移加列） */
+    @TableField(value = "audio_segments_json", typeHandler = JacksonTypeHandler.class)
+    private List<AudioSegmentResult> audioSegments;
+
+    private Double audioDurationSec;
+
+    @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
     private LocalDateTime finishedAt;
 
-    /** 段落级明细（text 模态；列表接口不携带，详情才附） */
+    /** 段落级明细 · 独立子表 detect_paragraph_result；不映射到主表列 */
+    @TableField(exist = false)
     private List<ParagraphResult> paragraphs;
-    /** 音频片段级明细（audio 模态；同样只在详情附带） */
-    private List<AudioSegmentResult> audioSegments;
-    /** 音频总时长（秒；audio 模态） */
-    private Double audioDurationSec;
-    /** 溯源汇总 sourceLabel -> 比例 */
-    private Map<String, Double> sourceLabels;
 }

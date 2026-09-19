@@ -14,7 +14,7 @@ Repository 用 `@Primary` 顶掉 InMemory，Service/Controller/前端零改动�
 - **Added**：`user_profile` 表 · `MybatisAdminUserRepository` · Wave 5 音频检测骨架 · 首页/上传三级页 · TabBar 磨砂精修
 - **Changed**：AdminUser entity 加 MP 注解 · request.js fail 语义化分类 · home.vue 移除调试日志
 - **Fixed**：MOCK_MODE 短路 · uploadFile 不拼 baseURL · proxy 端口错 · 双重 toast · timeout 笼统
-- **Batch 进度**：B1 Feedback ✅ · B2 AdminUser ✅ · B3 Detect 三表 ⏳ · B4 Scenario Threshold ⏳
+- **Batch 进度**：B1 Feedback ✅ · B2 AdminUser ✅ · B3 Detect 三表 ✅ · B4 Scenario Threshold ⏳
 - 详情 → [`v0.2.0/release-notes.md`](v0.2.0/release-notes.md)
 
 ---
