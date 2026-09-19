@@ -264,10 +264,10 @@ mobile-uniapp/
 
 | 版本 | 交付 | 预估 | 状态 |
 |---|---|---|---|
-| **v0.2.0** | Wave 1 · 5 页面 + 5 组件 tokens 化 | 1 周 | ⏳ |
-| **v0.3.0** | Wave 2 · 后端契约 100% + task 生命周期 | +1-2 周 | ⏳ |
-| **v0.4.0** | Wave 3 · 微信小程序独有价值 | +1 周 | ⏳ |
-| **v0.5.0** | Wave 4 · 生产化 | +1 周 | ⏳ |
+| **v0.2.0** | Wave 1 · 5 页面 + 5 组件 tokens 化 | 1 周 | ✅ 2026-09-18 |
+| **v0.3.0** | Wave 2 · 后端契约 100% + task 生命周期 | +1-2 周 | ✅ 2026-09-19（Batch 2.1-2.4 全落） |
+| **v0.4.0** | Wave 3 · 微信小程序独有价值 | +1 周 | ✅ 2026-09-19（Batch 3.1-3.4 全落） |
+| **v0.5.0** | Wave 4 · 生产化 | +1 周 | ✅ 2026-09-19（4.2/4.4 完整 · 4.1/4.3 骨架，真切换/PWA 转 Wave 5 单独 batch） |
 
 ## 6. 优先级
 
@@ -292,9 +292,9 @@ mobile-uniapp/
 ### 前置依赖
 
 - ✅ 后端 Phase A 完成
-- ⏳ 后端 Phase B（Task #63 · MyBatis 落库）— userId 才真正持久化
-- ⏳ 后端 W3.c 微信登录接入 — 微信一键登录才能真通（Wave 3 前必需）
-- ⏳ 后端订阅消息服务端推送 API — Wave 3 · Batch 3.3 依赖
+- ✅ 后端 Phase B（Task #63 · MyBatis 落库）— 2026-09-19 B1-B4 全落，userId 持久化到 user_profile
+- ✅ 后端 W3.c 微信登录接入 — POST /api/v1/auth/wechat/login 已通（Wave 3.1 mock 用 code hashCode 派生 openid · 生产接入官方 code2session 待补）
+- ⏳ 后端订阅消息服务端推送 API — 端上 saveSubscribeTemplate 已上报，服务端 uniPush/微信开放接口对接 Wave 5
 
 ### 与其它端边界
 
