@@ -1,5 +1,6 @@
 package com.paperaigc.detect.controller;
 
+import cn.dev33.satoken.annotation.SaIgnore;
 import com.paperaigc.detect.domain.dto.AdminUserQueryDTO;
 import com.paperaigc.detect.domain.vo.AdminUserVO;
 import com.paperaigc.detect.domain.vo.PageVO;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>Controller 瘦身：参数装配 + 调 Service + 返 R；业务规则、内存 seed 全下沉。</p>
  */
 @Slf4j
+@SaIgnore
 @RestController
 @RequestMapping("/admin/user")
 @RequiredArgsConstructor

@@ -1,5 +1,6 @@
 package com.paperaigc.detect.controller;
 
+import cn.dev33.satoken.annotation.SaIgnore;
 import com.itextpdf.io.font.FontProgram;
 import com.itextpdf.io.font.FontProgramFactory;
 import com.itextpdf.kernel.colors.DeviceRgb;
@@ -46,6 +47,7 @@ import java.util.Map;
  * 中文字体走 iText 内置 Adobe CJK STSong-Light（依赖 font-asian）无需额外 ttf。</p>
  */
 @Slf4j
+@SaIgnore
 @RestController
 @RequestMapping("/api/v1/report")
 @RequiredArgsConstructor

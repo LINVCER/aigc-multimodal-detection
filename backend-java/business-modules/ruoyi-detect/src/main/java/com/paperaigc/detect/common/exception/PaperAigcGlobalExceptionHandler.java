@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Order(Ordered.HIGHEST_PRECEDENCE)    // 优先于若依基座 GlobalExceptionHandler，避免两方兜底顺序不确定
 @RestControllerAdvice
-public class GlobalExceptionHandler {
+public class PaperAigcGlobalExceptionHandler {
 
     /** 业务异常：由 Service 层主动抛出 */
     @ExceptionHandler(BizException.class)

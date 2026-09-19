@@ -1,5 +1,6 @@
 package com.paperaigc.detect.config;
 
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
@@ -17,6 +18,7 @@ import org.springframework.context.annotation.Configuration;
  * {@code @SpringBootApplication(scanBasePackages = {"org.dromara", "com.paperaigc"})}。</p>
  */
 @Configuration
+@MapperScan("com.paperaigc.detect.mapper")
 @ComponentScan(basePackages = "com.paperaigc.detect")
 public class DetectAutoConfiguration {
 }

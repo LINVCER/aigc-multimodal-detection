@@ -8,6 +8,7 @@ import com.paperaigc.detect.domain.dto.LoginDTO;
 import com.paperaigc.detect.domain.entity.AuthUser;
 import com.paperaigc.detect.domain.vo.LoginVO;
 import com.paperaigc.detect.repository.IAuthTokenRepository;
+import com.paperaigc.detect.service.IAuthService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

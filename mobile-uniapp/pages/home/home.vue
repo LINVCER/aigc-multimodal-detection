@@ -11,10 +11,22 @@ const tasks = ref([])
 const loading = ref(false)
 
 async function load(silent = false) {
+  console.log('[home] load() called, silent=', silent)
   if (!silent) loading.value = true
-  try { tasks.value = await listTasks() }
-  catch (e) { /* mock 模式下不报 */ }
-  finally { loading.value = false; uni.stopPullDownRefresh() }
+  try {
+    console.log('[home] calling listTasks()...')
+    const result = await listTasks()
+    console.log('[home] listTasks() returned', result?.length, 'items')
+    tasks.value = result
+  }
+  catch (e) {
+    console.error('[home] listTasks() FAILED:', e)
+    uni.showToast({ title: e.message || '请求失败，请检查后端服务', icon: 'none', duration: 3000 })
+  }
+  finally {
+    console.log('[home] load() finished')
+    loading.value = false; uni.stopPullDownRefresh()
+  }
 }
 
 onShow(load)

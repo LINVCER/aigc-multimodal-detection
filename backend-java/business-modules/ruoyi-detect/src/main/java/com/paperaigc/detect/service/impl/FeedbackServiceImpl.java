@@ -11,6 +11,7 @@ import com.paperaigc.detect.domain.entity.Feedback;
 import com.paperaigc.detect.domain.vo.FeedbackVO;
 import com.paperaigc.detect.domain.vo.PageVO;
 import com.paperaigc.detect.repository.IFeedbackRepository;
+import com.paperaigc.detect.service.IFeedbackService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

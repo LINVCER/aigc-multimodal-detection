@@ -6,6 +6,7 @@ import com.paperaigc.detect.domain.dto.FeedbackQueryDTO;
 import com.paperaigc.detect.domain.dto.FeedbackSubmitDTO;
 import com.paperaigc.detect.domain.vo.FeedbackVO;
 import com.paperaigc.detect.domain.vo.PageVO;
+import cn.dev33.satoken.annotation.SaIgnore;
 import com.paperaigc.detect.service.IFeedbackService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ import java.util.Map;
  * <p>Controller 只做参数装配 + 调 Service，业务规则全部下沉到 {@link IFeedbackService}。</p>
  */
 @Slf4j
+@SaIgnore
 @RestController
 @RequestMapping
 @RequiredArgsConstructor

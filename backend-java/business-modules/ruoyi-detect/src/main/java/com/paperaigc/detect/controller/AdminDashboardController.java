@@ -1,5 +1,6 @@
 package com.paperaigc.detect.controller;
 
+import cn.dev33.satoken.annotation.SaIgnore;
 import com.paperaigc.detect.common.constant.FeedbackConstants;
 import com.paperaigc.detect.domain.dto.FeedbackQueryDTO;
 import com.paperaigc.detect.domain.entity.AdminUser;
@@ -31,6 +32,7 @@ import java.util.Map;
  * <p>Phase 0 走内存 Map 聚合；Phase B 会切成 SQL group by + Redis 缓存。</p>
  */
 @Slf4j
+@SaIgnore
 @RestController
 @RequestMapping("/admin")
 @RequiredArgsConstructor

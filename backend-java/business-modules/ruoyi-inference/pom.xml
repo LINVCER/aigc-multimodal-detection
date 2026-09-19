@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.dromara</groupId>
         <artifactId>ruoyi-modules</artifactId>
-        <version>5.2.3</version>
+        <version>${revision}</version>
     </parent>
 
     <artifactId>ruoyi-inference</artifactId>
@@ -46,6 +46,12 @@
         <dependency>
             <groupId>jakarta.annotation</groupId>
             <artifactId>jakarta.annotation-api</artifactId>
+        </dependency>
+        <!-- gRPC 生成代码引用 @javax.annotation.Generated（JDK17 起 javax.annotation 已移除） -->
+        <dependency>
+            <groupId>javax.annotation</groupId>
+            <artifactId>javax.annotation-api</artifactId>
+            <version>1.3.2</version>
         </dependency>
     </dependencies>
 

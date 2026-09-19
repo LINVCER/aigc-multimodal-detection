@@ -1,5 +1,6 @@
 package com.paperaigc.detect.controller;
 
+import cn.dev33.satoken.annotation.SaIgnore;
 import com.paperaigc.detect.common.util.ParamUtils;
 import com.paperaigc.detect.domain.dto.DetectTaskQueryDTO;
 import com.paperaigc.detect.domain.entity.DetectTask;
@@ -22,6 +23,7 @@ import java.util.Map;
  * 运营后台 · 全平台任务列表 · Wave 3.e (§3.4)
  */
 @Slf4j
+@SaIgnore
 @RestController
 @RequestMapping("/admin/task")
 @RequiredArgsConstructor

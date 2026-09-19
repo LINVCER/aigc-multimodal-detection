@@ -1,5 +1,6 @@
 package com.paperaigc.detect.controller;
 
+import cn.dev33.satoken.annotation.SaIgnore;
 import com.paperaigc.detect.common.util.ParamUtils;
 import com.paperaigc.detect.domain.dto.DetectTaskQueryDTO;
 import com.paperaigc.detect.domain.dto.HumanizeDTO;
@@ -35,6 +36,7 @@ import java.util.Map;
  * 文件抽取、段落切分、非正文过滤全部下沉到 {@link IDetectTaskService} 与其依赖组件。</p>
  */
 @Slf4j
+@SaIgnore
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
