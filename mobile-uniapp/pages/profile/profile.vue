@@ -30,6 +30,7 @@ function logout() {
 function comingSoon(name) {
   uni.showToast({ title: `${name} 即将上线`, icon: 'none' })
 }
+function goMyFeedback() { uni.navigateTo({ url: '/pages/feedback/mine' }) }
 </script>
 
 <template>
@@ -75,7 +76,7 @@ function comingSoon(name) {
         <text class="chevron">›</text>
       </view>
       <view class="separator" />
-      <view class="row" hover-class="row-hover" @click="comingSoon('我的反馈')">
+      <view class="row" hover-class="row-hover" @click="goMyFeedback">
         <text class="row-title">我的反馈</text>
         <view class="row-tail">
           <text class="row-value muted">查看回复</text>

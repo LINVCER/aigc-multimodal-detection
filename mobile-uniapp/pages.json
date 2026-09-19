@@ -67,6 +67,15 @@
       }
     },
     {
+      "path": "pages/feedback/mine",
+      "style": {
+        "navigationBarTitleText": "我的反馈",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true,
+        "backgroundColor": "#F2F2F7"
+      }
+    },
+    {
       "path": "pages/task/detail",
       "style": {
         "navigationBarTitleText": "检测报告",
