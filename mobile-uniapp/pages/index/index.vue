@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
-import { listTasks } from '@/api/detect'
+import { listTasks, cancelTask, deleteTask } from '@/api/detect'
 import { SCENARIO_MAP, aiRateColor } from '@/utils/constants'
 import StatusChip from '@/components/StatusChip.vue'
 import EmptyState from '@/components/EmptyState.vue'
@@ -83,6 +83,50 @@ onPullDownRefresh(load)
 
 function goDetail(id) { uni.navigateTo({ url: `/pages/task/detail?id=${id}` }) }
 function goUpload() { uni.switchTab({ url: '/pages/upload/upload' }) }
+
+/** 长按任务卡 · iOS 风 ActionSheet：删除 · 取消（仅运行中） */
+function onTaskLongPress(t) {
+  const canCancel = t.status === 'RUNNING' || t.status === 'PENDING'
+  const items = canCancel ? ['取消检测', '删除任务'] : ['删除任务']
+  uni.showActionSheet({
+    itemList: items,
+    itemColor: '#FF3B30',
+    success: async (res) => {
+      const action = items[res.tapIndex]
+      if (action === '取消检测') await confirmCancel(t)
+      else if (action === '删除任务') await confirmDelete(t)
+    },
+  })
+}
+
+async function confirmCancel(t) {
+  const ok = await modal({ title: '取消检测', content: `确定取消《${t.paperTitle}》的检测？` })
+  if (!ok) return
+  try {
+    await cancelTask(t.id)
+    uni.showToast({ title: '已取消', icon: 'success' })
+    load(true)
+  } catch { /* request.js 已 toast */ }
+}
+async function confirmDelete(t) {
+  const ok = await modal({ title: '删除任务', content: `删除《${t.paperTitle}》？此操作不可撤销。` })
+  if (!ok) return
+  try {
+    await deleteTask(t.id)
+    uni.showToast({ title: '已删除', icon: 'success' })
+    tasks.value = tasks.value.filter(x => x.id !== t.id)
+  } catch { /* request.js 已 toast */ }
+}
+function modal({ title, content }) {
+  return new Promise((resolve) => {
+    uni.showModal({
+      title, content,
+      confirmColor: '#FF3B30', cancelColor: '#007AFF',
+      success: (r) => resolve(r.confirm),
+      fail: () => resolve(false),
+    })
+  })
+}
 
 const scenarioOf = (t) => SCENARIO_MAP[t?.scenario] || SCENARIO_MAP.other
 const isPass     = (t) => typeof t.aiRate === 'number' && t.aiRate <= (t.threshold || 25)
@@ -183,6 +227,7 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
         v-for="t in filtered" :key="t.id"
         class="task-card" hover-class="task-card-hover"
         @click="goDetail(t.id)"
+        @longpress="onTaskLongPress(t)"
       >
         <view class="task-head">
           <view

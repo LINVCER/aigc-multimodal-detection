@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onUnmounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { getTaskDetail, requestHumanize, retryTask } from '@/api/detect'
+import { getTaskDetail, requestHumanize, retryTask, cancelTask } from '@/api/detect'
 import { SOURCE_MAP, COLOR, paragraphRisk, aiRateColor } from '@/utils/constants'
 import { diffChars } from '@/utils/diff'
 import Skeleton from '@/components/Skeleton.vue'
@@ -50,6 +50,27 @@ async function onRetry() {
   } catch (e) {
     uni.showToast({ title: e?.message || '重试失败', icon: 'none' })
   } finally { retrying.value = false }
+}
+
+const cancelling = ref(false)
+async function onCancel() {
+  const ok = await new Promise((resolve) => {
+    uni.showModal({
+      title: '取消检测',
+      content: '确定取消本次检测？取消后可在列表长按重新提交。',
+      confirmColor: '#FF3B30', cancelColor: '#007AFF',
+      success: (r) => resolve(r.confirm),
+      fail: () => resolve(false),
+    })
+  })
+  if (!ok) return
+  cancelling.value = true
+  try {
+    await cancelTask(taskId)
+    uni.showToast({ title: '已取消', icon: 'success' })
+    stopPoll()
+    await load()
+  } finally { cancelling.value = false }
 }
 
 function goBack() {
@@ -257,6 +278,12 @@ function toggleExpand(idx) {
       </view>
       <text class="state-title" style="color: #B26200">检测中</text>
       <text class="state-sub">页面将自动刷新（约 15-30 秒）</text>
+      <button
+        class="btn-tinted cancel-btn"
+        :loading="cancelling"
+        :disabled="cancelling"
+        @click="onCancel"
+      >取消检测</button>
     </view>
 
     <!-- 检测失败 -->
@@ -562,6 +589,7 @@ function toggleExpand(idx) {
 .mark-x-2 { transform: rotate(-45deg); }
 
 .retry-btn { margin-top: $sp-5; min-width: 320rpx; }
+.cancel-btn { margin-top: $sp-5; min-width: 320rpx; }
 
 /* ============ 主 & 次 按钮 ============ */
 .btn-primary {

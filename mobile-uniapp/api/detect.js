@@ -111,6 +111,22 @@ export function retryTask(id) {
 }
 
 /**
+ * §3.5 取消检测（RUNNING/PENDING 状态可用；后端置 FAILED）
+ */
+export function cancelTask(id) {
+  if (MOCK_MODE) return Promise.resolve()
+  return http({ url: `/api/v1/detect/tasks/${id}/cancel`, method: 'POST' })
+}
+
+/**
+ * §3.6 删除任务（同时删存储原稿）
+ */
+export function deleteTask(id) {
+  if (MOCK_MODE) return Promise.resolve()
+  return http({ url: `/api/v1/detect/tasks/${id}`, method: 'DELETE' })
+}
+
+/**
  * §8.2 直接文本检测（不生成任务）· Wave 1 · 1.4 文本粘贴
  */
 export function detectTextDirect(text) {
