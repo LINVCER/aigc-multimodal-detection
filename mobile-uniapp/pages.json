@@ -90,6 +90,7 @@
     "navigationBarBackgroundColor": "#FFFFFF",
     "backgroundColor": "#F2F2F7"
   },
+  "darkmode": true,
   "tabBar": {
     "color": "#8E8E93",
     "selectedColor": "#007AFF",

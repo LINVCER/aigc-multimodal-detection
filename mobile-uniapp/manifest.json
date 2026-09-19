@@ -57,5 +57,6 @@
             }
         }
     }
-  }
+  },
+  "_comment_wave4_pwa": "Wave 4.3 PWA 骨架 · 真正 PWA 需要在 vite.config.js 引 vite-plugin-pwa 生成 manifest.webmanifest + Service Worker（缓存策略走 CacheFirst 给静态 · NetworkFirst 给 /api/*）。上线前补，本轮只留占位说明。"
 }

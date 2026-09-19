@@ -53,10 +53,10 @@ async function onWechatLogin() {
 
     <view class="form">
       <view class="field">
-        <input v-model="username" class="input" placeholder="账号 / 手机号" placeholder-style="color: rgba(60,60,67,0.30)" />
+        <input v-model="username" class="input" placeholder="账号 / 手机号" placeholder-style="color: rgba(60,60,67,0.30)" :cursor-spacing="24" :adjust-position="true" />
       </view>
       <view class="field">
-        <input v-model="password" class="input" placeholder="密码" password placeholder-style="color: rgba(60,60,67,0.30)" />
+        <input v-model="password" class="input" placeholder="密码" password placeholder-style="color: rgba(60,60,67,0.30)" :cursor-spacing="24" :adjust-position="true" />
       </view>
 
       <button class="submit" :loading="auth.loading" @click="onSubmit">登 录</button>

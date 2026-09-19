@@ -79,6 +79,8 @@ async function onSubmit() {
         v-model="content"
         class="fb-textarea"
         :maxlength="2000"
+        :cursor-spacing="120"
+        :adjust-position="true"
         :placeholder="isAppeal
           ? '请描述你认为哪些段落被误判、依据是什么'
           : '请描述你遇到的问题或建议，越具体越好'"
@@ -89,6 +91,8 @@ async function onSubmit() {
         v-model="contact"
         class="fb-input"
         :maxlength="128"
+        :cursor-spacing="80"
+        :adjust-position="true"
         placeholder="联系方式（选填，方便我们回复）"
       />
 

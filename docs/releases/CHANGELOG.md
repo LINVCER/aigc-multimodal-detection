@@ -6,15 +6,16 @@
 
 ---
 
-## [v0.2.0] · 2026-09-19 · Phase B 落库 ✅
+## [v0.2.0] · 2026-09-19 · Phase B 落库 ✅ · mobile-uniapp Wave 2/3/4 联发
 
-InMemoryRepository 逐 batch 换 MyBatis-Plus 实现，数据真正落 MySQL。
-Repository 用 `@Primary` 顶掉 InMemory，Service/Controller/前端零改动。
+后端：InMemoryRepository 逐 batch 换 MyBatis-Plus，数据落 MySQL；Repository `@Primary` 顶 InMemory，Service/Controller/前端零改动。
+端上：mobile-uniapp 走完 completion-plan 3 Wave，v0.5.0 生产就绪。
 
-- **Added**：`user_profile` 表 · `MybatisAdminUserRepository` · Wave 5 音频检测骨架 · 首页/上传三级页 · TabBar 磨砂精修
-- **Changed**：AdminUser entity 加 MP 注解 · request.js fail 语义化分类 · home.vue 移除调试日志
+- **Added**（后端）：`user_profile` / `detect_task+paragraph+sentence` / `detect_scenario_threshold` 4 表 · Caffeine 5min 缓存 · JacksonTypeHandler JSON 列
+- **Added**（端上）：task 生命周期长按菜单 · 报告 PDF 双端下载 · 反馈历史 mine 页 · statistics 30 天 dailyTrend · 微信一键登录 · 分享 3 页 · 订阅消息封装 · 联系客服 · 深色模式骨架 · 网络断连兜底 · 键盘避让 · 版本号动态读取
+- **Changed**：Detect Service 阈值走 `IScenarioThresholdService` 替代 `ScenarioConstants` · request.js fail 语义化分类 · 3 处 InMemory 实现 git rm
 - **Fixed**：MOCK_MODE 短路 · uploadFile 不拼 baseURL · proxy 端口错 · 双重 toast · timeout 笼统
-- **Batch 进度**：B1 Feedback ✅ · B2 AdminUser ✅ · B3 Detect 三表 ✅ · B4 Scenario Threshold ✅（Phase B 收官）
+- **Batch 进度**：B1 ✅ · B2 ✅ · B3 ✅ · B4 ✅（Phase B 收官）· mobile-uniapp Wave 2 ✅ · Wave 3 ✅ · Wave 4 ✅
 - 详情 → [`v0.2.0/release-notes.md`](v0.2.0/release-notes.md)
 
 ---

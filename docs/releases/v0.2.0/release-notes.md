@@ -124,3 +124,38 @@ InMemory 实现（`InMemoryAdminUserRepository`）保留不动，Spring 因 `@Pr
 ## Breaking
 
 无。Service 层零改动，Controller 零改动，前端零改动。
+
+---
+
+# mobile-uniapp · Wave 2/3/4 联发
+
+Phase B 落库同期，mobile-uniapp 走完 completion-plan 里的 3 个 Wave，v0.5.0 端上生产就绪。
+
+## Wave 2 · 契约补齐
+
+- **task 生命周期**：`api/detect.js` +cancelTask/deleteTask；`pages/index/index.vue` 长按弹窗 → 撤销/删除
+- **报告 PDF 下载**：`api/report.js` 新建 · H5 走 fetch blob + anchor · 小程序走 uni.downloadFile + uni.openDocument · 详情页 hero 加下载按钮
+- **反馈历史**：`pages/feedback/mine.vue` 新建 · 待处理/已处理分组 · REPLIED 折叠展开回复 · profile 入口接真调
+- **statistics**：`api/detect.js` +getStatistics（含 30 天 dailyTrend mock）· home.vue weekStats 优先后端 · fallback 本地聚合
+
+## Wave 3 · 微信生态
+
+- **一键登录**：`IAuthService.loginByWechat(code, nickname, avatarUrl)` + POST `/api/v1/auth/wechat/login`（mock 用 code hashCode 派生 openid）· login.vue 微信绿 CTA · `#ifdef MP-WEIXIN`
+- **分享**：home/upload/detail 加 `onShareAppMessage` + `onShareTimeline`；详情页脱敏只带 taskId + AI 率
+- **订阅消息**：`api/wechat.js` `requestAndSaveSubscribe(tmplIds)` 封装 · text/audio 上传提交后触发 · 其它端静默 resolve([])
+- **客服**：profile 加 `<button open-type="contact">` · 详情页加 `<button open-type="share">分享给同学`
+
+## Wave 4 · 生产化收官
+
+| Batch | 主题 | 交付 |
+|---|---|---|
+| 4.1 | 深色模式 | `pages.json` 加 `"darkmode": true`（小程序端跟随系统主题）；`App.vue` `detectTheme()` 埋 `uni.getSystemInfoSync().theme` 写 storage；`uni.scss` 尾部加 dark tokens 骨架说明（真切换需重构 SCSS 变量为 CSS var，列 iOS HIG 对照色 · Wave 5 单独 batch） |
+| 4.2 | 键盘避让 + 网络兜底 | `App.vue` `bindNetworkWatcher()` 监听 onNetworkStatusChange · 断/连都弹 toast；login/text/FeedbackSheet 4 处输入加 `cursor-spacing` + `adjust-position` |
+| 4.3 | PWA 骨架 | `manifest.json` h5 段加占位注释 · 真 PWA 待引 vite-plugin-pwa 生成 webmanifest + SW（CacheFirst 静态 · NetworkFirst /api/*） |
+| 4.4 | .env 版本号 | `.env.example` 打开 `VITE_APP_VERSION=0.3.0`；`profile.vue` `readAppVersion()` 三级兜底：env → `uni.getAccountInfoSync().miniProgram.version` → 常量 |
+
+### 关键决策
+
+- **4.1 只做骨架不做真切换**：SCSS 变量 → CSS var 涉及 15 mixin + 全部页面 tokens 引用（500-800 行），Wave 5 单独 batch
+- **4.3 PWA 只留占位**：uni-app H5 转真 PWA 需要 vite-plugin-pwa 或第三方脚本注入，配置量足够单开一个 batch
+- **4.4 版本号读取优先级 env > 小程序 SDK > 常量**：CI 注入最方便统一改，miniProgram.version 是小程序线上真实版本，常量做最终兜底

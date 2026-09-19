@@ -210,6 +210,8 @@ function goBack() {
           placeholder-style="color: rgba(60,60,67,0.30)"
           maxlength="6000"
           auto-height
+          :cursor-spacing="32"
+          :adjust-position="true"
         />
       </view>
 

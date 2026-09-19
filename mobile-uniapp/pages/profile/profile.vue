@@ -13,9 +13,23 @@ const roleText = computed(() =>
     : '个人版 · AI 检测'
 )
 
-// manifest.json 里 versionName；uni.getSystemInfoSync().appVersion 在 H5 拿不到
-// 简单硬编码，Wave 4 · Batch 4.4 引 .env.example 时同步暴露 VITE_APP_VERSION
-const appVersion = '0.2.0'
+// Wave 4.4 · 版本号动态读：
+//   1) 优先 vite 编译期 env 注入的 VITE_APP_VERSION（部署方便统一改）
+//   2) 兜底小程序 uni.getAccountInfoSync().miniProgram.envVersion / manifest 硬写
+//   3) 最终兜底常量（H5 无 miniProgram）
+function readAppVersion() {
+  // eslint-disable-next-line
+  const envVer = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_APP_VERSION
+  if (envVer) return String(envVer)
+  try {
+    // #ifdef MP-WEIXIN
+    const acc = uni.getAccountInfoSync?.()
+    if (acc?.miniProgram?.version) return acc.miniProgram.version
+    // #endif
+  } catch { /* ignore */ }
+  return '0.2.0'
+}
+const appVersion = readAppVersion()
 
 function logout() {
   uni.showModal({

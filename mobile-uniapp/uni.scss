@@ -451,3 +451,42 @@ $blur-thick:     40rpx;
   border-radius: $radius-pill;
   background: $color;
 }
+
+
+/* ============================================================
+ * Wave 4.1 · Dark Mode Tokens（骨架 · 未启用）
+ *
+ * 现状：本文件所有语义 token 是 SCSS 变量（编译时展开成静态色值），运行时不能切换。
+ * 若要真接入深色模式，需分两步：
+ *   1) 将下面 dark 变体 tokens 与 light 对应位置一同重写为 CSS 变量：
+ *        page {
+ *          --brand-primary: #{$brand-primary};
+ *          --label-primary: #{$label-primary};
+ *          ... 其它 12 组语义变量
+ *        }
+ *        @media (prefers-color-scheme: dark) {
+ *          page {
+ *            --brand-primary: #0A84FF;
+ *            --label-primary: #FFFFFF;
+ *            --bg-grouped-primary: #000000;
+ *            --bg-primary: #1C1C1E;
+ *            ...
+ *          }
+ *        }
+ *   2) 页面 @include / 直接引用改为 var(--xxx)（15 mixin + 各页面 tokens 引用都要动，
+ *      估计 500-800 行改动，Wave 5 或运营需求时单独 batch）
+ *
+ * 参考 iOS Dark Mode 语义色（Apple HIG）：
+ *   $brand-primary-dark:            #0A84FF
+ *   $label-primary-dark:            #FFFFFF
+ *   $label-secondary-dark:          rgba(235, 235, 245, 0.60)
+ *   $label-tertiary-dark:           rgba(235, 235, 245, 0.30)
+ *   $bg-grouped-primary-dark:       #000000
+ *   $bg-primary-dark:               #1C1C1E
+ *   $bg-secondary-dark:             #2C2C2E
+ *   $separator-dark:                rgba(84, 84, 88, 0.65)
+ *   $fill-tertiary-dark:            rgba(118, 118, 128, 0.24)
+ *
+ * pages.json globalStyle 已加 "darkmode": true 让小程序端跟随系统主题；
+ * App.vue detectTheme() 已埋 uni.getSystemInfoSync().theme 上报到 storage · 供后续 useTheme composable 用。
+ * ============================================================ */

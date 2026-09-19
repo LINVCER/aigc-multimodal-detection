@@ -1,14 +1,46 @@
 <script setup>
-import { onLaunch } from '@dcloudio/uni-app'
+import { onLaunch, onShow, onHide } from '@dcloudio/uni-app'
 import { useAuth } from '@/store/auth'
+
+/* ---------- 网络状态兜底（Wave 4.2）---------- */
+let netOfflineToastOn = false
+function bindNetworkWatcher() {
+  uni.onNetworkStatusChange((res) => {
+    if (!res.isConnected && !netOfflineToastOn) {
+      netOfflineToastOn = true
+      uni.showToast({ title: '网络已断开', icon: 'none', duration: 2000 })
+    } else if (res.isConnected && netOfflineToastOn) {
+      netOfflineToastOn = false
+      uni.showToast({ title: '网络已恢复', icon: 'success', duration: 1500 })
+    }
+  })
+}
+
+/* ---------- 深色模式（Wave 4.1 · 骨架）----------
+ * 生产切换需将 uni.scss 里的语义 tokens 从 SCSS 变量重写为 CSS 变量（--xxx），
+ * 页面走 var(--xxx)。当前 SCSS 变量编译时展开，运行时不可切换，只做检测骨架。
+ * 见 docs/releases/v0.2.0/release-notes.md · Wave 4 备忘。
+ */
+function detectTheme() {
+  const sys = uni.getSystemInfoSync()
+  // H5 走 prefers-color-scheme；小程序端 pages.json 加 darkmode 后 sys.theme = 'dark' | 'light'
+  const theme = sys.theme || (typeof matchMedia !== 'undefined'
+    && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+  uni.setStorageSync('sys_theme', theme)
+  return theme
+}
 
 onLaunch(() => {
   const auth = useAuth()
   auth.restore()
+  detectTheme()
+  bindNetworkWatcher()
   if (!auth.token) {
     uni.reLaunch({ url: '/pages/login/login' })
   }
 })
+onShow(() => { /* 前台恢复时重探测（用户可能切换系统主题） */ detectTheme() })
+onHide(() => { /* no-op */ })
 </script>
 
 <style lang="scss">
