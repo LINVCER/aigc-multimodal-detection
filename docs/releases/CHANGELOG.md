@@ -6,7 +6,7 @@
 
 ---
 
-## [v0.2.0] · 2026-09-19 · Phase B 落库（滚动）🚧
+## [v0.2.0] · 2026-09-19 · Phase B 落库 ✅
 
 InMemoryRepository 逐 batch 换 MyBatis-Plus 实现，数据真正落 MySQL。
 Repository 用 `@Primary` 顶掉 InMemory，Service/Controller/前端零改动。

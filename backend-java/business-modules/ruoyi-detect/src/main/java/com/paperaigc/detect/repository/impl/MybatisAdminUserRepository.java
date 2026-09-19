@@ -14,8 +14,8 @@ import java.util.Optional;
 /**
  * user_profile 表 · MyBatis-Plus 实现（Phase B · Batch 2）
  *
- * <p>{@code @Primary} 顶掉同名 InMemoryAdminUserRepository。
- * seed 数据从内存 @PostConstruct 迁移到 {@code R__seed_user_profile_demo.sql}（每次部署幂等）。</p>
+ * <p>@Primary 保留以便 Phase C 引 Redis / 缓存层等新实现时无需重加。
+ * seed 走 {@code R__seed_user_profile_demo.sql}（幂等）。</p>
  */
 @Primary
 @Repository

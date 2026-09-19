@@ -8,8 +8,8 @@ import java.util.Optional;
 /**
  * 反馈存储接口
  *
- * <p>抽象层：当前有 {@code InMemoryFeedbackRepository}，Phase B 会加 {@code MybatisFeedbackRepository}
- * 走 user_feedback 表。Controller / Service 不感知底层。</p>
+ * <p>抽象层：Phase B 起走 {@code MybatisFeedbackRepository} → user_feedback 表。
+ * Controller / Service 不感知底层；未来切 Redis / 缓存层加一份 impl 即可。</p>
  */
 public interface IFeedbackRepository {
 

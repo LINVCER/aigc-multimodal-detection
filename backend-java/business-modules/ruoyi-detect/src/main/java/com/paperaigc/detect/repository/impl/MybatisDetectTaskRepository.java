@@ -24,7 +24,8 @@ import java.util.stream.Collectors;
 /**
  * detect_task 三表 · MyBatis-Plus 实现（Phase B · Batch 3）
  *
- * <p>{@code @Primary} 顶掉 InMemory。主表 + 段/句两张子表事务由 {@code @Transactional} 覆盖。</p>
+ * <p>主表 + 段/句两张子表事务由 {@code @Transactional} 覆盖。
+ * @Primary 保留以便 Phase C 引缓存层新实现时无需重加。</p>
  *
  * <p>约束与取舍：</p>
  * <ul>

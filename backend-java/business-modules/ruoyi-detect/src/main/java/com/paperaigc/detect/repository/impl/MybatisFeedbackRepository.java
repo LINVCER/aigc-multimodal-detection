@@ -16,8 +16,7 @@ import java.util.Optional;
 /**
  * user_feedback 表 · MyBatis-Plus 实现（Phase B）
  *
- * <p>{@code @Primary} 顶掉同名 InMemory bean；无需切配置就走 DB。
- * InMemory 保留到 Phase B 全 4 batch 跑通后统一删除。</p>
+ * <p>@Primary 保留以便 Phase C 引 Redis 缓存层等新实现时无需重加。</p>
  */
 @Primary
 @Repository

@@ -9,7 +9,8 @@ import java.util.Optional;
 /**
  * 检测任务存储接口
  *
- * <p>抽象层：当前 InMemoryDetectTaskRepository；Phase B 换 MybatisDetectTaskRepository 走 detect_task 表。</p>
+ * <p>抽象层：Phase B 起走 {@code MybatisDetectTaskRepository} → detect_task
+ * + detect_paragraph_result + detect_sentence_result 三表事务。</p>
  */
 public interface IDetectTaskRepository {
 

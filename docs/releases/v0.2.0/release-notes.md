@@ -50,7 +50,12 @@ Repository 用 `@Primary` 顶掉 InMemory，Service / Controller 零改动。
 | B3 | detect_task + paragraph_result + sentence_result | JSON TypeHandler + 主子表事务 |
 | B4 | detect_scenario_threshold | Caffeine 缓存 + 运营可改阈值 |
 
-**InMemory 实现清理**：4 batch 全部 `@Primary` 顶掉后，`InMemoryFeedbackRepository / InMemoryAdminUserRepository / InMemoryDetectTaskRepository` 三份仍在，Spring 因 `@Primary` 优先注 Mybatis 版本，功能不受影响。规划下 batch 统一删除 InMemory + 打 v0.2.0 tag 收尾。
+**InMemory 实现清理**：✅ 已删除
+- `InMemoryFeedbackRepository.java` · `InMemoryAdminUserRepository.java` · `InMemoryDetectTaskRepository.java` 三份 git rm
+- 3 处 Mybatis 类 + 2 处 Repository 接口的注释同步清理（去掉"顶掉 InMemory"字样，改为"@Primary 保留供 Phase C 引缓存层新实现"）
+- `InMemoryAuthTokenRepository` 保留：Sa-Token mock 期专用不落 DB，Phase C Auth 走基座时整体删除
+
+**Phase C 视野**：Sa-Token 接入 · @Cacheable / Redis 缓存 · IStorageService MinIO 实现 · 类名 rename（AdminUser → UserProfile）· 前端类型对齐后端 modality 分模态视图。
 
 ## B3 · 本版改动
 
