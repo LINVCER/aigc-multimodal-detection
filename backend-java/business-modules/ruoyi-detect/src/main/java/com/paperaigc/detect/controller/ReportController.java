@@ -20,11 +20,11 @@ import com.itextpdf.layout.element.Text;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.UnitValue;
 import com.paperaigc.detect.common.constant.DetectConstants;
-import com.paperaigc.detect.common.constant.ScenarioConstants;
 import com.paperaigc.detect.common.enums.ErrorCode;
 import com.paperaigc.detect.domain.entity.DetectTask;
 import com.paperaigc.detect.domain.entity.ParagraphResult;
 import com.paperaigc.detect.repository.IDetectTaskRepository;
+import com.paperaigc.detect.service.IScenarioThresholdService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -54,6 +54,7 @@ import java.util.Map;
 public class ReportController {
 
     private final IDetectTaskRepository taskRepository;
+    private final IScenarioThresholdService scenarioThresholdService;
 
     private static final DeviceRgb C_PRIMARY = new DeviceRgb(0, 122, 255);
     private static final DeviceRgb C_GREEN   = new DeviceRgb(52, 199, 89);
@@ -148,7 +149,7 @@ public class ReportController {
         Table meta = new Table(UnitValue.createPercentArray(new float[]{1, 2}))
                 .useAllAvailableWidth()
                 .setMarginLeft(60).setMarginRight(60).setMarginTop(20);
-        addMetaRow(meta, "使用场景", ScenarioConstants.label(task.getScenario()) + "  ·  红线 ≤ " + threshold + "%");
+        addMetaRow(meta, "使用场景", scenarioThresholdService.label(task.getScenario()) + "  ·  红线 ≤ " + threshold + "%");
         addMetaRow(meta, "检测时间", createdAt);
         addMetaRow(meta, "论文段落", bodyPara + " 正文 / " + excludedPara + " 已排除");
         addMetaRow(meta, "字符数",   String.valueOf(task.getWordCount() == null ? "-" : task.getWordCount()));

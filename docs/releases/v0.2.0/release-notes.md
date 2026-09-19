@@ -14,8 +14,43 @@ Repository 用 `@Primary` 顶掉 InMemory，Service / Controller 零改动。
 |---|---|---|
 | B1 | Feedback → user_feedback 表 | ✅ 完成（commit 7439204） |
 | B2 | Admin User → 新建 user_profile 表 | ✅ 完成（commit b7e7061）|
-| B3 | Detect 三表 · detect_task / paragraph / sentence + 音频列 | ✅ 完成（本版）|
-| B4 | Scenario Threshold → detect_scenario_threshold + Caffeine 5min 缓存 | ⏳ |
+| B3 | Detect 三表 · detect_task / paragraph / sentence + 音频列 | ✅ 完成（commit bf3f6c2）|
+| B4 | Scenario Threshold → detect_scenario_threshold + Caffeine 5min 缓存 | ✅ 完成（本版）· Phase B 收官 |
+
+## B4 · 本版改动
+
+### 新增文件
+
+- `domain/entity/ScenarioThreshold.java` · `@TableName("detect_scenario_threshold")` · PK 是 scenario 字符串
+- `mapper/ScenarioThresholdMapper.java` · `BaseMapper<ScenarioThreshold>`
+- `repository/IScenarioThresholdRepository.java` · `findByScenario / findAllEnabled / update`
+- `repository/impl/MybatisScenarioThresholdRepository.java` · `@Primary` · 唯一实现（无 InMemory 对应）
+- `service/IScenarioThresholdService.java` · `threshold / label / listAll / updateThreshold / invalidateCache`
+- `service/impl/ScenarioThresholdServiceImpl.java` · Caffeine 5 分钟 TTL · maxSize 20 · @PostConstruct 预热
+
+### 改动文件
+
+- `service/impl/DetectTaskServiceImpl.java` · 注入 `IScenarioThresholdService` · `ScenarioConstants.threshold(sc)` → `scenarioThresholdService.threshold(sc)`（submitText + submitAudio 共 2 处）
+- `controller/ReportController.java` · 注入 `IScenarioThresholdService` · `ScenarioConstants.label(scenario)` → `scenarioThresholdService.label(scenario)`
+- `backend-java/business-modules/ruoyi-detect/pom.xml` · 加 `com.github.ben-manes.caffeine:caffeine:3.1.8`
+
+### 关键决策
+
+- **Caffeine 手工 Cache 实例**（不用 Spring `@Cacheable`）：避免 `@EnableCaching` 全局副作用，逻辑更直接
+- **DB 空/miss 兜底 ScenarioConstants**：保证 seed 缺失或 DB 未就绪时 detect 不崩溃
+- **无 InMemory 对应实现**：原本走硬编码常量，Repository 直接一份 MyBatis 实现即可；`ScenarioConstants` 保留作 fallback 常量类
+- **PK 是 scenario 字符串**（不是自增 Long）：6 场景固定，PK 用业务码可读性 > 匿名 id
+
+## Phase B 收官
+
+| Batch | 表 | 关键 |
+|---|---|---|
+| B1 | user_feedback | 5 件套跑通模式 |
+| B2 | user_profile（新建） | C 端用户跟 sys_user 分离 |
+| B3 | detect_task + paragraph_result + sentence_result | JSON TypeHandler + 主子表事务 |
+| B4 | detect_scenario_threshold | Caffeine 缓存 + 运营可改阈值 |
+
+**InMemory 实现清理**：4 batch 全部 `@Primary` 顶掉后，`InMemoryFeedbackRepository / InMemoryAdminUserRepository / InMemoryDetectTaskRepository` 三份仍在，Spring 因 `@Primary` 优先注 Mybatis 版本，功能不受影响。规划下 batch 统一删除 InMemory + 打 v0.2.0 tag 收尾。
 
 ## B3 · 本版改动
 

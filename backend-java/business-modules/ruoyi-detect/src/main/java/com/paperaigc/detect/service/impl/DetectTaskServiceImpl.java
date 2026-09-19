@@ -51,6 +51,7 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
     private final IInferenceClient inferenceClient;
     private final IStorageService storageService;
     private final TextProcessor textProcessor;
+    private final com.paperaigc.detect.service.IScenarioThresholdService scenarioThresholdService;
 
     /* ==================== §3.1 提交 ==================== */
 
@@ -102,7 +103,7 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
                 .paperTitle(paperTitle)
                 .status(DetectConstants.STATUS_PENDING)
                 .scenario(sc)
-                .threshold(ScenarioConstants.threshold(sc))
+                .threshold(scenarioThresholdService.threshold(sc))
                 .modelVersion("stub-v0")
                 .originalFilename(file.getOriginalFilename())
                 .fileSize(file.getSize())
@@ -149,7 +150,7 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
                 .paperTitle(paperTitle)
                 .status(DetectConstants.STATUS_PENDING)
                 .scenario(sc)
-                .threshold(ScenarioConstants.threshold(sc))
+                .threshold(scenarioThresholdService.threshold(sc))
                 .modelVersion("audio-stub-v0")
                 .originalFilename(name)
                 .fileSize(file.getSize())

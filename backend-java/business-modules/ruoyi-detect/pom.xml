@@ -67,5 +67,13 @@
             <artifactId>font-asian</artifactId>
             <version>8.0.4</version>
         </dependency>
+
+        <!-- Caffeine 本地缓存 · Phase B · Batch 4 · 场景阈值 5min 缓存
+             若依基座若已通过 spring-boot-starter-cache 传递则 Maven 去重 -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>3.1.8</version>
+        </dependency>
     </dependencies>
 </project>
