@@ -33,7 +33,7 @@ export const useAuth = defineStore('auth', {
           const data = await http({
             url: '/api/v1/auth/login',
             method: 'POST',
-            data: { username, password },
+            data: { username, password, clientId: 'e5cd7e4891bf95d1d19206ce24a7b32e', grantType: 'password' },
             auth: false,
           })
           token = data.accessToken
