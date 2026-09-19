@@ -111,6 +111,30 @@ export function retryTask(id) {
 }
 
 /**
+ * §3.7 C 端 Dashboard 统计
+ * 后端返 { today, thisMonth, total, done, avgAiRate, passRate, dailyTrend[30] }
+ * dailyTrend 每项 { date: 'yyyy-MM-dd', count, avgRate }
+ */
+export function getStatistics() {
+  if (MOCK_MODE) {
+    // 造 30 天假趋势 + 汇总指标，供离线联调
+    const dailyTrend = Array.from({ length: 30 }, (_, i) => {
+      const d = new Date(Date.now() - (29 - i) * 24 * 3600 * 1000)
+      const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0'), dd = String(d.getDate()).padStart(2, '0')
+      const count = i > 22 ? Math.floor(Math.random() * 4) : Math.floor(Math.random() * 2)
+      const avgRate = count ? Math.round((15 + Math.random() * 20) * 10) / 10 : null
+      return { date: `${y}-${m}-${dd}`, count, avgRate }
+    })
+    return Promise.resolve({
+      today: 2, thisMonth: 18, total: 47, done: 42,
+      avgAiRate: 22.4, passRate: 76.2,
+      dailyTrend,
+    })
+  }
+  return http({ url: '/api/v1/detect/statistics' })
+}
+
+/**
  * §3.5 取消检测（RUNNING/PENDING 状态可用；后端置 FAILED）
  */
 export function cancelTask(id) {

@@ -1,37 +1,50 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
-import { listTasks } from '@/api/detect'
+import { listTasks, getStatistics } from '@/api/detect'
 import { SCENARIO_MAP, aiRateColor } from '@/utils/constants'
 import { useAuth } from '@/store/auth'
 
 const auth = useAuth()
 
 const tasks = ref([])
+const stats = ref(null)     // 后端 /detect/statistics · null 时走本地聚合兜底
 const loading = ref(false)
 
 async function load(silent = false) {
   if (!silent) loading.value = true
-  try {
-    tasks.value = await listTasks()
-  } catch (e) {
-    // request.js 的 fail 回调已按语义弹 toast（超时/网络异常/取消），此处不再重复
-    // 仅在 DEV 环境打错误日志，避免生产 console 泄露内部字段
-    // eslint-disable-next-line
-    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV) {
-      console.warn('[home] listTasks failed:', e?.message)
-    }
-  } finally {
-    loading.value = false
-    uni.stopPullDownRefresh()
-  }
+  // 并发拉 · statistics 拉不到不阻塞主列表；catch 收 request.js 已弹 toast 的错
+  const [tasksResp, statsResp] = await Promise.all([
+    listTasks().catch(() => null),
+    getStatistics().catch(() => null),
+  ])
+  if (tasksResp) tasks.value = tasksResp
+  stats.value = statsResp
+  loading.value = false
+  uni.stopPullDownRefresh()
 }
 
 onShow(load)
 onPullDownRefresh(() => load(false))
 
-/* ---------- 本周概览 ---------- */
+/* ---------- 本周概览 ----------
+ * 优先走后端 /detect/statistics：
+ *   - 本周检测数 = dailyTrend 最近 7 天 count 求和（准）
+ *   - 平均 AI 率 / 达标率 = 后端全局字段（历史累计口径，比"仅本周"样本量大）
+ * 后端拉不到（stats == null） → 走本地 tasks 聚合兜底（口径本周准）
+ */
 const weekStats = computed(() => {
+  if (stats.value?.dailyTrend?.length) {
+    const last7 = stats.value.dailyTrend.slice(-7)
+    const total = last7.reduce((s, r) => s + (r.count || 0), 0)
+    return {
+      total,
+      doneCount: stats.value.done ?? 0,
+      avgRate:   stats.value.avgAiRate ?? 0,
+      passRate:  Math.round(stats.value.passRate ?? 0),
+    }
+  }
+  // fallback · 本地本周聚合
   const weekAgo = Date.now() - 7 * 24 * 3600 * 1000
   const inWeek = tasks.value.filter(t => {
     if (!t.createdAt) return false
