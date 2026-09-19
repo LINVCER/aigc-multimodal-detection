@@ -2,8 +2,12 @@
 import { ref, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { uploadPaper, detectTextDirect } from '@/api/detect'
+import { requestAndSaveSubscribe } from '@/api/wechat'
 import { SCENARIO_MAP, paragraphRisk } from '@/utils/constants'
 import { useAuth } from '@/store/auth'
+
+// Wave 3.3 · 微信订阅消息模板 ID（占位 · 上线前替换为公众平台申请的真实 tmpl_id）
+const DETECT_DONE_TMPL = 'PLACEHOLDER_DETECT_DONE'
 
 const auth = useAuth()
 
@@ -95,6 +99,8 @@ async function submit() {
     const task = await uploadPaper(file.value.path, file.value.name, scenario.value, auth.userId)
     uni.hideLoading()
     if (!task?.id) throw new Error('提交成功但未拿到任务号')
+    // 小程序端拉起订阅授权（H5/App 静默 · 详见 api/wechat.js）
+    requestAndSaveSubscribe([DETECT_DONE_TMPL])
     uni.showToast({ title: '提交成功', icon: 'success', duration: 800 })
     file.value = null
     setTimeout(() => uni.navigateTo({ url: `/pages/task/detail?id=${task.id}` }), 500)

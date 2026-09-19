@@ -362,13 +362,18 @@ function toggleExpand(idx) {
       <text class="hero-paper">{{ detail.paperTitle }}</text>
 
       <!-- 报告操作 · DONE 状态才出现 -->
-      <button
-        v-if="detail.status === 'DONE'"
-        class="btn-tinted download-btn"
-        :loading="downloading"
-        :disabled="downloading"
-        @click="onDownload"
-      >下载 PDF 报告</button>
+      <view v-if="detail.status === 'DONE'" class="report-actions">
+        <button
+          class="btn-tinted download-btn"
+          :loading="downloading"
+          :disabled="downloading"
+          @click="onDownload"
+        >下载 PDF</button>
+        <!-- Wave 3.4 · 分享给同学（微信小程序 open-type=share 走 onShareAppMessage）-->
+        <!-- #ifdef MP-WEIXIN -->
+        <button class="btn-tinted share-btn" open-type="share">分享给同学</button>
+        <!-- #endif -->
+      </view>
     </view>
 
     <!-- 改进建议 -->
@@ -618,10 +623,16 @@ function toggleExpand(idx) {
 
 .retry-btn { margin-top: $sp-5; min-width: 320rpx; }
 .cancel-btn { margin-top: $sp-5; min-width: 320rpx; }
-.download-btn {
+.report-actions {
   margin-top: $sp-4;
-  min-width: 320rpx;
-  align-self: center;
+  display: flex;
+  gap: $sp-2;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.download-btn, .share-btn {
+  min-width: 220rpx;
+  flex: 0 1 auto;
 }
 
 /* ============ 主 & 次 按钮 ============ */

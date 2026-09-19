@@ -1,6 +1,10 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { uploadPaper } from '@/api/detect'
+import { requestAndSaveSubscribe } from '@/api/wechat'
+
+// Wave 3.3 · 微信订阅消息模板 ID（占位 · 上线前替换）
+const DETECT_DONE_TMPL = 'PLACEHOLDER_DETECT_DONE'
 import { useAuth } from '@/store/auth'
 
 const auth = useAuth()
@@ -46,6 +50,7 @@ async function submit() {
     const task = await uploadPaper(file.value.path, file.value.name, 'other', auth.userId, 'audio')
     uni.hideLoading()
     if (!task?.id) throw new Error('提交成功但未拿到任务号')
+    requestAndSaveSubscribe([DETECT_DONE_TMPL])
     uni.showToast({ title: '提交成功', icon: 'success', duration: 800 })
     file.value = null
     setTimeout(() => uni.navigateTo({ url: `/pages/task/detail?id=${task.id}` }), 500)

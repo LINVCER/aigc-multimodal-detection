@@ -46,6 +46,18 @@ public class PaperAigcAuthController {
                 body.get("code"), body.get("nickname"), body.get("avatarUrl")));
     }
 
+    /**
+     * 微信订阅消息 · 保存用户授权的模板 ID（Wave 3.3 · mock 打日志）
+     * <p>body { tmplIds: [ 'xxx', 'yyy' ] } · 生产走 user_wechat_subscribe 表 + wx 服务端 subscribeMessage.send</p>
+     */
+    @PostMapping("/wechat/subscribe")
+    public R<Void> wechatSubscribe(@RequestBody java.util.Map<String, Object> body,
+                                   @RequestHeader(value = AuthConstants.HEADER_AUTHORIZATION, required = false) String auth) {
+        Object tmplIds = body.get("tmplIds");
+        log.info("wechat subscribe saved: user={} tmplIds={}", auth == null ? "-" : "bearer", tmplIds);
+        return R.ok();
+    }
+
     @PostMapping("/logout")
     public R<Void> logout(@RequestHeader(value = AuthConstants.HEADER_AUTHORIZATION, required = false) String auth) {
         authService.logout(auth);

@@ -88,6 +88,17 @@ function goMyFeedback() { uni.navigateTo({ url: '/pages/feedback/mine' }) }
     <!-- 关于 -->
     <text class="group-label">关于</text>
     <view class="group-card">
+      <!-- Wave 3.4 · 联系客服 · 微信小程序原生 · H5/App 隐藏 -->
+      <!-- #ifdef MP-WEIXIN -->
+      <button class="row contact-row" open-type="contact" hover-class="row-hover">
+        <text class="row-title">联系客服</text>
+        <view class="row-tail">
+          <text class="row-value muted">微信原生</text>
+          <text class="chevron">›</text>
+        </view>
+      </button>
+      <view class="separator" />
+      <!-- #endif -->
       <view class="row" hover-class="row-hover" @click="comingSoon('隐私政策')">
         <text class="row-title">隐私政策</text>
         <text class="chevron">›</text>
@@ -175,6 +186,17 @@ function goMyFeedback() { uni.navigateTo({ url: '/pages/feedback/mine' }) }
   justify-content: space-between;
   align-items: center;
   transition: background $duration-fast $ease-standard;
+}
+/* button 元素默认背景/边框清理，让 open-type=contact 看起来跟 view.row 一致 */
+.contact-row {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  width: 100%;
+  text-align: left;
+  color: $label-primary;
+  font-size: $fs-body;
+  &::after { border: none; }
 }
 .row-hover { background: rgba(60, 60, 67, 0.06); }
 .row-title {
