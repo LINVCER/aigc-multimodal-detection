@@ -87,6 +87,10 @@ yarn-error.log*
 .eslintcache
 *.tsbuildinfo
 
+# ======== Java Maven 构建产物 ========
+target/
+*.flattened-pom.xml
+
 # ======== 前端构建 ========
 frontend/dist/
 frontend/.vite/
