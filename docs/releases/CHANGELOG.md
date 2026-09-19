@@ -6,6 +6,19 @@
 
 ---
 
+## [v0.2.0] · 2026-09-19 · Phase B 落库（滚动）🚧
+
+InMemoryRepository 逐 batch 换 MyBatis-Plus 实现，数据真正落 MySQL。
+Repository 用 `@Primary` 顶掉 InMemory，Service/Controller/前端零改动。
+
+- **Added**：`user_profile` 表 · `MybatisAdminUserRepository` · Wave 5 音频检测骨架 · 首页/上传三级页 · TabBar 磨砂精修
+- **Changed**：AdminUser entity 加 MP 注解 · request.js fail 语义化分类 · home.vue 移除调试日志
+- **Fixed**：MOCK_MODE 短路 · uploadFile 不拼 baseURL · proxy 端口错 · 双重 toast · timeout 笼统
+- **Batch 进度**：B1 Feedback ✅ · B2 AdminUser ✅ · B3 Detect 三表 ⏳ · B4 Scenario Threshold ⏳
+- 详情 → [`v0.2.0/release-notes.md`](v0.2.0/release-notes.md)
+
+---
+
 ## [v0.1.0] · 2026-09-18 · Baseline 🚧
 
 首个规范化版本，把 Wave 1-4 已完成内容归档为 baseline，正式启动版本管理。
