@@ -1,0 +1,1 @@
+"use strict";const e=require("../utils/request.js");exports.listMyFeedback=function(t){return e.http({url:"/api/v1/feedback/mine",data:{userId:t}}).then(e=>Array.isArray(e)?e:(null==e?void 0:e.rows)||[])},exports.submitFeedback=function(t){return e.http({url:"/api/v1/feedback",method:"POST",data:t})};

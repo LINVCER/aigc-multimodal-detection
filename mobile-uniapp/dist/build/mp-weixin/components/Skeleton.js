@@ -1,0 +1,1 @@
+"use strict";const e=require("../common/vendor.js"),o={__name:"Skeleton",props:{rows:{type:Number,default:3}},setup:o=>(t,r)=>({a:e.f(o.rows,(e,o,t)=>({a:e}))})},t=e._export_sfc(o,[["__scopeId","data-v-32115b11"]]);wx.createComponent(t);

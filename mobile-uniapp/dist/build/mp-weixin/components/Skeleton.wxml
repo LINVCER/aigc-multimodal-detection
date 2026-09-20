@@ -1,0 +1,1 @@
+<view class="skeleton data-v-32115b11"><view wx:for="{{a}}" wx:for-item="i" wx:key="a" class="card data-v-32115b11"><view class="line line-title data-v-32115b11"></view><view class="line line-meta data-v-32115b11"></view></view></view>

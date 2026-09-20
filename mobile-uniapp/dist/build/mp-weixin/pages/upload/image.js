@@ -1,0 +1,1 @@
+"use strict";const e=require("../../common/vendor.js"),t={__name:"image",setup(t){function a(){getCurrentPages().length>1?e.index.navigateBack():e.index.switchTab({url:"/pages/upload/upload"})}function n(){e.index.showToast({title:"收到，上线时通知你",icon:"success"})}return(t,o)=>({a:e.o(a),b:e.o(n)})}},a=e._export_sfc(t,[["__scopeId","data-v-8f1de446"]]);wx.createPage(a);

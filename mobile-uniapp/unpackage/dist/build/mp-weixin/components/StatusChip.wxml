@@ -1,0 +1,1 @@
+<text class="chip data-v-4cd512c9" style="{{'color:' + c + ';' + ('background:' + d)}}"><text wx:if="{{a}}" class="dot data-v-4cd512c9"></text> {{b}}</text>

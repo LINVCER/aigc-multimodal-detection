@@ -1,0 +1,10 @@
+{
+  "navigationBarTitleText": "检测记录",
+  "navigationStyle": "custom",
+  "enablePullDownRefresh": true,
+  "backgroundColor": "#F2F2F7",
+  "usingComponents": {
+    "status-chip": "../../components/StatusChip",
+    "empty-state": "../../components/EmptyState"
+  }
+}
