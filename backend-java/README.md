@@ -86,12 +86,12 @@ mysql -uroot -p ry-vue < scripts/patch-schema.sql
 ```bash
 cd ~/workspace/RuoYi-Vue-Plus
 mvn -pl ruoyi-admin -am spring-boot:run
-# 默认端口 18080；配置在 ruoyi-admin/src/main/resources/application-dev.yml
+# 默认端口 8080；配置在 ruoyi-admin/src/main/resources/application.yml
 ```
 
 ## 与其它端的通信
 
-- **前端 → 后端**：HTTP。前端 dev server 走 vite proxy `/api → http://localhost:18080`
+- **前端 → 后端**：HTTP。前端 dev server 走 vite proxy `/api → http://localhost:8080`
 - **后端 → Python 推理**：HTTP。`application-dev.yml` 里 `platform.inference.host/port` 指到 Python 端（默认 `localhost:18000`）
 - **Python 推理端启动完全独立**，见 `deploy/inference-python/README.md`
 
@@ -111,6 +111,6 @@ com.paperaigc.detect/
 
 ## 联调排查
 
-- 后端启动后：`GET http://localhost:18080/api/v1/detect/health` → 返回 Python 端 health（推理未启也返回，含错误信息）
+- 后端启动后：`GET http://localhost:8080/api/v1/detect/health` → 返回 Python 端 health（推理未启也返回，含错误信息）
 - 登录：`POST /api/v1/auth/login` `{username: "admin", password: "admin"}` → `admin/admin` 派 OPS_ADMIN 可进 `/admin/*`；其它派 USER
 - 上传：`POST /api/v1/detect/submit` multipart（file + scenario + userId）

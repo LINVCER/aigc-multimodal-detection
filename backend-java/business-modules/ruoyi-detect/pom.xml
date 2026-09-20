@@ -55,6 +55,14 @@
             <version>2.9.2</version>
         </dependency>
 
+        <!-- commons-io 版本锁定：POI 5.4.x 需要 >= 2.16（BoundedInputStream.builder()），
+             Tika 2.9.2 传递依赖带来的 2.15.1 会触发 NoSuchMethodError -->
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.16.1</version>
+        </dependency>
+
         <!-- PDF 报告：iText 8 core + 内置中文字体（无需额外 ttf） -->
         <dependency>
             <groupId>com.itextpdf</groupId>
