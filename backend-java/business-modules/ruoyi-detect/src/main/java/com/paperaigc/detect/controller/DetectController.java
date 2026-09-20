@@ -31,6 +31,9 @@ import java.util.Map;
 /**
  * 论文 AIGC 检测接口
  *
+ * <p><b>主方向：论文 AIGC 检测（text 模态）。</b>音频 / 图像检测已暂停，
+ * 相关代码归档于 _archive/，请勿继续开发该方向。</p>
+ *
  * <p>路径遵循 docs/design/API_CONTRACT.md（§3 检测 · §4 降 AIGC · §8 内部推理）</p>
  * <p>Controller 瘦身版：只做参数装配 + 调 Service + 返回 R；业务规则、推理调用、
  * 文件抽取、段落切分、非正文过滤全部下沉到 {@link IDetectTaskService} 与其依赖组件。</p>
@@ -53,7 +56,7 @@ public class DetectController {
             @RequestParam(value = "degreeType", required = false) String degreeType,   // 兼容旧字段
             @RequestParam(value = "title", required = false) String title,
             @RequestParam(value = "userId", required = false) Long userId,             // W3.c 前透传
-            @RequestParam(value = "modality", required = false) String modality) {     // text / audio / image；不传按后缀猜
+            @RequestParam(value = "modality", required = false) String modality) {     // 当前仅 text；不传默认 text
         DetectTask task = detectTaskService.submit(file, scenario, degreeType, title, userId, modality);
         Map<String, Object> resp = new HashMap<>();
         resp.put("taskId",     task.getId());

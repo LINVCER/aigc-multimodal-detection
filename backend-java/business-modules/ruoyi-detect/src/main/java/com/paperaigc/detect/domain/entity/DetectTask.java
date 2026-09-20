@@ -18,8 +18,7 @@ import java.util.Map;
 /**
  * 检测任务实体 —— 对齐 docs/releases/v0.1.0/sql · detect_task
  *
- * <p>Phase B 落 MyBatis-Plus。paragraphs / audioSegments 是子表 / JSON 明细，
- * 详情才拉；列表只查主表。</p>
+ * <p>Phase B 落 MyBatis-Plus。paragraphs 是子表明细，详情才拉；列表只查主表。</p>
  *
  * <p>autoResultMap=true 让 @TableField(typeHandler) 生效（JSON 列反序列化）。</p>
  */
@@ -35,7 +34,7 @@ public class DetectTask {
 
     private Long userId;
 
-    /** 模态：text / audio / image */
+    /** 模态：text */
     private String modality;
 
     private String paperTitle;
@@ -57,16 +56,6 @@ public class DetectTask {
     /** 溯源汇总 · JSON 列 source_labels_json 反序列化到 Map */
     @TableField(value = "source_labels_json", typeHandler = JacksonTypeHandler.class)
     private Map<String, Double> sourceLabels;
-
-    /** 音频段级明细 · JSON 列 audio_segments_json（V0.2.0.002 迁移加列） */
-    @TableField(value = "audio_segments_json", typeHandler = JacksonTypeHandler.class)
-    private List<AudioSegmentResult> audioSegments;
-
-    private Double audioDurationSec;
-
-    /** 图像区域级明细 · JSON 列 image_segments_json（V0.2.0.003 迁移加列） */
-    @TableField(value = "image_segments_json", typeHandler = JacksonTypeHandler.class)
-    private List<ImageSegmentResult> imageSegments;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;

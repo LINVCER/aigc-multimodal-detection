@@ -20,7 +20,7 @@ public class DetectTaskVO {
 
     private Long id;
     private Long userId;
-    private String modality;   // text / audio / image
+    private String modality;   // text
     private String paperTitle;
     private String status;
     private String scenario;
@@ -30,7 +30,6 @@ public class DetectTaskVO {
     private Integer wordCount;
     private Long bodyParagraphCount;
     private Integer excludedParagraphCount;
-    private Double audioDurationSec;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;
@@ -52,7 +51,6 @@ public class DetectTaskVO {
                 .wordCount(t.getWordCount())
                 .bodyParagraphCount(t.getBodyParagraphCount())
                 .excludedParagraphCount(t.getExcludedParagraphCount())
-                .audioDurationSec(t.getAudioDurationSec())
                 .createdAt(t.getCreatedAt())
                 .finishedAt(t.getFinishedAt())
                 .build();

@@ -7,9 +7,7 @@ import com.paperaigc.detect.common.exception.BizException;
 import com.paperaigc.detect.common.util.ParamUtils;
 import com.paperaigc.detect.domain.dto.DetectTaskQueryDTO;
 import com.paperaigc.detect.domain.dto.HumanizeDTO;
-import com.paperaigc.detect.domain.entity.AudioSegmentResult;
 import com.paperaigc.detect.domain.entity.DetectTask;
-import com.paperaigc.detect.domain.entity.ImageSegmentResult;
 import com.paperaigc.detect.domain.entity.ParagraphResult;
 import com.paperaigc.detect.domain.entity.SentenceResult;
 import com.paperaigc.detect.domain.vo.DetectTaskDetailVO;
@@ -31,7 +29,6 @@ import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -40,6 +37,7 @@ import java.util.Map;
 /**
  * 检测任务业务实现
  *
+ * <p>主方向：论文 AIGC 检测（text 模态）。音频 / 图像检测已暂停并归档，勿继续开发。</p>
  * <p>Phase 0：submit 后同步调 IInferenceClient 完成推理，立即返回 DONE 任务。
  * Phase B 起改为投消息队列 + 异步 Worker 走真实推理管线。</p>
  */
@@ -70,11 +68,7 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
             throw new BizException(ErrorCode.PARAM_INVALID, "unknown modality: " + mod);
         }
 
-        return switch (mod) {
-            case DetectConstants.MODALITY_AUDIO -> submitAudio(file, scenario, title, userId);
-            case DetectConstants.MODALITY_IMAGE -> submitImage(file, scenario, title, userId);
-            default -> submitText(file, scenario, degreeType, title, userId);
-        };
+        return submitText(file, scenario, degreeType, title, userId);
     }
 
     /* ==================== §3.1 文本模态 ==================== */
@@ -123,183 +117,6 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
         runInference(task, metas);
         taskRepository.update(task);
         return task;
-    }
-
-    /* ==================== §3.1 音频模态（Wave 5 · 骨架已就位；真模型待训练） ==================== */
-
-    private DetectTask submitAudio(MultipartFile file, String scenario, String title, Long userId) {
-        if (file.getSize() > DetectConstants.FILE_SIZE_MAX_AUDIO) {
-            throw new BizException(ErrorCode.DETECT_FILE_TOO_LARGE, "音频超过 50MB");
-        }
-        // 简化校验：MIME 或后缀命中即放行（audio 白名单）
-        String mime = file.getContentType();
-        String name = file.getOriginalFilename();
-        String ext = (name != null && name.lastIndexOf('.') >= 0)
-                ? name.substring(name.lastIndexOf('.') + 1).toLowerCase() : "";
-        boolean allowed = (mime != null && DetectConstants.ALLOWED_AUDIO_MIME.contains(mime))
-                || DetectConstants.ALLOWED_AUDIO_EXT.contains(ext);
-        if (!allowed) throw new BizException(ErrorCode.DETECT_FORMAT_UNSUPPORT, "音频格式不支持");
-
-        // scenario 对音频语义弱化，但仍支持传入（默认 other）
-        String sc = ParamUtils.isBlank(scenario) ? ScenarioConstants.OTHER : scenario;
-
-        String paperTitle = (title != null && !title.isBlank()) ? title : name;
-        DetectTask task = DetectTask.builder()
-                .userId(userId)
-                .modality(DetectConstants.MODALITY_AUDIO)
-                .paperTitle(paperTitle)
-                .status(DetectConstants.STATUS_PENDING)
-                .scenario(sc)
-                .threshold(scenarioThresholdService.threshold(sc))
-                .modelVersion("audio-stub-v0")
-                .originalFilename(name)
-                .fileSize(file.getSize())
-                .createdAt(LocalDateTime.now())
-                .build();
-        task = taskRepository.save(task);
-
-        try {
-            task.setFilePath(storageService.save(file, task.getId()));
-        } catch (Exception e) {
-            log.warn("save audio failed but continue task {}", task.getId(), e);
-        }
-
-        runAudioInference(task, file);
-        taskRepository.update(task);
-        return task;
-    }
-
-    @SuppressWarnings("unchecked")
-    private void runAudioInference(DetectTask task, MultipartFile file) {
-        try {
-            byte[] bytes = file.getBytes();
-            Map<String, Object> py = inferenceClient.detectAudio(bytes, file.getOriginalFilename(), true);
-
-            Double cp = ParamUtils.toDouble(py.get("calibrated_prob"));
-            Double durationSec = ParamUtils.toDouble(py.get("duration_sec"));
-            List<Map<String, Object>> raw = (List<Map<String, Object>>) py.getOrDefault("segments", List.of());
-
-            List<AudioSegmentResult> segments = new ArrayList<>(raw.size());
-            for (int i = 0; i < raw.size(); i++) {
-                Map<String, Object> s = raw.get(i);
-                segments.add(AudioSegmentResult.builder()
-                        .segmentIdx(ParamUtils.toInt(s.getOrDefault("segment_idx", i)))
-                        .timeStart(ParamUtils.toDouble(s.get("time_start")))
-                        .timeEnd(ParamUtils.toDouble(s.get("time_end")))
-                        .aiProb(ParamUtils.toDouble(s.get("ai_prob")))
-                        .calibratedProb(ParamUtils.toDouble(s.get("calibrated_prob")))
-                        .sourceLabel((String) s.get("source_label"))
-                        .waveformPeak(ParamUtils.toDouble(s.get("waveform_peak")))
-                        .build());
-            }
-
-            task.setAudioSegments(segments);
-            task.setAudioDurationSec(durationSec);
-            task.setAiRate(cp == null ? null : Math.round(cp * 1000) / 10.0);   // → 百分制一位小数
-            task.setStatus(DetectConstants.STATUS_DONE);
-            task.setFinishedAt(LocalDateTime.now());
-        } catch (Exception e) {
-            log.error("audio inference failed for task {}", task.getId(), e);
-            task.setStatus(DetectConstants.STATUS_FAILED);
-            task.setFinishedAt(LocalDateTime.now());
-        }
-    }
-
-    /* ==================== §3.1 图像模态（骨架已就位；Python 端点后补） ==================== */
-
-    private DetectTask submitImage(MultipartFile file, String scenario, String title, Long userId) {
-        if (file.getSize() > DetectConstants.FILE_SIZE_MAX_IMAGE) {
-            throw new BizException(ErrorCode.DETECT_FILE_TOO_LARGE, "图片超过 20MB");
-        }
-        String mime = file.getContentType();
-        String name = file.getOriginalFilename();
-        String ext = (name != null && name.lastIndexOf('.') >= 0)
-                ? name.substring(name.lastIndexOf('.') + 1).toLowerCase() : "";
-        boolean allowed = (mime != null && DetectConstants.ALLOWED_IMAGE_MIME.contains(mime))
-                || DetectConstants.ALLOWED_IMAGE_EXT.contains(ext);
-        if (!allowed) throw new BizException(ErrorCode.DETECT_FORMAT_UNSUPPORT, "图片格式不支持");
-
-        // scenario 对图像语义弱化，但仍支持传入（默认 other）
-        String sc = ParamUtils.isBlank(scenario) ? ScenarioConstants.OTHER : scenario;
-
-        String paperTitle = (title != null && !title.isBlank()) ? title : name;
-        DetectTask task = DetectTask.builder()
-                .userId(userId)
-                .modality(DetectConstants.MODALITY_IMAGE)
-                .paperTitle(paperTitle)
-                .status(DetectConstants.STATUS_PENDING)
-                .scenario(sc)
-                .threshold(scenarioThresholdService.threshold(sc))
-                .modelVersion("image-stub-v0")
-                .originalFilename(name)
-                .fileSize(file.getSize())
-                .createdAt(LocalDateTime.now())
-                .build();
-        task = taskRepository.save(task);
-
-        try {
-            task.setFilePath(storageService.save(file, task.getId()));
-        } catch (Exception e) {
-            log.warn("save image failed but continue task {}", task.getId(), e);
-        }
-
-        runImageInference(task, file);
-        taskRepository.update(task);
-        return task;
-    }
-
-    @SuppressWarnings("unchecked")
-    private void runImageInference(DetectTask task, MultipartFile file) {
-        try {
-            byte[] bytes = file.getBytes();
-            Map<String, Object> py = inferenceClient.detectImage(bytes, file.getOriginalFilename(), true);
-            fillImageResult(task, py);
-        } catch (Exception e) {
-            log.error("image inference failed for task {}", task.getId(), e);
-            task.setStatus(DetectConstants.STATUS_FAILED);
-            task.setFinishedAt(LocalDateTime.now());
-        }
-    }
-
-    /**
-     * runImageInference 的 bytes 版：retry 时从存储反读没有 MultipartFile，直接给字节流。
-     */
-    @SuppressWarnings("unchecked")
-    private void runImageInferenceBytes(DetectTask task, byte[] bytes) {
-        try {
-            Map<String, Object> py = inferenceClient.detectImage(bytes, task.getOriginalFilename(), true);
-            fillImageResult(task, py);
-        } catch (Exception e) {
-            log.error("image retry failed for task {}", task.getId(), e);
-            task.setStatus(DetectConstants.STATUS_FAILED);
-            task.setFinishedAt(LocalDateTime.now());
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private void fillImageResult(DetectTask task, Map<String, Object> py) {
-        Double cp = ParamUtils.toDouble(py.get("calibrated_prob"));
-        List<Map<String, Object>> raw = (List<Map<String, Object>>) py.getOrDefault("regions", List.of());
-
-        List<ImageSegmentResult> segs = new ArrayList<>(raw.size());
-        for (int i = 0; i < raw.size(); i++) {
-            Map<String, Object> r = raw.get(i);
-            segs.add(ImageSegmentResult.builder()
-                    .segmentIdx(ParamUtils.toInt(r.getOrDefault("segment_idx", i)))
-                    .x(ParamUtils.toInt(r.get("x")))
-                    .y(ParamUtils.toInt(r.get("y")))
-                    .w(ParamUtils.toInt(r.get("w")))
-                    .h(ParamUtils.toInt(r.get("h")))
-                    .aiProb(ParamUtils.toDouble(r.get("ai_prob")))
-                    .calibratedProb(ParamUtils.toDouble(r.get("calibrated_prob")))
-                    .sourceLabel((String) r.get("source_label"))
-                    .build());
-        }
-
-        task.setImageSegments(segs);
-        task.setAiRate(cp == null ? null : Math.round(cp * 1000) / 10.0);   // → 百分制一位小数
-        task.setStatus(DetectConstants.STATUS_DONE);
-        task.setFinishedAt(LocalDateTime.now());
     }
 
     /**
@@ -429,8 +246,6 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
         task.setFinishedAt(null);
         task.setAiRate(null);
         task.setParagraphs(null);
-        task.setAudioSegments(null);
-        task.setImageSegments(null);
         task.setSourceLabels(null);
 
         if (task.getFilePath() == null || !storageService.exists(task.getFilePath())) {
@@ -440,27 +255,12 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
             return task;
         }
 
-        String mod = task.getModality() == null ? DetectConstants.MODALITY_TEXT : task.getModality();
         try {
-            if (DetectConstants.MODALITY_AUDIO.equals(mod)) {
-                byte[] bytes;
-                try (java.io.InputStream is = storageService.read(task.getFilePath())) {
-                    bytes = is.readAllBytes();
-                }
-                runAudioInferenceBytes(task, bytes);
-            } else if (DetectConstants.MODALITY_IMAGE.equals(mod)) {
-                byte[] bytes;
-                try (java.io.InputStream is = storageService.read(task.getFilePath())) {
-                    bytes = is.readAllBytes();
-                }
-                runImageInferenceBytes(task, bytes);
-            } else {
-                try (java.io.InputStream is = storageService.read(task.getFilePath())) {
-                    String fullText = textProcessor.extractText(is, task.getOriginalFilename());
-                    List<String> raw = textProcessor.splitParagraphs(fullText);
-                    List<Map<String, Object>> metas = textProcessor.filterNonBody(raw);
-                    runInference(task, metas);
-                }
+            try (java.io.InputStream is = storageService.read(task.getFilePath())) {
+                String fullText = textProcessor.extractText(is, task.getOriginalFilename());
+                List<String> raw = textProcessor.splitParagraphs(fullText);
+                List<Map<String, Object>> metas = textProcessor.filterNonBody(raw);
+                runInference(task, metas);
             }
         } catch (BizException e) {
             task.setStatus(DetectConstants.STATUS_FAILED);
@@ -472,43 +272,6 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
 
         taskRepository.update(task);
         return task;
-    }
-
-    /**
-     * runAudioInference 的 bytes 版：retry 时从存储反读没有 MultipartFile，直接给字节流。
-     */
-    @SuppressWarnings("unchecked")
-    private void runAudioInferenceBytes(DetectTask task, byte[] bytes) {
-        try {
-            Map<String, Object> py = inferenceClient.detectAudio(bytes, task.getOriginalFilename(), true);
-            Double cp = ParamUtils.toDouble(py.get("calibrated_prob"));
-            Double durationSec = ParamUtils.toDouble(py.get("duration_sec"));
-            List<Map<String, Object>> raw = (List<Map<String, Object>>) py.getOrDefault("segments", List.of());
-
-            List<AudioSegmentResult> segments = new ArrayList<>(raw.size());
-            for (int i = 0; i < raw.size(); i++) {
-                Map<String, Object> s = raw.get(i);
-                segments.add(AudioSegmentResult.builder()
-                        .segmentIdx(ParamUtils.toInt(s.getOrDefault("segment_idx", i)))
-                        .timeStart(ParamUtils.toDouble(s.get("time_start")))
-                        .timeEnd(ParamUtils.toDouble(s.get("time_end")))
-                        .aiProb(ParamUtils.toDouble(s.get("ai_prob")))
-                        .calibratedProb(ParamUtils.toDouble(s.get("calibrated_prob")))
-                        .sourceLabel((String) s.get("source_label"))
-                        .waveformPeak(ParamUtils.toDouble(s.get("waveform_peak")))
-                        .build());
-            }
-
-            task.setAudioSegments(segments);
-            task.setAudioDurationSec(durationSec);
-            task.setAiRate(cp == null ? null : Math.round(cp * 1000) / 10.0);
-            task.setStatus(DetectConstants.STATUS_DONE);
-            task.setFinishedAt(LocalDateTime.now());
-        } catch (Exception e) {
-            log.error("audio retry failed for task {}", task.getId(), e);
-            task.setStatus(DetectConstants.STATUS_FAILED);
-            task.setFinishedAt(LocalDateTime.now());
-        }
     }
 
     /* ==================== §3.5 取消 ==================== */

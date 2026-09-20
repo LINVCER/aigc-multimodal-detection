@@ -1,5 +1,7 @@
 # paper-aigc-detect · 论文 AIGC 检测平台
 
+> **当前主方向：论文 AIGC 检测（文本态）。** 音频 / 图像检测已暂停，相关代码与模型已归档至 `_archive/`，请勿继续开发这两个方向。
+
 C 端为主的 AIGC 检测 + 降 AIGC 工具。6 场景红线（本科 20% / 硕士 15% / 博士 10% / 职业报告 15% / 自媒体 30% / 其他 25%）。
 
 ## 三端独立架构
@@ -47,7 +49,8 @@ paper-aigc-detect/
 │   ├── design/                   ← 需求 · 架构 · 需求评审
 │   ├── database/                 ← ER 图 / 老 schema 归档
 │   └── releases/                 ← 版本文档中心 + Flyway 风格 SQL 迁移
-└── models/                       ← 训练好的老模型权重（.gitignore；本地兜底）
+├── models/                       ← 训练好的老模型权重（.gitignore；本地兜底）
+└── _archive/                     ← 已暂停的音频/图像模块归档（模型·代码·SQL·文档，.gitignore）
 ```
 
 ## 版本管理

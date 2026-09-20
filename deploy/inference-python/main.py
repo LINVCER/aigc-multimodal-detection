@@ -1,4 +1,9 @@
 """
+论文 AIGC 检测推理服务（主方向：文本态）
+=========================================
+
+音频 / 图像检测已暂停，相关代码归档于 _archive/，请勿继续开发该方向。
+
 Phase 0 → Phase 1 推理服务
 ==========================
 
@@ -11,9 +16,6 @@ env / .env 配置：
     TEXT_DEVICE            cpu / cuda:0
     TEXT_MAX_LENGTH        512（可被 checkpoint.hyperparams 覆盖）
     TEXT_MODEL_VERSION     报给前端的版本标签
-
-音频检测：detectors/audio.py 骨架就位，加载 & predict 实现待 Wave 5 训练启动后填充；
-未加载时 /api/v1/detect/audio 走 MD5 stub 兜底。图像检测 Wave 5 议。
 """
 from __future__ import annotations
 
@@ -23,10 +25,9 @@ import os
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI, File, Form, UploadFile
+from fastapi import FastAPI
 from pydantic import BaseModel
 
-from detectors.audio import AudioAIGCDetector
 from detectors.text import TextAIGCDetector
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s | %(message)s")
@@ -39,8 +40,6 @@ log = logging.getLogger("inference")
 
 text_detector: TextAIGCDetector | None = None
 text_load_error: str | None = None
-audio_detector: AudioAIGCDetector | None = None
-audio_load_error: str | None = None
 
 
 def _bootstrap_text_detector() -> None:
@@ -73,36 +72,9 @@ def _bootstrap_text_detector() -> None:
         log.exception("text detector load failed, fallback stub")
 
 
-def _bootstrap_audio_detector() -> None:
-    global audio_detector, audio_load_error
-    base = os.getenv("AUDIO_BASE_MODEL_PATH", "").strip()
-    ckpt = os.getenv("AUDIO_CHECKPOINT_PATH", "").strip()
-    if not base or not ckpt or not os.path.exists(ckpt):
-        audio_load_error = "AUDIO_BASE_MODEL_PATH / AUDIO_CHECKPOINT_PATH 未就绪，fallback stub（Wave 5 待接入）"
-        log.info(audio_load_error)
-        return
-    try:
-        detector = AudioAIGCDetector(
-            base_model_path=base,
-            checkpoint_path=ckpt,
-            device=os.getenv("AUDIO_DEVICE", "cpu"),
-            window_sec=float(os.getenv("AUDIO_WINDOW_SEC", "3.0")),
-            stride_sec=float(os.getenv("AUDIO_STRIDE_SEC", "1.0")),
-            model_version=os.getenv("AUDIO_MODEL_VERSION", "audio_v0"),
-        )
-        detector.load()
-        audio_detector = detector
-        audio_load_error = None
-        log.info("audio detector activated")
-    except Exception as e:
-        audio_load_error = f"加载失败：{type(e).__name__}: {e}"
-        log.exception("audio detector load failed, fallback stub")
-
-
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     _bootstrap_text_detector()
-    _bootstrap_audio_detector()
     yield
     # no explicit teardown
 
@@ -278,104 +250,12 @@ def health() -> dict[str, Any]:
             "load_error": text_load_error,
             "detail": text_detector.health() if text_detector else None,
         },
-        "audio": {
-            "backend": "real" if audio_detector else "stub",
-            "load_error": audio_load_error,
-            "detail": audio_detector.health() if audio_detector else None,
-        },
     }
 
 
 @app.post("/api/v1/detect/paragraph", response_model=DetectParagraphResponse)
 def detect_paragraph(req: DetectParagraphRequest) -> DetectParagraphResponse:
     return _detect_one(req)
-
-
-@app.post("/api/v1/detect/audio")
-def detect_audio(
-    file: UploadFile = File(...),
-    return_segments: str = Form("true"),
-) -> dict[str, Any]:
-    """
-    音频 AI 检测（Wave 5 骨架 · 当前走 stub 兜底）
-
-    多部分表单：
-      - file: 音频文件（mp3/wav/m4a/flac/ogg/webm）
-      - return_segments: "true" / "false"
-
-    返回 schema（跟 Java 端 AudioSegmentResult / DetectTaskDetailVO 对齐）：
-      { ai_prob, calibrated_prob, duration_sec, model_version, segments: [
-          { segment_idx, time_start, time_end, ai_prob, calibrated_prob, waveform_peak? }
-      ]}
-    """
-    want_seg = str(return_segments).lower() == "true"
-    audio_bytes = file.file.read()
-
-    if audio_detector is not None:
-        try:
-            pred = audio_detector.predict(audio_bytes, file.filename or "audio.bin")
-            return {
-                "ai_prob": round(pred.ai_prob, 4),
-                "calibrated_prob": round(pred.calibrated_prob, 4),
-                "duration_sec": round(pred.duration_sec, 2),
-                "model_version": pred.model_version,
-                "segments": [
-                    {
-                        "segment_idx": s.segment_idx,
-                        "time_start": round(s.time_start, 2),
-                        "time_end": round(s.time_end, 2),
-                        "ai_prob": round(s.ai_prob, 4),
-                        "calibrated_prob": round(s.calibrated_prob, 4),
-                        "source_label": s.source_label,
-                        "waveform_peak": s.waveform_peak,
-                    }
-                    for s in pred.segments
-                ] if want_seg else [],
-            }
-        except NotImplementedError:
-            log.info("audio detector loaded but predict() unimplemented, fallback stub")
-        except Exception:
-            log.exception("audio real inference failed, fallback stub")
-
-    return _audio_stub(audio_bytes, file.filename or "audio.bin", want_seg)
-
-
-def _audio_stub(audio_bytes: bytes, filename: str, want_seg: bool) -> dict[str, Any]:
-    """确定性 stub：MD5 取模生成假 ai_prob + 假 duration_sec + 假 segments"""
-    h = hashlib.md5((filename + str(len(audio_bytes))).encode()).digest()
-    seed = int.from_bytes(h[:4], "big") / 0xFFFFFFFF
-    duration = 15.0 + (int.from_bytes(h[4:6], "big") % 600) / 10.0   # 15-75s
-    ai_prob = seed
-    calibrated = min(1.0, max(0.0, ai_prob * 0.9 + 0.05))
-
-    segments = []
-    if want_seg:
-        window, stride = 3.0, 1.0
-        t = 0.0
-        idx = 0
-        while t < duration:
-            end = min(t + window, duration)
-            local = _deterministic_prob(f"{filename}|{idx}", "aud")
-            local_cal = min(1.0, max(0.0, local * 0.9 + 0.05))
-            segments.append({
-                "segment_idx": idx,
-                "time_start": round(t, 2),
-                "time_end": round(end, 2),
-                "ai_prob": round(local, 4),
-                "calibrated_prob": round(local_cal, 4),
-                "source_label": "tts" if local >= 0.7 else ("cloned_voice" if local >= 0.4 else "real_human"),
-                "waveform_peak": round(0.3 + _deterministic_prob(f"{filename}|peak|{idx}") * 0.6, 3),
-            })
-            idx += 1
-            t += stride
-
-    return {
-        "ai_prob": round(ai_prob, 4),
-        "calibrated_prob": round(calibrated, 4),
-        "duration_sec": round(duration, 2),
-        "model_version": "audio-stub-v0",
-        "segments": segments,
-    }
 
 
 @app.post("/api/v1/detect/batch", response_model=DetectBatchResponse)

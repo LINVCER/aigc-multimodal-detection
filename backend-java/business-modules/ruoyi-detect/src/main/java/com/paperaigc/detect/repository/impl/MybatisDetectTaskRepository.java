@@ -33,7 +33,6 @@ import java.util.stream.Collectors;
  *       生产改为按 idx 差量更新</li>
  *   <li>findAll 只查主表（不加载 paragraphs / sentences），列表接口性能优先</li>
  *   <li>findById 一次拉主表 + 段全量 + 句全量，Service 层组装：句按 paragraphIdx 分组塞回段</li>
- *   <li>音频段 audioSegments 通过 detect_task.audio_segments_json 单列 JSON 存储（无独立表）</li>
  * </ul>
  */
 @Primary

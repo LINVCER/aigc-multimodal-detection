@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS user_profile (
 CREATE TABLE IF NOT EXISTS detect_task (
   id                        BIGINT PRIMARY KEY AUTO_INCREMENT,
   user_id                   BIGINT NULL COMMENT 'Sa-Token 接入后填 sys_user.user_id',
-  modality                  VARCHAR(16) NOT NULL DEFAULT 'text' COMMENT '模态：text / audio / image',
+  modality                  VARCHAR(16) NOT NULL DEFAULT 'text' COMMENT '模态：text',
   paper_title               VARCHAR(255) NOT NULL,
   status                    VARCHAR(16) NOT NULL COMMENT 'PENDING / RUNNING / DONE / FAILED',
   scenario                  VARCHAR(32) NOT NULL COMMENT '场景码 academic_bachelor 等',
@@ -106,9 +106,6 @@ CREATE TABLE IF NOT EXISTS detect_task (
   word_count                INT NULL,
   body_paragraph_count      BIGINT NULL,
   excluded_paragraph_count  INT NULL,
-  audio_duration_sec        DECIMAL(8,2) NULL COMMENT '音频总时长（秒 · audio 模态）',
-  audio_segments_json       JSON NULL COMMENT '音频段级 · [{segmentIdx,timeStart,timeEnd,aiProb,calibratedProb,sourceLabel,waveformPeak}]',
-  image_segments_json       JSON NULL COMMENT '图像区域级 · [{segmentIdx,x,y,w,h,aiProb,calibratedProb,sourceLabel}]',
   source_labels_json        JSON NULL COMMENT '溯源分布 { qwen:0.4, gpt:0.3, ... }',
   created_at                DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   finished_at               DATETIME NULL,

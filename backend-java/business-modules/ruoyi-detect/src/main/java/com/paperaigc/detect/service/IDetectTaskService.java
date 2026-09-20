@@ -13,17 +13,19 @@ import java.util.Map;
 
 /**
  * 检测任务业务接口
+ *
+ * <p>主方向：论文 AIGC 检测（text 模态）。音频 / 图像检测已暂停并归档，勿继续开发。</p>
  */
 public interface IDetectTaskService {
 
     /**
-     * §3.1 提交检测（支持 text / audio / image 多模态）
-     * @param file 上传文件（论文 / 音频 / 图像）
+     * §3.1 提交检测（文本 / 论文检测）
+     * @param file 上传文件（论文文档）
      * @param scenario 场景码（academic_bachelor 等）；null / 空时兜底 other
      * @param degreeType 旧字段兼容：BACHELOR/MASTER/PHD 迁移到 scenario；scenario 非空时忽略
      * @param title 标题；缺省用文件名
      * @param userId 提交用户 ID（Sa-Token 接入后从上下文取；未登录场景 null）
-     * @param modality 模态：text / audio / image；null 时按文件后缀猜（DetectConstants.guessModality）
+     * @param modality 模态（当前仅支持 text；字段保留兼容）
      * @return 新建任务实体
      */
     DetectTask submit(MultipartFile file, String scenario, String degreeType, String title, Long userId, String modality);
