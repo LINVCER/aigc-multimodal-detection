@@ -125,7 +125,6 @@ button::after { border: none; }
 
 /* 无 icon 时（当前 pages.json 未配 iconPath），label 单独居中 · 加大点触区 */
 /* stylelint-disable-next-line selector-class-pattern */
-.uni-tabbar__item:has(.uni-tabbar__icon:empty) .uni-tabbar__label,
 .uni-tabbar__label:only-child {
   font-size: $fs-footnote !important;
   padding: $sp-2 0;
