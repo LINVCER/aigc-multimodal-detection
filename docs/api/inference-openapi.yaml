@@ -1,0 +1,336 @@
+openapi: 3.0.3
+info:
+  title: 论文 AIGC 检测平台 · Python 推理服务 API
+  description: |
+    独立的 FastAPI 推理服务（`deploy/inference-python`），由 Java 后端内部调用，亦可用于前端联调。
+    端点对齐 `backend-java/.../proto/detection.proto`。
+    文本检测为真实推理（失败自动兜底到 MD5 stub）；音频 / 降改写 / 溯源当前为 stub 占位。
+  version: 0.2.0
+  contact:
+    name: PaperAIGC Team
+
+servers:
+  - url: http://localhost:18000
+    description: 本地开发（与 backend-java application-dev.yml `platform.inference.port` 对齐）
+
+tags:
+  - name: inference
+    description: 检测 / 改写 / 溯源推理
+
+paths:
+  /health:
+    get:
+      tags: [inference]
+      operationId: health
+      summary: 服务健康与模型加载状态
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /api/v1/detect/paragraph:
+    post:
+      tags: [inference]
+      operationId: detectParagraph
+      summary: 段落级文本 AIGC 检测
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DetectParagraphRequest'
+      responses:
+        '200':
+          description: 检测结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetectParagraphResponse'
+
+  /api/v1/detect/batch:
+    post:
+      tags: [inference]
+      operationId: detectBatch
+      summary: 批量段落检测
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DetectBatchRequest'
+      responses:
+        '200':
+          description: 批量结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetectBatchResponse'
+
+  /api/v1/detect/audio:
+    post:
+      tags: [inference]
+      operationId: detectAudio
+      summary: 音频 AIGC 检测（分段，当前 stub 兜底）
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: 音频文件（mp3/wav/m4a/flac/ogg/webm）
+                return_segments:
+                  type: string
+                  description: 取值 true 或 false，控制是否返回分段明细
+      responses:
+        '200':
+          description: 音频检测结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AudioDetectResponse'
+
+  /api/v1/humanize:
+    post:
+      tags: [inference]
+      operationId: humanize
+      summary: 降 AIGC 改写（当前 stub）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HumanizeRequest'
+      responses:
+        '200':
+          description: 改写结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HumanizeResponse'
+
+  /api/v1/attribute:
+    post:
+      tags: [inference]
+      operationId: attribute
+      summary: 文本溯源头（当前 stub）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttributeRequest'
+      responses:
+        '200':
+          description: 溯源结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttributeResponse'
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        service:
+          type: string
+        version:
+          type: string
+        text:
+          type: object
+          properties:
+            backend:
+              type: string
+              enum: [real, stub]
+            load_error:
+              type: string
+              nullable: true
+            detail:
+              type: object
+              nullable: true
+        audio:
+          type: object
+          properties:
+            backend:
+              type: string
+              enum: [real, stub]
+            load_error:
+              type: string
+              nullable: true
+            detail:
+              type: object
+              nullable: true
+
+    DetectParagraphRequest:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+        model_version:
+          type: string
+          nullable: true
+        return_calibrated:
+          type: boolean
+          default: true
+        return_sentences:
+          type: boolean
+          default: false
+
+    DetectParagraphResponse:
+      type: object
+      properties:
+        ai_prob:
+          type: number
+          format: float
+        calibrated_prob:
+          type: number
+          format: float
+        interval:
+          type: object
+          properties:
+            lower:
+              type: number
+              format: float
+            upper:
+              type: number
+              format: float
+        risk_level:
+          type: string
+          enum: [low, medium, high]
+        warning:
+          type: string
+        branch_scores:
+          type: object
+          additionalProperties:
+            type: number
+            format: float
+        sentences:
+          type: array
+          items:
+            $ref: '#/components/schemas/SentenceScore'
+        model_version:
+          type: string
+
+    SentenceScore:
+      type: object
+      properties:
+        sentence_idx:
+          type: integer
+        offset_start:
+          type: integer
+        offset_end:
+          type: integer
+        ai_prob:
+          type: number
+          format: float
+
+    DetectBatchRequest:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DetectParagraphRequest'
+
+    DetectBatchResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DetectParagraphResponse'
+
+    AudioDetectResponse:
+      type: object
+      properties:
+        ai_prob:
+          type: number
+          format: float
+        calibrated_prob:
+          type: number
+          format: float
+        duration_sec:
+          type: number
+          format: float
+        model_version:
+          type: string
+        segments:
+          type: array
+          items:
+            $ref: '#/components/schemas/AudioSegment'
+
+    AudioSegment:
+      type: object
+      properties:
+        segment_idx:
+          type: integer
+        time_start:
+          type: number
+          format: float
+        time_end:
+          type: number
+          format: float
+        ai_prob:
+          type: number
+          format: float
+        calibrated_prob:
+          type: number
+          format: float
+        source_label:
+          type: string
+        waveform_peak:
+          type: number
+          format: float
+
+    HumanizeRequest:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+        style:
+          type: string
+          default: academic
+        model_version:
+          type: string
+          nullable: true
+
+    HumanizeResponse:
+      type: object
+      properties:
+        rewritten_text:
+          type: string
+        quality_score:
+          type: number
+          format: float
+        model_version:
+          type: string
+
+    AttributeRequest:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+
+    AttributeResponse:
+      type: object
+      properties:
+        source_probs:
+          type: object
+          additionalProperties:
+            type: number
+            format: float
+        top_source:
+          type: string

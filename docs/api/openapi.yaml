@@ -1,0 +1,1084 @@
+openapi: 3.0.3
+info:
+  title: 论文 AIGC 检测平台 · 后端业务 API
+  description: |
+    面向论文 AIGC 检测平台的 Java 后端（RuoYi-Vue-Plus 基座 + ruoyi-detect 业务模块）对外/管理端接口。
+    统一响应包裹 `R<T>`：`{ code, msg, data }`，`code=200` 表示成功。
+    推理层接口（/api/v1/detect/paragraph 的内部实现）见 `inference-openapi.yaml`（独立服务于 18000 端口）。
+  version: 0.2.0
+  contact:
+    name: PaperAIGC Team
+
+servers:
+  - url: http://localhost:8080
+    description: 本地开发（前后端统一端口 8080）
+
+tags:
+  - name: auth
+    description: 认证与当前用户
+  - name: detect
+    description: 论文检测核心流程
+  - name: report
+    description: 检测报告
+  - name: feedback
+    description: 用户反馈（C 端 + 管理端）
+  - name: admin
+    description: 运营管理端
+
+paths:
+  # ==================== 认证 ====================
+  /api/v1/auth/login:
+    post:
+      tags: [auth]
+      operationId: login
+      summary: 登录
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginDTO'
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/R'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/LoginVO'
+
+  /api/v1/auth/logout:
+    post:
+      tags: [auth]
+      operationId: logout
+      summary: 登出
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      responses:
+        '200':
+          description: 登出成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/R'
+
+  /api/v1/auth/me:
+    get:
+      tags: [auth]
+      operationId: currentUser
+      summary: 当前登录用户信息
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/R'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AuthUser'
+
+  # ==================== 检测 ====================
+  /api/v1/detect/submit:
+    post:
+      tags: [detect]
+      operationId: submitTask
+      summary: 提交论文检测（上传文档）
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: 待检测文档（.txt / .docx / .pdf）
+                scenario:
+                  type: string
+                  description: 使用场景，如 academic_bachelor / academic_master / academic_phd / job_report / self_media / other
+                degreeType:
+                  type: string
+                  description: 兼容旧字段，等价于 scenario 的部分取值
+                title:
+                  type: string
+                  description: 论文标题（缺省用文件名）
+                userId:
+                  type: integer
+                  format: int64
+                  description: 提交者 ID（Sa-Token 接入前透传）
+      responses:
+        '200':
+          description: 提交成功，返回任务基本信息
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/R'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SubmitResponse'
+
+  /api/v1/detect/tasks:
+    get:
+      tags: [detect]
+      operationId: listTasks
+      summary: 任务分页列表
+      parameters:
+        - $ref: '#/components/parameters/DetectTaskQuery'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/R'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/PageVO'
+                          - type: object
+                            properties:
+                              rows:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/DetectTaskVO'
+
+  /api/v1/detect/tasks/{id}:
+    get:
+      tags: [detect]
+      operationId: getTaskDetail
+      summary: 任务详情（含段落与句级结果）
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/R'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/DetectTaskDetailVO'
+    delete:
+      tags: [detect]
+      operationId: deleteTask
+      summary: 删除任务
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/R'
+
+  /api/v1/detect/tasks/{id}/retry:
+    post:
+      tags: [detect]
+      operationId: retryTask
+      summary: 重试任务
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/R'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/DetectTaskDetailVO'
+
+  /api/v1/detect/tasks/{id}/cancel:
+    post:
+      tags: [detect]
+      operationId: cancelTask
+      summary: 取消任务
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/R'
+
+  /api/v1/detect/statistics:
+    get:
+      tags: [detect]
+      operationId: statistics
+      summary: C 端 Dashboard 统计（30 天趋势）
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/R'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/StatisticsVO'
+
+  /api/v1/detect/paragraph:
+    post:
+      tags: [detect]
+      operationId: detectParagraph
+      summary: 单段文本直接检测（粘贴文本）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParagraphDetectDTO'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/R'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ParagraphDetectResult'
+
+  /api/v1/detect/health:
+    get:
+      tags: [detect]
+      operationId: inferenceHealth
+      summary: 推理服务健康检查
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/R'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+
+  /api/v1/humanize:
+    post:
+      tags: [detect]
+      operationId: humanize
+      summary: 降 AIGC 改写
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HumanizeDTO'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/R'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/HumanizeResult'
+
+  # ==================== 报告 ====================
+  /api/v1/report/tasks/{id}/pdf:
+    get:
+      tags: [report]
+      operationId: downloadReportPdf
+      summary: 下载检测报告 PDF
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: PDF 文件流
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+  # ==================== 反馈 ====================
+  /api/v1/feedback:
+    post:
+      tags: [feedback]
+      operationId: submitFeedback
+      summary: 提交反馈
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackSubmitDTO'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/R'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+
+  /api/v1/feedback/mine:
+    get:
+      tags: [feedback]
+      operationId: myFeedback
+      summary: 我的反馈历史（分页）
+      parameters:
+        - in: query
+          name: userId
+          schema:
+            type: integer
+            format: int64
+          required: true
+          description: 用户 ID
+        - $ref: '#/components/parameters/PageNum'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/R'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/PageVO'
+                          - type: object
+                            properties:
+                              rows:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/FeedbackVO'
+
+  /admin/feedback/list:
+    get:
+      tags: [feedback]
+      operationId: adminFeedbackList
+      summary: 管理端反馈列表（分页）
+      parameters:
+        - $ref: '#/components/parameters/FeedbackQuery'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/R'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/PageVO'
+                          - type: object
+                            properties:
+                              rows:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/FeedbackVO'
+
+  /admin/feedback/{id}/handle:
+    post:
+      tags: [feedback]
+      operationId: handleFeedback
+      summary: 处理反馈
+      parameters:
+        - $ref: '#/components/parameters/FeedbackId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackHandleDTO'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/R'
+
+  # ==================== 管理端 ====================
+  /admin/dashboard:
+    get:
+      tags: [admin]
+      operationId: adminDashboard
+      summary: 运营大盘指标
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/R'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+
+  /admin/task/list:
+    get:
+      tags: [admin]
+      operationId: adminTaskList
+      summary: 管理端任务列表（分页）
+      parameters:
+        - $ref: '#/components/parameters/DetectTaskQuery'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/R'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/PageVO'
+                          - type: object
+                            properties:
+                              rows:
+                                type: array
+                                items:
+                                  type: object
+
+  /admin/user/list:
+    get:
+      tags: [admin]
+      operationId: adminUserList
+      summary: 管理端用户列表（分页）
+      parameters:
+        - $ref: '#/components/parameters/AdminUserQuery'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/R'
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/PageVO'
+                          - type: object
+                            properties:
+                              rows:
+                                type: array
+                                items:
+                                  $ref: '#/components/schemas/AdminUserVO'
+
+  /admin/user/{id}:
+    get:
+      tags: [admin]
+      operationId: adminUserDetail
+      summary: 管理端用户详情
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/R'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/AdminUserVO'
+
+  /admin/user/{id}/ban:
+    post:
+      tags: [admin]
+      operationId: banUser
+      summary: 封禁用户
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/R'
+
+  /admin/user/{id}/unban:
+    post:
+      tags: [admin]
+      operationId: unbanUser
+      summary: 解封用户
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/R'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Sa-Token 登录令牌（登出 / 当前用户接口使用）
+
+  parameters:
+    AuthorizationHeader:
+      in: header
+      name: Authorization
+      required: true
+      schema:
+        type: string
+      description: 令牌，如 Bearer <token>
+    TaskId:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: integer
+        format: int64
+      description: 任务 ID
+    FeedbackId:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: integer
+        format: int64
+      description: 反馈 ID
+    UserId:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: integer
+        format: int64
+      description: 用户 ID
+    PageNum:
+      in: query
+      name: pageNum
+      schema:
+        type: integer
+        default: 1
+      description: 页码（从 1 开始）
+    PageSize:
+      in: query
+      name: pageSize
+      schema:
+        type: integer
+        default: 20
+      description: 每页数量
+    DetectTaskQuery:
+      in: query
+      name: query
+      schema:
+        $ref: '#/components/schemas/DetectTaskQueryDTO'
+      style: form
+      explode: true
+    FeedbackQuery:
+      in: query
+      name: query
+      schema:
+        $ref: '#/components/schemas/FeedbackQueryDTO'
+      style: form
+      explode: true
+    AdminUserQuery:
+      in: query
+      name: query
+      schema:
+        $ref: '#/components/schemas/AdminUserQueryDTO'
+      style: form
+      explode: true
+
+  schemas:
+    R:
+      type: object
+      description: 若依统一响应包裹
+      properties:
+        code:
+          type: integer
+          description: 状态码，200 表示成功
+        msg:
+          type: string
+          description: 提示信息
+        data:
+          description: 业务数据
+
+    # ---------- 认证 ----------
+    LoginDTO:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          description: 用户名
+        password:
+          type: string
+          format: password
+          description: 密码
+
+    LoginVO:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: 访问令牌
+        user:
+          $ref: '#/components/schemas/AuthUser'
+
+    AuthUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        username:
+          type: string
+        realName:
+          type: string
+        role:
+          type: string
+          enum: [OPS_ADMIN, USER, ADMIN]
+        orgName:
+          type: string
+
+    # ---------- 检测 ----------
+    SubmitResponse:
+      type: object
+      properties:
+        taskId:
+          type: integer
+          format: int64
+        paperTitle:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, RUNNING, DONE, FAILED]
+        createdAt:
+          type: string
+          format: date-time
+
+    DetectTaskQueryDTO:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [PENDING, RUNNING, DONE, FAILED]
+        scenario:
+          type: string
+        keyword:
+          type: string
+          description: paperTitle 大小写不敏感模糊
+        userId:
+          type: integer
+          format: int64
+        minAiRate:
+          type: number
+          format: double
+        maxAiRate:
+          type: number
+          format: double
+        pageNum:
+          type: integer
+          default: 1
+        pageSize:
+          type: integer
+          default: 20
+
+    PageVO:
+      type: object
+      properties:
+        total:
+          type: integer
+          format: int64
+          description: 总数
+        rows:
+          type: array
+          items: {}
+
+    DetectTaskVO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        userId:
+          type: integer
+          format: int64
+        paperTitle:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, RUNNING, DONE, FAILED]
+        scenario:
+          type: string
+        threshold:
+          type: integer
+          description: 场景 AI 率红线（%）
+        aiRate:
+          type: number
+          format: double
+          description: 整体 AI 率（%）
+        modelVersion:
+          type: string
+        wordCount:
+          type: integer
+        bodyParagraphCount:
+          type: integer
+          format: int64
+        excludedParagraphCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+
+    DetectTaskDetailVO:
+      allOf:
+        - $ref: '#/components/schemas/DetectTaskVO'
+        - type: object
+          properties:
+            paragraphs:
+              type: array
+              items:
+                $ref: '#/components/schemas/ParagraphResult'
+            sourceLabels:
+              type: object
+              additionalProperties:
+                type: number
+                format: double
+              description: 溯源汇总 sourceLabel -> 比例
+
+    ParagraphResult:
+      type: object
+      properties:
+        paragraphIdx:
+          type: integer
+        text:
+          type: string
+        excluded:
+          type: boolean
+        excludeReason:
+          type: string
+          enum: [reference, acknowledgement, appendix, sectionTitle, caption]
+        aiProb:
+          type: number
+          format: double
+          description: 原始 AI 概率（未校准）
+        calibratedProb:
+          type: number
+          format: double
+          description: 校准后 AI 概率
+        confidenceInterval:
+          description: 置信区间 [lower, upper]
+        sourceLabel:
+          type: string
+          description: 疑似来源 gpt / claude / qwen / deepseek / human 等
+        sectionName:
+          type: string
+        warnings:
+          type: array
+          items:
+            type: string
+        sentences:
+          type: array
+          items:
+            $ref: '#/components/schemas/SentenceResult'
+
+    SentenceResult:
+      type: object
+      properties:
+        sentenceIdx:
+          type: integer
+        text:
+          type: string
+        aiProb:
+          type: number
+          format: double
+
+    StatisticsVO:
+      type: object
+      properties:
+        today:
+          type: integer
+        thisMonth:
+          type: integer
+        total:
+          type: integer
+        done:
+          type: integer
+        avgAiRate:
+          type: number
+          format: double
+          description: 平均 AI 率（%）
+        passRate:
+          type: number
+          format: double
+          description: 达标率（%）
+        dailyTrend:
+          type: array
+          items:
+            $ref: '#/components/schemas/DailyTrendRow'
+
+    DailyTrendRow:
+      type: object
+      properties:
+        date:
+          type: string
+          description: yyyy-MM-dd
+        count:
+          type: integer
+        avgRate:
+          type: number
+          format: double
+
+    ParagraphDetectDTO:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+          description: 待检测文本
+        returnSentences:
+          type: boolean
+          default: true
+
+    ParagraphDetectResult:
+      type: object
+      properties:
+        aiProb:
+          type: number
+          format: double
+        calibratedProb:
+          type: number
+          format: double
+        interval:
+          type: object
+          properties:
+            lower:
+              type: number
+              format: double
+            upper:
+              type: number
+              format: double
+        riskLevel:
+          type: string
+          enum: [low, medium, high]
+        branchScores:
+          type: object
+          additionalProperties:
+            type: number
+            format: double
+        sentences:
+          type: array
+          items:
+            $ref: '#/components/schemas/SentenceResult'
+        modelVersion:
+          type: string
+
+    HumanizeDTO:
+      type: object
+      properties:
+        taskId:
+          type: integer
+          format: int64
+        paragraphIdx:
+          type: integer
+        text:
+          type: string
+          description: 直接给原文（无 taskId 时用）
+        style:
+          type: string
+          enum: [academic, casual, concise]
+          default: academic
+
+    HumanizeResult:
+      type: object
+      properties:
+        rewrittenText:
+          type: string
+        qualityScore:
+          type: number
+          format: double
+
+    # ---------- 反馈 ----------
+    FeedbackSubmitDTO:
+      type: object
+      required: [category, content]
+      properties:
+        category:
+          type: string
+          enum: [bug, suggestion, appeal]
+        content:
+          type: string
+          maxLength: 2000
+        taskId:
+          type: integer
+          format: int64
+          description: 结果申诉关联的检测任务 ID
+        contact:
+          type: string
+          maxLength: 128
+        userId:
+          type: integer
+          format: int64
+
+    FeedbackQueryDTO:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [PENDING, PROCESSING, REPLIED, IGNORED]
+        keyword:
+          type: string
+        userId:
+          type: integer
+          format: int64
+        pageNum:
+          type: integer
+          default: 1
+        pageSize:
+          type: integer
+          default: 20
+
+    FeedbackHandleDTO:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [PROCESSING, REPLIED, IGNORED]
+          default: REPLIED
+        reply:
+          type: string
+          description: 回复内容，REPLIED 状态必填
+        handledBy:
+          type: integer
+          format: int64
+
+    FeedbackVO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        userId:
+          type: integer
+          format: int64
+        category:
+          type: string
+        taskId:
+          type: integer
+          format: int64
+        content:
+          type: string
+        contact:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, PROCESSING, REPLIED, IGNORED]
+        handledBy:
+          type: integer
+          format: int64
+        handledReply:
+          type: string
+        handledAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    # ---------- 管理端 ----------
+    AdminUserQueryDTO:
+      type: object
+      properties:
+        loginType:
+          type: string
+          enum: [phone, wechat, email]
+        status:
+          type: string
+          enum: [NORMAL, BANNED, INACTIVE, SUSPICIOUS]
+        keyword:
+          type: string
+        minDetect:
+          type: integer
+        maxDetect:
+          type: integer
+        pageNum:
+          type: integer
+          default: 1
+        pageSize:
+          type: integer
+          default: 20
+
+    AdminUserVO:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        loginType:
+          type: string
+        identity:
+          type: string
+          description: 脱敏账号，如 138****5678
+        detectCount:
+          type: integer
+        lastLoginAt:
+          type: string
+          format: date-time
+        registeredAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [NORMAL, BANNED, INACTIVE, SUSPICIOUS]
