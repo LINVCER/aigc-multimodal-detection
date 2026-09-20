@@ -9,6 +9,7 @@ import com.paperaigc.detect.domain.dto.DetectTaskQueryDTO;
 import com.paperaigc.detect.domain.dto.HumanizeDTO;
 import com.paperaigc.detect.domain.entity.AudioSegmentResult;
 import com.paperaigc.detect.domain.entity.DetectTask;
+import com.paperaigc.detect.domain.entity.ImageSegmentResult;
 import com.paperaigc.detect.domain.entity.ParagraphResult;
 import com.paperaigc.detect.domain.entity.SentenceResult;
 import com.paperaigc.detect.domain.vo.DetectTaskDetailVO;
@@ -71,8 +72,7 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
 
         return switch (mod) {
             case DetectConstants.MODALITY_AUDIO -> submitAudio(file, scenario, title, userId);
-            case DetectConstants.MODALITY_IMAGE -> throw new BizException(ErrorCode.DETECT_FORMAT_UNSUPPORT,
-                    "图像检测建设中（Wave 5）");
+            case DetectConstants.MODALITY_IMAGE -> submitImage(file, scenario, title, userId);
             default -> submitText(file, scenario, degreeType, title, userId);
         };
     }
@@ -205,6 +205,103 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
         }
     }
 
+    /* ==================== §3.1 图像模态（骨架已就位；Python 端点后补） ==================== */
+
+    private DetectTask submitImage(MultipartFile file, String scenario, String title, Long userId) {
+        if (file.getSize() > DetectConstants.FILE_SIZE_MAX_IMAGE) {
+            throw new BizException(ErrorCode.DETECT_FILE_TOO_LARGE, "图片超过 20MB");
+        }
+        String mime = file.getContentType();
+        String name = file.getOriginalFilename();
+        String ext = (name != null && name.lastIndexOf('.') >= 0)
+                ? name.substring(name.lastIndexOf('.') + 1).toLowerCase() : "";
+        boolean allowed = (mime != null && DetectConstants.ALLOWED_IMAGE_MIME.contains(mime))
+                || DetectConstants.ALLOWED_IMAGE_EXT.contains(ext);
+        if (!allowed) throw new BizException(ErrorCode.DETECT_FORMAT_UNSUPPORT, "图片格式不支持");
+
+        // scenario 对图像语义弱化，但仍支持传入（默认 other）
+        String sc = ParamUtils.isBlank(scenario) ? ScenarioConstants.OTHER : scenario;
+
+        String paperTitle = (title != null && !title.isBlank()) ? title : name;
+        DetectTask task = DetectTask.builder()
+                .userId(userId)
+                .modality(DetectConstants.MODALITY_IMAGE)
+                .paperTitle(paperTitle)
+                .status(DetectConstants.STATUS_PENDING)
+                .scenario(sc)
+                .threshold(scenarioThresholdService.threshold(sc))
+                .modelVersion("image-stub-v0")
+                .originalFilename(name)
+                .fileSize(file.getSize())
+                .createdAt(LocalDateTime.now())
+                .build();
+        task = taskRepository.save(task);
+
+        try {
+            task.setFilePath(storageService.save(file, task.getId()));
+        } catch (Exception e) {
+            log.warn("save image failed but continue task {}", task.getId(), e);
+        }
+
+        runImageInference(task, file);
+        taskRepository.update(task);
+        return task;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void runImageInference(DetectTask task, MultipartFile file) {
+        try {
+            byte[] bytes = file.getBytes();
+            Map<String, Object> py = inferenceClient.detectImage(bytes, file.getOriginalFilename(), true);
+            fillImageResult(task, py);
+        } catch (Exception e) {
+            log.error("image inference failed for task {}", task.getId(), e);
+            task.setStatus(DetectConstants.STATUS_FAILED);
+            task.setFinishedAt(LocalDateTime.now());
+        }
+    }
+
+    /**
+     * runImageInference 的 bytes 版：retry 时从存储反读没有 MultipartFile，直接给字节流。
+     */
+    @SuppressWarnings("unchecked")
+    private void runImageInferenceBytes(DetectTask task, byte[] bytes) {
+        try {
+            Map<String, Object> py = inferenceClient.detectImage(bytes, task.getOriginalFilename(), true);
+            fillImageResult(task, py);
+        } catch (Exception e) {
+            log.error("image retry failed for task {}", task.getId(), e);
+            task.setStatus(DetectConstants.STATUS_FAILED);
+            task.setFinishedAt(LocalDateTime.now());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void fillImageResult(DetectTask task, Map<String, Object> py) {
+        Double cp = ParamUtils.toDouble(py.get("calibrated_prob"));
+        List<Map<String, Object>> raw = (List<Map<String, Object>>) py.getOrDefault("regions", List.of());
+
+        List<ImageSegmentResult> segs = new ArrayList<>(raw.size());
+        for (int i = 0; i < raw.size(); i++) {
+            Map<String, Object> r = raw.get(i);
+            segs.add(ImageSegmentResult.builder()
+                    .segmentIdx(ParamUtils.toInt(r.getOrDefault("segment_idx", i)))
+                    .x(ParamUtils.toInt(r.get("x")))
+                    .y(ParamUtils.toInt(r.get("y")))
+                    .w(ParamUtils.toInt(r.get("w")))
+                    .h(ParamUtils.toInt(r.get("h")))
+                    .aiProb(ParamUtils.toDouble(r.get("ai_prob")))
+                    .calibratedProb(ParamUtils.toDouble(r.get("calibrated_prob")))
+                    .sourceLabel((String) r.get("source_label"))
+                    .build());
+        }
+
+        task.setImageSegments(segs);
+        task.setAiRate(cp == null ? null : Math.round(cp * 1000) / 10.0);   // → 百分制一位小数
+        task.setStatus(DetectConstants.STATUS_DONE);
+        task.setFinishedAt(LocalDateTime.now());
+    }
+
     /**
      * 段落级推理 + 汇总 aiRate + 溯源
      */
@@ -333,6 +430,7 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
         task.setAiRate(null);
         task.setParagraphs(null);
         task.setAudioSegments(null);
+        task.setImageSegments(null);
         task.setSourceLabels(null);
 
         if (task.getFilePath() == null || !storageService.exists(task.getFilePath())) {
@@ -350,6 +448,12 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
                     bytes = is.readAllBytes();
                 }
                 runAudioInferenceBytes(task, bytes);
+            } else if (DetectConstants.MODALITY_IMAGE.equals(mod)) {
+                byte[] bytes;
+                try (java.io.InputStream is = storageService.read(task.getFilePath())) {
+                    bytes = is.readAllBytes();
+                }
+                runImageInferenceBytes(task, bytes);
             } else {
                 try (java.io.InputStream is = storageService.read(task.getFilePath())) {
                     String fullText = textProcessor.extractText(is, task.getOriginalFilename());

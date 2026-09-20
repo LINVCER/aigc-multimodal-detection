@@ -11,7 +11,7 @@
 后端：InMemoryRepository 逐 batch 换 MyBatis-Plus，数据落 MySQL；Repository `@Primary` 顶 InMemory，Service/Controller/前端零改动。
 端上：mobile-uniapp 走完 completion-plan 3 Wave，v0.5.0 生产就绪。
 
-- **Added**（后端）：`user_profile` / `detect_task+paragraph+sentence` / `detect_scenario_threshold` 4 表 · Caffeine 5min 缓存 · JacksonTypeHandler JSON 列
+- **Added**（后端）：`user_profile` / `detect_task+paragraph+sentence` / `detect_scenario_threshold` 4 表 · Caffeine 5min 缓存 · JacksonTypeHandler JSON 列 · 图像模态接入（`ImageSegmentResult` + `image_segments_json` + `detectImage()` + `submitImage()`；Python 端点后补）
 - **Added**（端上）：task 生命周期长按菜单 · 报告 PDF 双端下载 · 反馈历史 mine 页 · statistics 30 天 dailyTrend · 微信一键登录 · 分享 3 页 · 订阅消息封装 · 联系客服 · 深色模式骨架 · 网络断连兜底 · 键盘避让 · 版本号动态读取
 - **Changed**：Detect Service 阈值走 `IScenarioThresholdService` 替代 `ScenarioConstants` · request.js fail 语义化分类 · 3 处 InMemory 实现 git rm
 - **Fixed**：MOCK_MODE 短路 · uploadFile 不拼 baseURL · proxy 端口错 · 双重 toast · timeout 笼统

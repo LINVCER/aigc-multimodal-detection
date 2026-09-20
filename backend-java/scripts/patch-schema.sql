@@ -108,6 +108,7 @@ CREATE TABLE IF NOT EXISTS detect_task (
   excluded_paragraph_count  INT NULL,
   audio_duration_sec        DECIMAL(8,2) NULL COMMENT '音频总时长（秒 · audio 模态）',
   audio_segments_json       JSON NULL COMMENT '音频段级 · [{segmentIdx,timeStart,timeEnd,aiProb,calibratedProb,sourceLabel,waveformPeak}]',
+  image_segments_json       JSON NULL COMMENT '图像区域级 · [{segmentIdx,x,y,w,h,aiProb,calibratedProb,sourceLabel}]',
   source_labels_json        JSON NULL COMMENT '溯源分布 { qwen:0.4, gpt:0.3, ... }',
   created_at                DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   finished_at               DATETIME NULL,

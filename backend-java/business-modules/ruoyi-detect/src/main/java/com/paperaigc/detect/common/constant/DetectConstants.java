@@ -15,12 +15,13 @@ public final class DetectConstants {
     /* ---------- 模态 ---------- */
     public static final String MODALITY_TEXT  = "text";
     public static final String MODALITY_AUDIO = "audio";
-    public static final String MODALITY_IMAGE = "image";     // Wave 5 接
+    public static final String MODALITY_IMAGE = "image";
     public static final Set<String> MODALITIES = Set.of(MODALITY_TEXT, MODALITY_AUDIO, MODALITY_IMAGE);
 
     /* ---------- 文件校验 ---------- */
     public static final long FILE_SIZE_MAX       = 20L * 1024 * 1024;   // 20MB · 文本
     public static final long FILE_SIZE_MAX_AUDIO = 50L * 1024 * 1024;   // 50MB · 音频
+    public static final long FILE_SIZE_MAX_IMAGE = 20L * 1024 * 1024;   // 20MB · 图像
 
     /** 文本 MIME 白名单 */
     public static final Set<String> ALLOWED_MIME = Set.of(
@@ -50,6 +51,19 @@ public final class DetectConstants {
     /** 音频后缀白名单 */
     public static final Set<String> ALLOWED_AUDIO_EXT = Set.of("mp3", "m4a", "wav", "flac", "ogg", "webm");
 
+    /** 图像 MIME 白名单 */
+    public static final Set<String> ALLOWED_IMAGE_MIME = Set.of(
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+            "image/gif",
+            "image/bmp",
+            "application/octet-stream"
+    );
+
+    /** 图像后缀白名单 */
+    public static final Set<String> ALLOWED_IMAGE_EXT = Set.of("jpg", "jpeg", "png", "webp", "gif", "bmp");
+
     /* ---------- 任务状态 ---------- */
     public static final String STATUS_PENDING = "PENDING";
     public static final String STATUS_RUNNING = "RUNNING";
@@ -68,6 +82,7 @@ public final class DetectConstants {
         if (dot < 0 || dot >= filename.length() - 1) return MODALITY_TEXT;
         String ext = filename.substring(dot + 1).toLowerCase();
         if (ALLOWED_AUDIO_EXT.contains(ext)) return MODALITY_AUDIO;
+        if (ALLOWED_IMAGE_EXT.contains(ext)) return MODALITY_IMAGE;
         if (ALLOWED_EXT.contains(ext)) return MODALITY_TEXT;
         return MODALITY_TEXT;
     }

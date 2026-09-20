@@ -64,6 +64,10 @@ public class DetectTask {
 
     private Double audioDurationSec;
 
+    /** 图像区域级明细 · JSON 列 image_segments_json（V0.2.0.003 迁移加列） */
+    @TableField(value = "image_segments_json", typeHandler = JacksonTypeHandler.class)
+    private List<ImageSegmentResult> imageSegments;
+
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
     private LocalDateTime finishedAt;

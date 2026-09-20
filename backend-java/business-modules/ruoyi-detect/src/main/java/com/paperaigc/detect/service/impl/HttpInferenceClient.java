@@ -62,8 +62,8 @@ public class HttpInferenceClient implements IInferenceClient {
         try {
             // multipart/form-data · 手写边界（Python 侧 FastAPI File(...) 消费）
             String boundary = "----detectAudio" + System.currentTimeMillis();
-            byte[] body = buildAudioMultipart(audioBytes, filename == null ? "audio.bin" : filename,
-                    returnSegments, boundary);
+            byte[] body = buildFileMultipart(audioBytes, filename == null ? "audio.bin" : filename,
+                    "return_segments", returnSegments, boundary);
             HttpRequest req = HttpRequest.newBuilder()
                     .uri(URI.create(base() + "/api/v1/detect/audio"))
                     .header("Content-Type", "multipart/form-data; boundary=" + boundary)
@@ -80,8 +80,33 @@ public class HttpInferenceClient implements IInferenceClient {
         }
     }
 
-    private byte[] buildAudioMultipart(byte[] fileBytes, String filename, boolean returnSegments, String boundary)
-            throws java.io.IOException {
+    @Override
+    public Map<String, Object> detectImage(byte[] imageBytes, String filename, boolean returnRegions) {
+        try {
+            String boundary = "----detectImage" + System.currentTimeMillis();
+            byte[] body = buildFileMultipart(imageBytes, filename == null ? "image.bin" : filename,
+                    "return_regions", returnRegions, boundary);
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(base() + "/api/v1/detect/image"))
+                    .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                    .timeout(Duration.ofSeconds(60))
+                    .POST(HttpRequest.BodyPublishers.ofByteArray(body))
+                    .build();
+            HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+            return objectMapper.readValue(resp.body(), Map.class);
+        } catch (BizException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("inference detectImage failed", e);
+            throw new BizException(ErrorCode.DETECT_INFERENCE_ERROR, "图像检测服务不可用");
+        }
+    }
+
+    /**
+     * 通用文件 multipart body 构造：一个 file 字段 + 一个布尔 flag 字段（return_segments / return_regions）
+     */
+    private byte[] buildFileMultipart(byte[] fileBytes, String filename, String flagName, boolean flagValue,
+                                      String boundary) throws java.io.IOException {
         java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
         String head = "--" + boundary + "\r\n" +
                 "Content-Disposition: form-data; name=\"file\"; filename=\"" + filename + "\"\r\n" +
@@ -89,8 +114,8 @@ public class HttpInferenceClient implements IInferenceClient {
         out.write(head.getBytes(java.nio.charset.StandardCharsets.UTF_8));
         out.write(fileBytes);
         String tail = "\r\n--" + boundary + "\r\n" +
-                "Content-Disposition: form-data; name=\"return_segments\"\r\n\r\n" +
-                (returnSegments ? "true" : "false") +
+                "Content-Disposition: form-data; name=\"" + flagName + "\"\r\n\r\n" +
+                (flagValue ? "true" : "false") +
                 "\r\n--" + boundary + "--\r\n";
         out.write(tail.getBytes(java.nio.charset.StandardCharsets.UTF_8));
         return out.toByteArray();

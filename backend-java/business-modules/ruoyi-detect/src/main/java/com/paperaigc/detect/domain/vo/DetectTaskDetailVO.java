@@ -3,6 +3,7 @@ package com.paperaigc.detect.domain.vo;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.paperaigc.detect.domain.entity.AudioSegmentResult;
 import com.paperaigc.detect.domain.entity.DetectTask;
+import com.paperaigc.detect.domain.entity.ImageSegmentResult;
 import com.paperaigc.detect.domain.entity.ParagraphResult;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -43,6 +44,7 @@ public class DetectTaskDetailVO {
 
     private List<ParagraphResult> paragraphs;             // text 模态
     private List<AudioSegmentResult> audioSegments;       // audio 模态
+    private List<ImageSegmentResult> imageSegments;       // image 模态
     private Map<String, Double> sourceLabels;
 
     public static DetectTaskDetailVO from(DetectTask t) {
@@ -65,6 +67,7 @@ public class DetectTaskDetailVO {
                 .finishedAt(t.getFinishedAt())
                 .paragraphs(t.getParagraphs())
                 .audioSegments(t.getAudioSegments())
+                .imageSegments(t.getImageSegments())
                 .sourceLabels(t.getSourceLabels())
                 .build();
     }

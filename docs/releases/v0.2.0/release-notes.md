@@ -127,6 +127,42 @@ InMemory 实现（`InMemoryAdminUserRepository`）保留不动，Spring 因 `@Pr
 
 ---
 
+# 图像模态 · Java 后端接入（B5）
+
+对照 `docs/design/202609-image-backend-integration-plan.md` 逐文件平移音频链路。
+Python `/api/v1/detect/image` 端点未就绪前，`submit` 后 `runImageInference` 走 stub 兜底
+（连不上 → STATUS_FAILED，不阻塞主流程）。Python 端补齐后 Java 侧无需再改。
+
+### 新增文件
+
+- `domain/entity/ImageSegmentResult.java` · `segmentIdx / x / y / w / h / aiProb / calibratedProb / sourceLabel`（整图=一个元素、bbox=null；未来接篡改/区域时同结构扩多元素）
+- `docs/releases/v0.2.0/sql/V0.2.0.003__add_detect_task_image.sql` · 幂等 ALTER 加 `image_segments_json` JSON 列
+
+### 改动文件
+
+- `common/constant/DetectConstants.java` · `MODALITY_IMAGE` 去掉 Wave 5 注释 · 加 `FILE_SIZE_MAX_IMAGE (20MB)` / `ALLOWED_IMAGE_MIME` / `ALLOWED_IMAGE_EXT` · `guessModality()` 补 image 分支
+- `service/IInferenceClient.java` · 加 `detectImage(byte[], String, boolean)` 契约
+- `service/impl/HttpInferenceClient.java` · 实现 `detectImage`（POST `/api/v1/detect/image` · multipart + `return_regions`）· 抽通用 `buildFileMultipart(bytes, filename, flagName, flagValue, boundary)`，audio/image 共用
+- `domain/entity/DetectTask.java` · 加 `imageSegments`（JacksonTypeHandler · `image_segments_json` JSON 列）
+- `service/impl/DetectTaskServiceImpl.java` · `submit()` switch 加 image 分支 → `submitImage()`；新增 `runImageInference()` / `runImageInferenceBytes()`（共享 `fillImageResult()` 解析）；`retry()` 加 image 分支 + 清 `imageSegments`
+- `domain/vo/DetectTaskDetailVO.java` · 加 `imageSegments` 字段 + `from()` 补 `.imageSegments(t.getImageSegments())`（列表 VO 不加，对齐 audio）
+- `backend-java/scripts/patch-schema.sql` · `detect_task` 全量快照追加 `image_segments_json` 列
+
+### 关键决策
+
+- **结果形态用 `List<ImageSegmentResult>`（推荐方案 A）**：整图单结果时列表长度为 1 且 bbox 为 null；未来接篡改/区域定位不用改 schema，与 audio segments 结构对称，前端按 `modality` 分渲染路径
+- **Python 契约 key = `regions` / `return_regions`**：语义比 `segments` 更贴合图像（区域 vs 时序片段）· 与音频 `segments` / `return_segments` 平行
+- **无独立子表**：对齐 audio 走 JSON 单列，避免小数据量表膨胀
+- **Python 端点未就绪不阻塞 Java 上线**：`detectImage` catch-all → STATUS_FAILED，主流程照跑
+- **modelVersion 硬编码 `image-stub-v0`**：模型接入后由 Python 侧回填 `model_version` 字段，Java 侧再切读远端值
+
+### 前置依赖
+
+- ⏳ Python `/api/v1/detect/image` 端点（推理侧独立 PR，Java 侧无需再动）
+- ⏳ 前端 `image.vue` 结果页面按 imageSegments 结构渲染（整图 vs 多区域视图）· 本轮不动
+
+---
+
 # mobile-uniapp · Wave 2/3/4 联发
 
 Phase B 落库同期，mobile-uniapp 走完 completion-plan 里的 3 个 Wave，v0.5.0 端上生产就绪。
