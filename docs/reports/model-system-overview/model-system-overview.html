@@ -412,10 +412,10 @@
       <ul class="shell-nav__list">
         <li><a href="#overview">1. 项目概览</a></li>
         <li><a href="#architecture">2. 系统架构</a></li>
-        <li><a href="#modalities">3. 三模态检测</a></li>
+        <li><a href="#modalities">3. 检测主线 · text</a></li>
         <li><a href="#text-model">4. 文本模型体系</a></li>
-        <li><a href="#image-model">5. 图像检测</a></li>
-        <li><a href="#audio-model">6. 音频检测</a></li>
+        <li><a href="#image-model">5. 图像检测 <span class="tag tag--stub">归档</span></a></li>
+        <li><a href="#audio-model">6. 音频检测 <span class="tag tag--stub">归档</span></a></li>
         <li><a href="#calibration">7. 校准与融合</a></li>
         <li><a href="#datasets">8. 数据集</a></li>
         <li class="shell-nav__group">工程</li>
@@ -438,20 +438,21 @@
           <h1>论文 AIGC 检测平台<br>模型与系统开发总体文档</h1>
           <p class="hero__summary">
             平台当前处于 <strong>v0.2.0</strong>：Java 后端 Phase B 已完成 MyBatis-Plus 全量落库；
-            mobile-uniapp 走完 Wave 2/3/4 达 v0.5.0 端上生产就绪；三模态（文本 / 音频 / 图像）后端契约已联通，
-            文本走 <code>RoBERTa v3_thesis</code> 兜底、音频与图像走 stub 等待 Python 推理接入。
+            mobile-uniapp 走完 Wave 2/3/4 达 v0.5.0 端上生产就绪。
+            <strong>2026-09-20 下午</strong>官方 refactor（commit <code>7d5db57</code>）将主方向<strong>收敛至论文 AIGC 检测</strong>，
+            移除并归档音频 / 图像检测代码，本文档随之同步。
           </p>
           <div class="hero__meta">
             <span>版本 · v0.2.0</span>
-            <span>更新 · 2026-09-20</span>
+            <span>更新 · 2026-09-20（收敛后）</span>
             <span>作者 · PaperAIGC Team</span>
             <span>覆盖 · 后端 · 推理 · Web · 移动 · 微信小程序</span>
           </div>
           <ul class="hero__tags">
+            <li><span class="tag tag--ok">主线：论文 AIGC · text</span></li>
             <li><span class="tag tag--ok">Phase B 全库落地</span></li>
             <li><span class="tag tag--ok">mobile-uniapp v0.5.0</span></li>
-            <li><span class="tag tag--info">图像模态 Java 已通</span></li>
-            <li><span class="tag tag--warn">Python image / audio 待补</span></li>
+            <li><span class="tag tag--stub">音频 / 图像已归档</span></li>
             <li><span class="tag tag--plan">下一代文本模型规划中</span></li>
           </ul>
         </div>
@@ -461,19 +462,19 @@
       <section id="overview">
         <h2><span class="sec-num">01</span>项目概览</h2>
         <p class="lead">
-          面向教育与内容行业的「论文 AIGC 检测平台」，用户提交论文 / 音频 / 图像，系统对内容逐段（或逐区域）
-          输出 AI 生成概率，经置信度校准后给红黄绿三色标注与整体 AI 率，并生成可下载的 PDF 报告。
-          文本检测为核心主线，音频与图像作为二、三条增长曲线并行推进。
+          面向教育与内容行业的「论文 AIGC 检测平台」，用户提交论文，系统对正文逐段输出 AI 生成概率，
+          经置信度校准后给红黄绿三色标注与整体 AI 率，并生成可下载的 PDF 报告。
+          2026-09-20 后主方向<strong>专注 text 模态</strong>；音频 / 图像资产保留但代码已归档，见 §5 §6。
         </p>
 
         <div class="metric-grid">
           <div class="metric-card">
-            <div class="metric-value">3</div>
-            <div class="metric-label">检测模态</div>
-            <div class="metric-context">text / audio / image 后端已通</div>
+            <div class="metric-value">1</div>
+            <div class="metric-label">主检测模态</div>
+            <div class="metric-context">text · audio / image 已归档</div>
           </div>
           <div class="metric-card">
-            <div class="metric-value">25</div>
+            <div class="metric-value">23</div>
             <div class="metric-label">Java 业务端点</div>
             <div class="metric-context">7 Controller · R 统一包裹</div>
           </div>
@@ -554,21 +555,17 @@ flowchart TD
     subgraph Inference["Python 推理服务 · 18000"]
         FastAPI["FastAPI 主服务"]
         Txt["文本检测器<br/>RoBERTa v3_thesis"]
-        Img["图像检测器<br/>（stub · 待模型）"]
-        Aud["音频检测器<br/>（资产就绪 · 待训练脚本）"]
     end
 
     subgraph Store["存储与数据"]
         MySQL[("MySQL 8<br/>业务表 + 若依 sys_*")]
-        OSS[("MinIO / OSS<br/>论文 · 音频 · 图片")]
+        OSS[("MinIO / OSS<br/>论文文件")]
     end
 
     RuoYi --> Detect
     Detect --> Cache
     Detect --> Client --> FastAPI
     FastAPI --> Txt
-    FastAPI -.-> Img
-    FastAPI -.-> Aud
     Detect --> MySQL
     RuoYi --> MySQL
     Detect --> OSS
@@ -577,15 +574,13 @@ flowchart TD
     classDef backend fill:#FFFFFF,stroke:#D4E1DB,color:#16201D
     classDef inference fill:#F4F8F7,stroke:#0FA47F,color:#16201D
     classDef store fill:#EAF2EF,stroke:#5A6E66,color:#16201D
-    classDef staged fill:#FFF7E6,stroke:#D48806,color:#7A4E00,stroke-dasharray:5 5
 
     class Web,H5 client
     class RuoYi,Detect,Cache,Client backend
     class FastAPI,Txt inference
-    class Img,Aud staged
     class MySQL,OSS store
           </pre>
-          <figcaption>图 1 · 系统分层架构。虚线节点为 Python 侧仍走 stub 的模态（image / audio），Java 侧契约已联通，Python 端点后补 Java 无需再改。</figcaption>
+          <figcaption>图 1 · 系统分层架构（2026-09-20 收敛后）。音频 / 图像检测节点已从推理层移除，历史归档见 §5 §6。</figcaption>
         </figure>
 
         <p>文本主流程（audio / image 走同名 <code>submit → runXxxInference → 落库</code>，无段落切分与融合）：</p>
@@ -616,87 +611,64 @@ flowchart LR
         </div>
       </section>
 
-      <!-- 3. 三模态检测 -->
+      <!-- 3. 检测主线（text） -->
       <section id="modalities">
-        <h2><span class="sec-num">03</span>三模态检测契约对照</h2>
+        <h2><span class="sec-num">03</span>检测主线 · text</h2>
         <p>
-          三种模态在 Java 侧对齐同一入口 <code>POST /api/v1/detect/submit?modality=…</code>，
-          结果结构对称：<code>aiRate + 逐段（或逐区域）明细</code>。字段与状态如下。
+          Java 侧唯一入口 <code>POST /api/v1/detect/submit</code>；<code>DetectConstants.MODALITIES</code>
+          收敛为 <code>Set.of(MODALITY_TEXT)</code>，<code>guessModality()</code> 一律返回 <code>text</code>。
+          结果统一为 <code>aiRate + 段级 / 句级明细</code>。
         </p>
 
-        <div class="modality-grid">
+        <div class="modality-grid" style="grid-template-columns: 1fr;">
           <div class="modality-card">
             <div class="modality-card__head">
-              <div class="modality-card__title">📄 文本</div>
+              <div class="modality-card__title">📄 文本 · 唯一在产模态</div>
               <span class="tag tag--ok">生产</span>
             </div>
             <dl>
               <dt>入参</dt>
-              <dd><code>pdf / doc / docx / txt</code> · ≤ 20 MB</dd>
+              <dd><code>pdf / doc / docx / txt</code> · ≤ 20 MB · <code>ALLOWED_MIME + ALLOWED_EXT</code> 双白名单</dd>
+              <dt>Java 主链</dt>
+              <dd><code>DetectController.submit</code> → <code>DetectTaskServiceImpl.submitText</code> → <code>TextProcessor.extractText / splitParagraphs / filterNonBody</code> → 逐段 <code>runInference</code></dd>
               <dt>Python 端点</dt>
-              <dd><code>/api/v1/detect/paragraph</code></dd>
-              <dt>Java 落表列</dt>
-              <dd><code>paragraphs</code>（子表）+ <code>source_labels_json</code></dd>
+              <dd><code>/api/v1/detect/paragraph</code>（RoBERTa v3_thesis 兜底）</dd>
+              <dt>Java 落表</dt>
+              <dd>主表 <code>detect_task</code>（<code>modality='text'</code> · <code>source_labels_json</code>）+ 子表 <code>detect_paragraph_result</code> · <code>detect_sentence_result</code></dd>
               <dt>结果模型</dt>
-              <dd>段级 + 句级 · 逐段 <code>aiProb + calibratedProb + sourceLabel</code></dd>
+              <dd>段级 <code>ParagraphResult(aiProb + calibratedProb + sourceLabel + warnings)</code> + 句级 <code>SentenceResult</code></dd>
               <dt>模型</dt>
-              <dd>RoBERTa v3_thesis + 融合（详见 §4）</dd>
-            </dl>
-          </div>
-
-          <div class="modality-card">
-            <div class="modality-card__head">
-              <div class="modality-card__title">🔊 音频</div>
-              <span class="tag tag--warn">骨架 · stub</span>
-            </div>
-            <dl>
-              <dt>入参</dt>
-              <dd><code>mp3 / m4a / wav / flac / ogg / webm</code> · ≤ 50 MB</dd>
-              <dt>Python 端点</dt>
-              <dd><code>/api/v1/detect/audio</code>（stub 兜底）</dd>
-              <dt>Java 落表列</dt>
-              <dd><code>audio_segments_json</code> + <code>audio_duration_sec</code></dd>
-              <dt>结果模型</dt>
-              <dd>段级 · <code>segmentIdx + timeStart/End + aiProb + waveformPeak</code></dd>
-              <dt>模型</dt>
-              <dd>Wav2Vec2 XLS-R 300M + 分类头（资产已就位，训练脚本待补）</dd>
-            </dl>
-          </div>
-
-          <div class="modality-card">
-            <div class="modality-card__head">
-              <div class="modality-card__title">🖼️ 图像</div>
-              <span class="tag tag--info">Java 已通 · Python 待补</span>
-            </div>
-            <dl>
-              <dt>入参</dt>
-              <dd><code>jpg / jpeg / png / webp / gif / bmp</code> · ≤ 20 MB</dd>
-              <dt>Python 端点</dt>
-              <dd><code>/api/v1/detect/image</code>（待建）</dd>
-              <dt>Java 落表列</dt>
-              <dd><code>image_segments_json</code>（V0.2.0.003 迁移新增）</dd>
-              <dt>结果模型</dt>
-              <dd>区域级 · <code>segmentIdx + bbox(x,y,w,h) + aiProb + calibratedProb + sourceLabel</code></dd>
-              <dt>模型</dt>
-              <dd>规划 CLIP / DINOv2 + GenImage++；篡改定位走 ForMa（Vision Mamba）</dd>
+              <dd>RoBERTa v3_thesis + 四路加权融合（详见 §4）</dd>
             </dl>
           </div>
         </div>
 
         <table class="table-wrap">
-          <caption>模态检测状态矩阵</caption>
+          <caption>text 主线全链状态</caption>
           <thead>
-            <tr><th>层</th><th>text</th><th>audio</th><th>image</th></tr>
+            <tr><th>层</th><th>状态</th><th>备注</th></tr>
           </thead>
           <tbody>
-            <tr><th scope="row">前端页面</th><td>✅ upload/text</td><td>✅ upload/audio</td><td>✅ upload/image</td></tr>
-            <tr><th scope="row">Java 数据模型</th><td>✅ ParagraphResult + SentenceResult</td><td>✅ AudioSegmentResult</td><td>✅ ImageSegmentResult</td></tr>
-            <tr><th scope="row">Java 客户端契约</th><td>✅ detectParagraph</td><td>✅ detectAudio</td><td>✅ detectImage</td></tr>
-            <tr><th scope="row">Service 主流程</th><td>✅ submitText + runInference</td><td>✅ submitAudio + runAudioInference</td><td>✅ submitImage + runImageInference</td></tr>
-            <tr><th scope="row">MySQL 列</th><td>✅ 段/句子表</td><td>✅ audio_segments_json</td><td>✅ image_segments_json</td></tr>
-            <tr><th scope="row">Python 推理</th><td>✅ RoBERTa 兜底</td><td>⏳ stub（资产已就位）</td><td>⏳ stub（模型规划中）</td></tr>
+            <tr><th scope="row">前端页面</th><td>✅ <code>upload/text</code></td><td>Web + mobile-uniapp 双端</td></tr>
+            <tr><th scope="row">Java 数据模型</th><td>✅ <code>DetectTask + ParagraphResult + SentenceResult</code></td><td>MyBatis-Plus + JacksonTypeHandler</td></tr>
+            <tr><th scope="row">Java 客户端契约</th><td>✅ <code>detectParagraph(text, returnSentences)</code></td><td><code>IInferenceClient</code> 唯一 detect 方法</td></tr>
+            <tr><th scope="row">Service 主流程</th><td>✅ <code>submitText → runInference</code></td><td>Phase 0 同步调 · Phase B 起改异步 MQ</td></tr>
+            <tr><th scope="row">MySQL 列</th><td>✅ 主表 + 段 / 句子子表</td><td>见 §10</td></tr>
+            <tr><th scope="row">Python 推理</th><td>✅ RoBERTa 兜底</td><td>下一代模型规划见 §4</td></tr>
           </tbody>
         </table>
+
+        <div class="callout callout--info">
+          <span class="callout-label">主方向收敛（2026-09-20）</span>
+          <p>
+            官方 refactor commit <code>7d5db57</code> 移除了 <code>MODALITY_AUDIO / MODALITY_IMAGE</code>、
+            <code>AudioSegmentResult / ImageSegmentResult</code>、<code>detectAudio / detectImage</code>、
+            <code>V0.2.0.002 / V0.2.0.003</code> 两个 SQL 迁移、Python <code>detectors/audio.py</code>、
+            legacy 里的 <code>train_image_sd.py / c2pa_detector.py / gb45438_detector.py / arbitration.py / start.py</code>。
+            音频 / 图像的 checkpoint 与数据资产（<code>models/audio/</code> · <code>data/audio/</code>）
+            保留但不再进代码路径，详见 §5 §6 归档说明。
+          </p>
+        </div>
       </section>
 
       <!-- 4. 文本模型体系 -->
@@ -768,98 +740,92 @@ flowchart LR
         </table>
       </section>
 
-      <!-- 5. 图像检测（本次刚接入） -->
+      <!-- 5. 图像检测 · 已归档 -->
       <section id="image-model">
-        <h2><span class="sec-num">05</span>图像检测</h2>
+        <h2><span class="sec-num">05</span>图像检测 <span class="tag tag--stub">已归档 · 2026-09-20</span></h2>
 
-        <p>
-          <strong>2026-09-20 Java 后端全链路已通</strong>（详见 <code>docs/design/202609-image-backend-integration-plan.md</code>）。
-          Python <code>/api/v1/detect/image</code> 端点未就绪前，Java 侧照常上线，<code>runImageInference</code> catch-all →
-          <code>STATUS_FAILED</code>，不阻塞主流程；Python 补齐后 Java 无需再改。
-        </p>
-
-        <h3>5.1 Java 后端接入清单</h3>
-        <table class="table-wrap">
-          <caption>2026-09-20 · commit 3cbdb8e · 11 files</caption>
-          <thead>
-            <tr><th>文件</th><th>改动</th></tr>
-          </thead>
-          <tbody>
-            <tr><th scope="row"><code>domain/entity/ImageSegmentResult.java</code></th><td>新增 · <code>segmentIdx + bbox(x,y,w,h) + aiProb + calibratedProb + sourceLabel</code></td></tr>
-            <tr><th scope="row"><code>common/constant/DetectConstants.java</code></th><td>+<code>FILE_SIZE_MAX_IMAGE (20 MB)</code> · +<code>ALLOWED_IMAGE_MIME / EXT</code> · <code>guessModality()</code> 加 image 分支</td></tr>
-            <tr><th scope="row"><code>service/IInferenceClient.java</code></th><td>+<code>detectImage(byte[], String, boolean)</code> 契约</td></tr>
-            <tr><th scope="row"><code>service/impl/HttpInferenceClient.java</code></th><td>实现 <code>detectImage</code>（POST <code>/api/v1/detect/image</code> · multipart + <code>return_regions</code>）· 抽通用 <code>buildFileMultipart</code> 供 audio / image 共用</td></tr>
-            <tr><th scope="row"><code>domain/entity/DetectTask.java</code></th><td>+<code>imageSegments</code>（<code>JacksonTypeHandler</code> · <code>image_segments_json</code> JSON 列）</td></tr>
-            <tr><th scope="row"><code>service/impl/DetectTaskServiceImpl.java</code></th><td><code>submit()</code> switch 加 image 分支 → <code>submitImage() / runImageInference() / runImageInferenceBytes()</code>；<code>retry()</code> 加 image 分支 + 清 <code>imageSegments</code></td></tr>
-            <tr><th scope="row"><code>domain/vo/DetectTaskDetailVO.java</code></th><td>+<code>imageSegments</code> 字段（列表 VO 不加，对齐 audio）</td></tr>
-            <tr><th scope="row"><code>scripts/patch-schema.sql</code></th><td>+<code>image_segments_json JSON NULL</code> 列</td></tr>
-            <tr><th scope="row"><code>V0.2.0.003__add_detect_task_image.sql</code></th><td>新增 · 幂等 ALTER 迁移（<code>INFORMATION_SCHEMA</code> 存在性判定）</td></tr>
-          </tbody>
-        </table>
-
-        <h3>5.2 结果契约</h3>
-        <div class="contract-grid">
-          <div class="contract-card">
-            <h4>Java 端消费</h4>
-            <ul>
-              <li><code>List&lt;ImageSegmentResult&gt;</code></li>
-              <li>整图单结果时列表长度 = 1，<code>bbox = null</code></li>
-              <li>未来接篡改 / 区域定位时同结构扩多元素</li>
-              <li>与 audio segments 结构对称，前端按 <code>modality</code> 分渲染路径</li>
-            </ul>
-          </div>
-          <div class="contract-card">
-            <h4>Python 契约（待建）</h4>
-            <ul>
-              <li>入 <code>multipart/form-data</code>：<code>file</code> + <code>return_regions=true</code></li>
-              <li>出 <code>calibrated_prob (Double)</code> + <code>regions: [{segment_idx, x, y, w, h, ai_prob, calibrated_prob, source_label}]</code></li>
-              <li>key 用 <code>regions</code> / <code>return_regions</code>，与音频 <code>segments</code> / <code>return_segments</code> 平行</li>
-            </ul>
-          </div>
+        <div class="callout callout--warning">
+          <span class="callout-label">归档说明</span>
+          <p>
+            2026-09-20 早上 commit <code>3cbdb8e</code> 曾按 <code>docs/design/202609-image-backend-integration-plan.md</code>
+            接入图像模态 Java 全链路；同日下午 commit <code>7d5db57</code> 主方向收敛，
+            <strong>回退全部图像相关代码</strong>（entity / mapper / service 分支 / SQL 迁移 / legacy 训练脚本）。
+            规划文档 <code>MODEL_RESEARCH_IMAGE_TAMPERING.md</code> 保留作技术调研历史。
+          </p>
         </div>
 
-        <h3>5.3 规划模型选型</h3>
+        <h3>5.1 曾接入范围（已被 revert）</h3>
+        <ul>
+          <li><code>ImageSegmentResult</code>（segmentIdx + bbox + aiProb / calibratedProb + sourceLabel）· 已删</li>
+          <li><code>IInferenceClient.detectImage()</code> + <code>HttpInferenceClient</code> 实现 · 已删</li>
+          <li><code>DetectTaskServiceImpl.submitImage / runImageInference / runImageInferenceBytes</code> · 已删</li>
+          <li><code>DetectTask.imageSegments</code> + <code>image_segments_json</code> JSON 列 · 已删</li>
+          <li><code>V0.2.0.003__add_detect_task_image.sql</code> 幂等 ALTER 迁移 · 已删</li>
+          <li>legacy 里的 <code>train_image_sd.py</code> / <code>c2pa_detector.py</code> / <code>gb45438_detector.py</code> · 已删</li>
+        </ul>
+
+        <h3>5.2 曾拟接入的模型选型（保留作历史参考）</h3>
         <table class="table-wrap">
-          <caption>图像检测子能力</caption>
+          <caption>图像检测子能力 · 已冻结</caption>
           <thead>
-            <tr><th>子能力</th><th>方案</th><th>阶段</th></tr>
+            <tr><th>子能力</th><th>方案</th><th>状态</th></tr>
           </thead>
           <tbody>
-            <tr><th scope="row">插图 AI 生成检测</th><td>CLIP / DINOv2 backbone + 校准 + GenImage++ 训练</td><td><span class="tag tag--plan">P2</span></td></tr>
-            <tr><th scope="row">通用篡改定位</th><td><code>ForMa</code> (Vision Mamba) 或 SparseViT</td><td><span class="tag tag--plan">P2</span></td></tr>
-            <tr><th scope="row">学术特化</th><td>western blot / 显微图 domain 微调 + 复用检测热图</td><td><span class="tag tag--plan">P3</span></td></tr>
-            <tr><th scope="row">主动标识</th><td>C2PA + GB35458 检测</td><td><span class="tag tag--info">P0 即带</span></td></tr>
+            <tr><th scope="row">插图 AI 生成检测</th><td>CLIP / DINOv2 backbone + 校准 + GenImage++ 训练</td><td><span class="tag tag--stub">冻结</span></td></tr>
+            <tr><th scope="row">通用篡改定位</th><td><code>ForMa</code> (Vision Mamba) 或 SparseViT</td><td><span class="tag tag--stub">冻结</span></td></tr>
+            <tr><th scope="row">学术特化</th><td>western blot / 显微图 domain 微调 + 复用检测热图</td><td><span class="tag tag--stub">冻结</span></td></tr>
+            <tr><th scope="row">主动标识</th><td>C2PA + GB35458 检测</td><td><span class="tag tag--stub">冻结</span></td></tr>
           </tbody>
         </table>
+
+        <p style="color: var(--muted); font-size: 0.82rem;">
+          如后续重新启用图像检测，可参考同一实施计划（Java 侧照抄 audio 链路的写法已在 commit <code>3cbdb8e</code> 有完整参考实现）。
+        </p>
       </section>
 
-      <!-- 6. 音频检测 -->
+      <!-- 6. 音频检测 · 已归档 -->
       <section id="audio-model">
-        <h2><span class="sec-num">06</span>音频检测</h2>
-        <p>
-          与文本 / 图像不同，音频主线的<strong>模型资产与数据层</strong>已准备到位，
-          缺训练 / 推理代码（训练脚本曾被误删，后续补回）。
-          技术路线沿用 <code>docs/audio_detection_plan.md</code> 的 <strong>SSL_Anti-spoofing</strong>：
-          冻结 <code>Wav2Vec 2.0 XLS-R</code> 主干 → 均值池化 → 轻量分类头 → 温度 / Platt 校准。
-        </p>
+        <h2><span class="sec-num">06</span>音频检测 <span class="tag tag--stub">已归档 · 2026-09-20</span></h2>
 
+        <div class="callout callout--warning">
+          <span class="callout-label">归档说明</span>
+          <p>
+            2026-09-20 commit <code>7d5db57</code> 主方向收敛，音频检测代码（<code>AudioSegmentResult</code>、
+            <code>IInferenceClient.detectAudio</code>、<code>submitAudio / runAudioInference</code>、
+            Python <code>detectors/audio.py</code>、SQL 迁移 <code>V0.2.0.002</code>）全部移除。
+            模型 checkpoint 与自建数据集（<code>models/audio/</code> · <code>data/audio/</code>）保留磁盘不入代码路径。
+            规划文档 <code>docs/audio_detection_plan.md</code> 保留作技术路线历史。
+          </p>
+        </div>
+
+        <h3>6.1 保留的资产（未删）</h3>
         <table class="table-wrap">
           <caption>音频模型资产 · <code>models/audio/</code></caption>
           <thead>
             <tr><th>资产</th><th>规格</th><th>用途</th></tr>
           </thead>
           <tbody>
-            <tr><th scope="row"><code>wav2vec2-xls-r-300m</code></th><td>1.26 GB safetensors</td><td>选定主干（多语言前端，中文友好）</td></tr>
+            <tr><th scope="row"><code>wav2vec2-xls-r-300m</code></th><td>1.26 GB safetensors</td><td>曾选定主干（多语言前端 · 中文友好）</td></tr>
             <tr><th scope="row"><code>wav2vec2-base</code></th><td>380 MB</td><td>备选主干</td></tr>
-            <tr><th scope="row"><code>aigc_audio_classifier.pth</code></th><td>856 KB</td><td>音频分类头权重 · <span class="tag tag--warn">待接推理</span></td></tr>
-            <tr><th scope="row"><code>chattts_v2</code> + <code>pzc163/chatTTS</code></th><td>~360 MB</td><td>生成假音频的 TTS 数据源</td></tr>
+            <tr><th scope="row"><code>aigc_audio_classifier.pth</code></th><td>856 KB</td><td>音频分类头权重 · <span class="tag tag--stub">冻结</span></td></tr>
+            <tr><th scope="row"><code>chattts_v2</code> + <code>pzc163/chatTTS</code></th><td>~360 MB</td><td>曾用作假音频 TTS 数据源</td></tr>
           </tbody>
         </table>
 
-        <p>
-          推理侧 <code>deploy/inference-python/detectors/audio.py</code> 已定加载 / 分段 / 预测 / 校准骨架与 schema，
-          <code>load() / predict()</code> 仍为骨架，线上 <code>/api/v1/detect/audio</code> 走 stub 兜底。
-          Java 侧 <code>submitAudio → runAudioInference → detectAudio</code> 契约已联通，Python 端点补齐即打通。
+        <table class="table-wrap">
+          <caption>自建音频数据集 · <code>data/audio/</code></caption>
+          <thead>
+            <tr><th>子集</th><th class="num">条数</th><th>来源</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">fake（合成）</th><td class="num">2169</td><td>ChatTTS 生成 · 含 v0–v4 多版本增强</td></tr>
+            <tr><th scope="row">real（真人）</th><td class="num">859</td><td>AISHELL-3（172 训练 / 18 测试说话人）</td></tr>
+          </tbody>
+        </table>
+
+        <p style="color: var(--muted); font-size: 0.82rem;">
+          若后续重启音频线，SSL_Anti-spoofing 技术路线（冻结 Wav2Vec 2.0 XLS-R 主干 → 均值池化 → 轻量分类头 → 温度 / Platt 校准）与资产可直接复用；
+          Java 侧的 submitAudio 参考实现见 git 历史 commit <code>bf3f6c2</code>。
         </p>
       </section>
 
@@ -888,8 +854,8 @@ flowchart LR
         </table>
 
         <p>
-          防御预处理含<strong>同形字标准化</strong>与<strong>零宽字符剥离</strong>；
-          图像侧走四路投票 + 分歧自适应降权。段级 &lt; 0.4 判绿、[0.4, 0.7) 判黄、≥ 0.7 判红，
+          防御预处理含<strong>同形字标准化</strong>与<strong>零宽字符剥离</strong>。
+          段级 &lt; 0.4 判绿、[0.4, 0.7) 判黄、≥ 0.7 判红；
           整体 AI 率取加权平均后按<strong>场景阈值</strong>（Caffeine 缓存 · 详见 §10）判过 / 不过。
         </p>
       </section>
@@ -917,21 +883,9 @@ flowchart LR
           旧模型实际用到的 11 个训练域：<code>asap / baike / cnewsum / csl / cudrt / finance / law / medicine / nlpcc2025 / psychology / qa</code>。
         </p>
 
-        <p>图像侧：<strong>GenImage</strong>（270 万图）+ <strong>GenImage++</strong>（新增 Flux.1 / SD3）。</p>
-
-        <table class="table-wrap">
-          <caption>音频数据集（<code>data/audio/</code> · 自建）</caption>
-          <thead>
-            <tr><th>子集</th><th class="num">条数</th><th>说明</th></tr>
-          </thead>
-          <tbody>
-            <tr><th scope="row">fake（合成）</th><td class="num">2169</td><td>ChatTTS 生成，含 v0–v4 多版本增强</td></tr>
-            <tr><th scope="row">real（真人）</th><td class="num">859</td><td>AISHELL-3 说话人真实语音</td></tr>
-          </tbody>
-        </table>
-        <p>
-          源自 AISHELL-3（172 训练说话人 / 18 测试说话人，463 train / 50 test），
-          划分记录在 <code>data/audio/dataset_meta.json</code>；原始 AISHELL-3 语料未入库。
+        <p style="color: var(--muted); font-size: 0.85rem;">
+          <strong>图像 / 音频数据集已归档</strong>（2026-09-20）：GenImage / GenImage++ 与 <code>data/audio/</code>
+          自建集（fake 2169 · real 859）在磁盘保留，不参与当前 text 训练；详情见 §5 §6 归档说明。
         </p>
 
         <div class="callout callout--warning">
@@ -951,7 +905,7 @@ flowchart LR
           所有 Java 业务接口用 <code>R&lt;T&gt;</code> 统一包裹 <code>{code, msg, data}</code>。
         </p>
 
-        <h3>9.1 Java 后端 · 25 端点</h3>
+        <h3>9.1 Java 后端 · 23 端点</h3>
         <table class="table-wrap">
           <caption>7 Controller</caption>
           <thead>
@@ -961,10 +915,10 @@ flowchart LR
             <tr>
               <th scope="row">检测核心</th>
               <td>
-                <code>POST /api/v1/detect/submit</code>（多模态 · 含 image）·
+                <code>POST /api/v1/detect/submit</code>（仅 text）·
                 <code>GET /api/v1/detect/tasks</code> ·
                 <code>GET/POST/DELETE /api/v1/detect/tasks/{id}</code> ·
-                <code>POST .../retry</code>（含 image 分支）·
+                <code>POST .../retry</code> ·
                 <code>POST .../cancel</code> ·
                 <code>GET /api/v1/detect/statistics</code>（30 天 dailyTrend）·
                 <code>POST /api/v1/detect/paragraph</code> ·
@@ -1041,8 +995,8 @@ flowchart LR
             </tr>
             <tr>
               <th scope="row"><code>detect_task</code></th>
-              <td><code>modality · aiRate · audio_segments_json · image_segments_json · source_labels_json · file_path</code></td>
-              <td>检测任务主表 · 三模态一表存</td>
+              <td><code>modality · aiRate · source_labels_json · file_path</code></td>
+              <td>检测任务主表 · <code>modality</code> 恒为 <code>text</code>（收敛后）</td>
             </tr>
             <tr>
               <th scope="row"><code>detect_paragraph_result</code></th>
@@ -1069,18 +1023,18 @@ flowchart LR
 
         <h3>10.2 迁移与缓存策略</h3>
         <ul>
-          <li>迁移走 Flyway 命名约定：<code>V0.2.0.001 → V0.2.0.003</code> 三个版本，含幂等 ALTER（<code>INFORMATION_SCHEMA</code> 存在性判定）</li>
+          <li>迁移走 Flyway 命名约定：当前只保留 <code>V0.2.0.001__init_user_profile.sql</code>；<code>V0.2.0.002 / V0.2.0.003</code>（音频 / 图像列）已在收敛提交里删除</li>
           <li><code>patch-schema.sql</code> 为全量快照，只用于本地一键搭 DB，不再单点追加</li>
           <li><code>ScenarioThreshold</code> 走 Caffeine 5 min TTL · maxSize 20 · <code>@PostConstruct</code> 预热 · 兜底 <code>ScenarioConstants</code> 常量</li>
-          <li>JSON 列走 <code>JacksonTypeHandler</code> · <code>autoResultMap = true</code>（保证反序列化生效）</li>
+          <li>JSON 列（<code>source_labels_json</code>）走 <code>JacksonTypeHandler</code> · <code>autoResultMap = true</code></li>
           <li>主子表事务：段 / 句用「删旧插新」策略（Phase 0 数据量小 · 段一般 &lt; 100）</li>
         </ul>
 
         <h3>10.3 存储抽象</h3>
         <p>
           <code>IStorageService</code> 抽象文件存储：本地 <code>FileSystemStorageService</code>（默认）+ 未来
-          <code>MinioStorageService</code>（Phase C）。<code>save() / read() / delete() / exists()</code> 四个方法，
-          <code>retry()</code> 时从存储反读 bytes 二次投推理，audio / image 都用同一份 read 逻辑。
+          <code>MinioStorageService</code>（Phase C）。<code>save() / read() / delete() / exists()</code> 四个方法；
+          <code>retry()</code> 时从存储反读原文本文件二次投推理。
         </p>
       </section>
 
@@ -1201,7 +1155,7 @@ timeline
                     : B2 AdminUser → user_profile ✅
                     : B3 Detect 三表 · JSON TypeHandler + 事务 ✅
                     : B4 Scenario Threshold + Caffeine 5min ✅
-                    : 图像模态接入 · ImageSegmentResult ✅
+                    : 2026-09-20 主方向收敛 → 移除 audio/image 代码
     Phase C · 规划   : Sa-Token 真接入（当前 mock）
                     : Redis / @Cacheable 替 Caffeine
                     : MinIO IStorageService 实现
@@ -1213,9 +1167,9 @@ timeline
         <h3>关键设计约束</h3>
         <ul>
           <li>Repository <code>@Primary</code> 顶掉 InMemory · Service / Controller 零改动</li>
-          <li>JSON 列走 <code>JacksonTypeHandler</code>，与项目 Jackson 生态一致</li>
-          <li>音频段 / 图像区域走 JSON 单列（不建独立子表 · 数据量小 · 只在详情展示）</li>
+          <li>JSON 列（<code>source_labels_json</code>）走 <code>JacksonTypeHandler</code>，与项目 Jackson 生态一致</li>
           <li>段 / 句子子表走独立表（用户量大 · 需按 <code>task_id</code> 查）</li>
+          <li>2026-09-20 主方向收敛后，模态只留 text · Python 推理契约随之简化</li>
         </ul>
       </section>
 
@@ -1233,12 +1187,20 @@ timeline
             </div>
           </li>
           <li>
-            <div class="tl-head">v0.2.0 · Phase B + Waves + Image <span class="tl-date">2026-09-19 → 2026-09-20</span></div>
+            <div class="tl-head">v0.2.0 · Phase B + Waves <span class="tl-date">2026-09-19</span></div>
             <div class="tl-body">
               后端 Phase B 全落库（5 张业务表 + Caffeine 缓存 + JSON 列 + 事务）·
               mobile-uniapp Wave 2/3/4 联发达 v0.5.0 生产就绪 ·
-              图像模态 Java 全链路接入（<code>ImageSegmentResult</code> + <code>detectImage</code> + <code>image_segments_json</code>）·
               微信小程序 <code>utils/url.js</code> 隐式 require 崩溃修复。
+            </div>
+          </li>
+          <li>
+            <div class="tl-head">v0.2.0 · 主方向收敛 <span class="tl-date">2026-09-20</span> <span class="tag tag--stub">refactor</span></div>
+            <div class="tl-body">
+              commit <code>7d5db57</code>：移除 audio / image 检测代码与两条 SQL 迁移，
+              <code>DetectConstants.MODALITIES</code> 收敛为 <code>Set.of(MODALITY_TEXT)</code>；
+              legacy 里的 <code>train_image_sd / c2pa_detector / gb45438_detector / arbitration / start</code> 一并归档。
+              模型 / 数据资产保留磁盘。
             </div>
           </li>
         </ul>
@@ -1249,11 +1211,6 @@ timeline
             <tr><th>方向</th><th>内容</th><th>阶段</th></tr>
           </thead>
           <tbody>
-            <tr>
-              <th scope="row">Python 推理端点</th>
-              <td>补 <code>/api/v1/detect/image</code>（Java 侧已就绪，无需再改）· 音频 <code>detectors/audio.py</code> <code>load/predict</code> 实装</td>
-              <td><span class="tag tag--warn">P0</span></td>
-            </tr>
             <tr>
               <th scope="row">校准核查</th>
               <td>切回 <code>aigc_detector.pth</code>（T=0.506 真校准）或给 v3_thesis 补跑校准</td>
@@ -1282,16 +1239,6 @@ timeline
             <tr>
               <th scope="row">订阅消息服务端</th>
               <td>uniPush / 微信开放接口对接 · 检测完成推送模板</td>
-              <td><span class="tag tag--plan">P2</span></td>
-            </tr>
-            <tr>
-              <th scope="row">图像模型</th>
-              <td>CLIP / DINOv2 + GenImage++ 训练 · ForMa 篡改定位起步 · 学术特化（western blot / 显微图）</td>
-              <td><span class="tag tag--plan">P2</span></td>
-            </tr>
-            <tr>
-              <th scope="row">前端图像结果</th>
-              <td><code>image.vue</code> 结果页按 imageSegments 渲染（整图 vs 多区域视图）</td>
               <td><span class="tag tag--plan">P2</span></td>
             </tr>
           </tbody>
