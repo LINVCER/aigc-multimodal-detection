@@ -19,7 +19,7 @@ async function load() {
   catch (e) {
     // request.js 已 toast，本页仅 DEV 日志
     // eslint-disable-next-line
-    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV) {
+    if (import.meta.env.DEV) {
       console.warn('[feedback/mine] load failed:', e?.message)
     }
   } finally {

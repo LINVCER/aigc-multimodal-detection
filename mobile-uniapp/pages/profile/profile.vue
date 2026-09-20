@@ -18,8 +18,10 @@ const roleText = computed(() =>
 //   2) 兜底小程序 uni.getAccountInfoSync().miniProgram.envVersion / manifest 硬写
 //   3) 最终兜底常量（H5 无 miniProgram）
 function readAppVersion() {
+  // 裸写 import.meta.env.XXX 让 Vite build 时静态替换；带 typeof 探测会残留到
+  // 小程序运行时触发 utils/url.js 隐式 polyfill require（Wave 4 收官修复）
   // eslint-disable-next-line
-  const envVer = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_APP_VERSION
+  const envVer = import.meta.env.VITE_APP_VERSION
   if (envVer) return String(envVer)
   try {
     // #ifdef MP-WEIXIN

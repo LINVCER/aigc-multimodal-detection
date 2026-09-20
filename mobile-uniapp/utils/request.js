@@ -10,10 +10,14 @@
 //   2) 直连远程后端：VITE_API_BASE=https://api.xxx.com + MOCK_MODE=false → 请求带绝对前缀
 //   3) 纯 UI 离线联调：VITE_USE_MOCK=true → 所有 http()/uploadFile 走内置 mock 数据
 
+// import.meta.env.XXX 由 Vite build 时静态替换成字面值；
+// 早期用 `typeof import.meta !== 'undefined' && ...` 做防御，在微信小程序引擎里
+// 会保留到运行时并触发 uni-app 对 `url` 模块的隐式 polyfill require，报
+// `module 'utils/url.js' is not defined`。这里必须写"裸"的 import.meta.env.XXX。
 // eslint-disable-next-line
-export const API_BASE = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE) || ''
+export const API_BASE = import.meta.env.VITE_API_BASE || ''
 // eslint-disable-next-line
-export const MOCK_MODE = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_USE_MOCK) === 'true'
+export const MOCK_MODE = import.meta.env.VITE_USE_MOCK === 'true'
 
 /**
  * uni.request fail 语义分类：
