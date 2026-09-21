@@ -202,3 +202,8 @@ RuoYi-Vue-Plus/
 
 # ======== 归档备份(已移除的音频/图像模块,不入库) ========
 /_archive/
+
+# ======== 本地运行时数据(不入库) ========
+_tmp_pdf/
+appendonly.aof
+deploy/minio-data/
