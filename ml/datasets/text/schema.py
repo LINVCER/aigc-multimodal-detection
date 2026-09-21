@@ -55,10 +55,8 @@ AUGMENTS: tuple[str, ...] = (
     "mixcase",           # 句级人机拼接，label=1，用于 mixed evals
 )
 
-# Fraser §5.3：约 120 词即可让微调检测器发挥完整潜力；中文按字符取同量级门槛
-MIN_CHARS: int = 120
-# 与 backend TextProcessor 段落切分上限一致，超长段落截断后再入库
-MAX_CHARS: int = 1600
+# 长度口径统一在 ml/common/constants.py（推理侧同一份）
+from ml.common.constants import MAX_CHARS, MIN_CHARS  # noqa: E402,F401
 
 # 常见生成器名 → 家族归一（M4 / MAGE / 自建数据里 source 字段五花八门）
 _SOURCE_ALIASES: dict[str, str] = {

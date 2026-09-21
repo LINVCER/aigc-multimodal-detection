@@ -11,11 +11,11 @@ Phase 0 → Phase 1 推理服务
 加载成功 → detect_paragraph 走真实推理；失败 → 自动 fallback 到 MD5 stub（服务不 down）。
 
 env / .env 配置：
-    TEXT_BASE_MODEL_PATH   基座 roberta 路径（本地 dir 或 HF repo id）
-    TEXT_CHECKPOINT_PATH   训练权重 .pth 绝对路径
+    TEXT_CHECKPOINT_PATH   训练权重 .pth 路径（必填）。ml/training/text 产出的 checkpoint 自带 backbone / 阈值 / 表层特征 scaler
+    TEXT_BASE_MODEL_PATH   基座路径（可选）：legacy checkpoint 必填；或用本地目录覆盖 checkpoint 里的 HF repo id
     TEXT_DEVICE            cpu / cuda:0
     TEXT_MAX_LENGTH        512（可被 checkpoint.hyperparams 覆盖）
-    TEXT_MODEL_VERSION     报给前端的版本标签
+    TEXT_MODEL_VERSION     报给前端的版本标签（可被 checkpoint.hyperparams.version 覆盖）
 """
 from __future__ import annotations
 
@@ -46,8 +46,8 @@ def _bootstrap_text_detector() -> None:
     global text_detector, text_load_error
     base = os.getenv("TEXT_BASE_MODEL_PATH", "").strip()
     ckpt = os.getenv("TEXT_CHECKPOINT_PATH", "").strip()
-    if not base or not ckpt:
-        text_load_error = "TEXT_BASE_MODEL_PATH / TEXT_CHECKPOINT_PATH 未设置，fallback stub"
+    if not ckpt:
+        text_load_error = "TEXT_CHECKPOINT_PATH 未设置，fallback stub"
         log.warning(text_load_error)
         return
     if not os.path.exists(ckpt):
@@ -214,7 +214,7 @@ def _detect_real(req: DetectParagraphRequest) -> DetectParagraphResponse:
         interval={"lower": round(max(0.0, pred.calibrated_prob - half), 4),
                   "upper": round(min(1.0, pred.calibrated_prob + half), 4)},
         risk_level=_risk_level(pred.calibrated_prob),
-        warning="",
+        warning=pred.warning,
         branch_scores={
             # roberta 主分支给校准后；stub 值保留兼容 Wave 2 前端多分支色带
             "roberta":     pred.calibrated_prob,

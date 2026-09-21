@@ -16,7 +16,7 @@
 | 模型结构 | **`[h_cls ; h_cnn ; f]` 特征级融合** + 9 类溯源头 | **Chen 2026**：改写集 acc 87.6% vs RoBERTa 83.2%；表层规律在改写下稳定 |
 | 数据关键动作 | **paraphrase×3 档 / polished / mixcase 必须入训** | **Fraser 2025 §5.5**：未见 mixcase → 全线差于随机；见过 → RADAR 88% |
 | 校准 | 温度 + Platt + **低假阳阈值（FPR ≤ 1% / 5%）随 checkpoint 落盘** | Fraser §6：论文场景误伤真论文代价高 |
-| 长度门槛 | 训练 / 判定 ≥ 120 字；50-119 字单独评测 | Fraser §5.3：~120 词达完整潜力 |
+| 长度门槛 | 训练 ≥ 120 字；推理 <120 字照常出分但带 `warning`；50-119 字单独评测 | Fraser §5.3：~120 词达完整潜力 |
 | 训练技巧 | Focal · R-Drop · EMA · FGM · 分层 LR · 梯度累积 · bf16 · 早停 | legacy 验证过的 9 项保留 |
 | 评估 | 六套评测集分套报 AUROC / F1 / TPR@FPR=1% / ECE / Brier | MODEL_UPGRADE_PLAN §2.4 |
 | 放弃 | Katib 传统 ML + 元启发；水印；LLM-as-classifier | 文献笔记 §六 5 / 调研 §1.2 |
@@ -166,6 +166,8 @@ fused = LayerNorm([h_cls ; h_cnn ; f])                                          
 
 每次评估在 val 上拟合温度 + Platt，记录 ECE before/after，最优时落盘 best.pth + 阈值。
 
+上表数值取自 v0.2.0；v0.3.0-large 有三处不同：EMA 0.9995、patience 1、每 2000 step 也评估一次（见 yaml）。
+
 ---
 
 ## 5. 校准与阈值（`ml/training/text/calibration.py`）
@@ -204,7 +206,8 @@ calibrated = sigmoid( (raw_logit / T) * a + b )       raw_logit = logits[:, 1]�
 
 ## 7. 推理侧改动（`deploy/inference-python/`）
 
-- `detectors/text.py`：改用 `ml.common.checkpoint` 加载；fusion 模型推理时算表层特征 → scaler → 融合；`ParagraphPrediction` 新增 `thresholds` 与 `source_probs`；`health()` 暴露 arch / 阈值 / val 指标
+- `detectors/text.py`：改用 `ml.common.checkpoint` 加载；fusion 模型推理时算表层特征 → scaler → 融合；`ParagraphPrediction` 新增 `thresholds` / `source_probs` / `warning`（<120 字提示，透传到接口原有 `warning` 字段）；`health()` 暴露 arch / 阈值 / val 指标
+- `main.py`：只要 `TEXT_CHECKPOINT_PATH` 存在即加载，`TEXT_BASE_MODEL_PATH` 变为可选（legacy checkpoint 或离线覆盖时才需要）；长度口径常量统一在 `ml/common/constants.py`
 - `Dockerfile`：build context 改为仓库根，`COPY ml/common` + `COPY detectors`（原 Dockerfile 漏 COPY detectors，顺手修）；`PYTHONPATH=/app`
 - `requirements.txt`：+ sentencepiece（DeBERTa tokenizer）· numpy · jieba
 - `main.py` 接口不变：`/api/v1/detect/paragraph` 响应结构未动，`/attribute` 可在下一步切到 `source_probs`
@@ -236,7 +239,7 @@ Phase 1 硬指标（MODEL_UPGRADE_PLAN §4）+ 本轮新增：
 | Polished F1 | ≥ 0.60 | polished |
 | Mixed F1 | ≥ 0.60 | mixed |
 | Short-text AUROC | ≥ 0.85 | short_text |
-| 溯源 top-1 | ≥ 0.70 | in_domain（`source_top1_acc`） |
+| 溯源 top-1 | ≥ 0.70 | in_domain（`source_top1_acc`；cls_only 无溯源头时报 N/A，不算 FAIL） |
 | A/B | v0.2.0 fusion 在 adversarial / polished 上 F1 ≥ v0.1.0 + 4pp | 两份 eval-report 对比 |
 
 `eval.py` 对每套自动打 PASS / FAIL。
@@ -279,7 +282,7 @@ bash training/scripts/train_baseline.sh eval  fusion    # → ml/checkpoints/tex
 | 路径 | 动作 |
 |---|---|
 | `ml/__init__.py` · `ml/common/__init__.py` · `ml/datasets/__init__.py` · `ml/datasets/text/__init__.py` · `ml/evaluation/__init__.py` · `ml/evaluation/text/__init__.py` | 新增（包结构） |
-| `ml/common/surface_features.py` · `fusion_model.py` · `checkpoint.py` | 新增 |
+| `ml/common/surface_features.py` · `fusion_model.py` · `checkpoint.py` · `constants.py` | 新增 |
 | `ml/datasets/text/schema.py` · `build_dataset.py` · `paraphrase_augment.py` · `build_evalsets.py` | 新增 |
 | `ml/datasets/text/README.md` | 重写 |
 | `ml/training/text/data.py` · `model.py` · `calibration.py` · `train.py` | 骨架 → 实装 |

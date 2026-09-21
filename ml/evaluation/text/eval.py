@@ -41,7 +41,7 @@ log = logging.getLogger("eval")
 
 # Phase 1 验收线；未达标的项在报告里标 FAIL
 ACCEPTANCE = {
-    "in_domain": {"auroc": 0.98, "ece_after": 0.05},
+    "in_domain": {"auroc": 0.98, "ece_after": 0.05, "source_top1_acc": 0.70},   # 溯源项无溯源头时记 N/A
     "cross_generator": {"f1": 0.85},
     "adversarial": {"f1": 0.70},
     "polished": {"f1": 0.60},
@@ -120,9 +120,17 @@ def score_set(name: str, pred: dict, det, threshold: float) -> dict:
     m["acceptance"] = {}
     for k, line in acc.items():
         v = m.get(k)
+        if v is None or (isinstance(v, float) and np.isnan(v)):
+            # 指标不可用（如 cls_only 无溯源头）→ N/A，不算 FAIL
+            m["acceptance"][k] = {"target": line, "value": None, "pass": None}
+            continue
         ok = (v <= line) if k.startswith("ece") else (v >= line)
         m["acceptance"][k] = {"target": line, "value": v, "pass": bool(ok)}
     return m
+
+
+def _pass_label(v: dict) -> str:
+    return "N/A" if v["pass"] is None else ("PASS" if v["pass"] else "FAIL")
 
 
 def main() -> None:
@@ -167,7 +175,7 @@ def main() -> None:
         log.info("%-16s n=%-6d auroc=%.4f f1=%.4f acc=%.4f fpr=%.3f tpr@fpr1=%.3f ece=%.4f brier=%.4f %s",
                  name, m["n"], m["auroc"], m["f1"], m["accuracy"], m["fpr"], m["tpr_at_fpr_1pct"],
                  m["ece_after"], m["brier"],
-                 " ".join(f"{k}:{'PASS' if v['pass'] else 'FAIL'}" for k, v in m["acceptance"].items()))
+                 " ".join(f"{k}:{_pass_label(v)}" for k, v in m["acceptance"].items()))
 
     out = args.out or os.path.join(os.path.dirname(args.checkpoint) or ".", "eval-report.json")
     with open(out, "w", encoding="utf-8") as f:

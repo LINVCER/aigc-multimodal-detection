@@ -35,6 +35,7 @@ for cand in (os.path.dirname(_HERE), os.path.abspath(os.path.join(_HERE, "..", "
         sys.path.insert(0, cand)
 
 from ml.common.checkpoint import LoadedDetector, load_detector_from_checkpoint  # noqa: E402
+from ml.common.constants import MIN_CHARS  # noqa: E402
 from ml.common.surface_features import extract_surface_features  # noqa: E402
 
 log = logging.getLogger(__name__)
@@ -62,6 +63,7 @@ class ParagraphPrediction:
     sentences: list[SentencePrediction]
     thresholds: dict[str, float] = field(default_factory=dict)
     source_probs: dict[str, float] = field(default_factory=dict)   # 溯源头（fusion 且 use_source_head 时有）
+    warning: str = ""                                               # 短文本等可靠性提示，透传到接口 warning 字段
 
 
 class TextAIGCDetector:
@@ -131,6 +133,11 @@ class TextAIGCDetector:
     def predict_paragraph(self, text: str, with_sentences: bool = False) -> ParagraphPrediction:
         raw, source_probs = self._forward(text)
         ai, cal = self._calibrate(raw)
+        n_chars = len((text or "").strip())
+        warning = (
+            f"文本仅 {n_chars} 字，低于 {MIN_CHARS} 字可靠判定门槛，结果仅供参考"
+            if n_chars < MIN_CHARS else ""
+        )
         sentences: list[SentencePrediction] = []
         if with_sentences:
             for idx, (start, end, sent) in enumerate(_split_sentences(text)):
@@ -143,7 +150,7 @@ class TextAIGCDetector:
             ai_prob=round(ai, 4), calibrated_prob=round(cal, 4), raw_logit=round(raw, 4),
             temperature=self.temperature, platt_a=self.platt_a, platt_b=self.platt_b,
             model_version=self.model_version, sentences=sentences,
-            thresholds=self.thresholds, source_probs=source_probs,
+            thresholds=self.thresholds, source_probs=source_probs, warning=warning,
         )
 
     def health(self) -> dict[str, Any]:
