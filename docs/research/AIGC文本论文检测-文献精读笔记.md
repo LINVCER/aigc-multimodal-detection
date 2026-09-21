@@ -302,5 +302,121 @@
 
 ## 七、下一步（可选）
 
-- [ ] 基于结论 3 产出「改写鲁棒 + 特征融合」改造方案（含改动文件清单、改写集构造方式、超参）
+- [x] 基于结论 3 产出「改写鲁棒 + 特征融合」改造方案 → `docs/design/202609-text-detector-training-pipeline.md`（2026-09-21 已落地为 `ml/` 训练链路）
 - [ ] 在 `model-system-overview.html` 标记论文场景「高人工影响端」风险与对应策略（低假阳校准 + mixcase 训练数据）
+
+---
+
+## 八、2026 年新增文献补充（2026-09-21 检索）
+
+> 检索范围：arXiv 2025-09 → 2026-09，聚焦「改写 / 润色 / 混写」「细粒度定位」「特征与表示」「假阳与公平性」「零样本」五个与论文检测直接相关的方向。
+> 与 `MODEL_RESEARCH_TEXT.md` v2 增补（C-ReD / MAGA-Bench / DeBERTa-Sentinel / DetectRL-X / HACo-Det / 2509.17830 / GPTZero / DAMAGE …）不重复，只收新出现或此前未深读的。
+> 每篇末尾「→」给出对本项目训练链路的具体影响。
+
+### 8.1 改写 / 润色 / 混写（论文检测最难区间）
+
+**ARB: A Matched Authorship-Rewriting Benchmark**（arXiv 2607.29539，2026-07，CC-BY-4.0）
+
+- 同一原文四个匹配变体：人写原文 / LLM 直接生成 / **人写被 LLM 改写** / LLM 文本被同模型改写；1,800 源文本 × 4 生成器（Llama-3.2-3B / Qwen2.5-7B / Mistral-7B / Gemma-2-9B）
+- @1% FPR：直接生成 recall 91-94%；**人写被 LLM 改写后 recall 掉到 15-31%（−60~78 点）**；LLM 文本被改写只掉 10-13 点；BERT / RoBERTa 防御式检测器全程 <3%
+- → 我们的 `polished` 样本正是「人写被 LLM 改写」这一最惨格。印证 polished 必须单独成评测集且入训；数据可商用，可直接作英文外部 evalset 对照。
+
+**OpAI-Bench: Operation-Guided Progressive Human-to-AI Text Transformation**（arXiv 2606.06481，2026-06）
+
+- 从人写文档出发，按 5 种 AI 编辑操作 × 预设 AI 覆盖比例，逐步生成 9 个修订版本并记录 provenance；评测 8 文档级 + 7 句级 + 2 token 级检测器
+- 核心发现：可检测性**非单调** —— 中间混写版本常比「全人写」和「重度 AI 编辑」两端都难检测；操作类型、领域、修订历史都影响
+- → 评测集不能只有一档 mixcase，要按 AI 覆盖比例分档（我们 `paraphrase_augment --mode mixcase` 已在 meta 记 `ai_sentence_idx`，建 evalset 时按比例分桶即可）。
+
+**Pangram 4 Technical Report**（arXiv 2607.27183，2026-07）
+
+- 工业 SOTA 报告：AUROC 0.9916、FPR 0.0041%、FNR 0.34%；主打混写与细粒度 span 定位、对 humanizer 攻击的鲁棒；方法未公开
+- → 对标数字。它证明「极低 FPR + 混写 + span」三者可同时达到，是我们 Phase 2 的产品目标线。
+
+**Almost AI, Almost Human: The Challenge of Detecting AI-Polished Writing**（arXiv 2502.15666，2025-02）
+
+- 轻度润色的人写文本 FPR 极高，现有检测器无法区分「人写 + AI 微调」与「全 AI」
+- → 与 Fraser §5.5 同一结论；polished 评测集验收线（F1 ≥ 0.60）设得保守是有依据的。
+
+### 8.2 细粒度 / 句子级 / token 级定位
+
+**Detecting LLM-Generated Tokens in Human–LLM Coauthored Text**（arXiv 2607.21458，2026-07）
+
+- token 级检测分数 + 相邻平滑 + **Lepski 型自适应带宽**按局部 authorship 结构选窗；**不需要 token 级标注**
+- → Phase 2 句子级方案多了一条免标注路径：用 fusion 模型逐句 / 逐窗打分后做自适应平滑，比 2509.17830 的 CRF 少一套标注成本。
+
+**Segmenting Human–LLM Co-authored Text via Change Point Detection**（arXiv 2605.03723，2026-05）
+
+- 把 authorship 分段建模为时间序列变点检测，给出加权 / 广义两种算法与 minimax 最优性证明，开源
+- → 与上一篇互补：先有句级分数序列，再做变点检测得到边界。两者都可直接消费我们推理侧 `return_sentences=true` 的句级校准概率。
+
+**Beyond the Final Actor: Modeling the Dual Roles of Creator and Editor**（arXiv 2604.04932，2026-04）
+
+- 把细粒度检测拆成「谁创作 / 谁编辑」双角色，而非单一 authorship 标签
+- → 与 OpAI-Bench 的 provenance 思路一致；我们 schema 里 `augment` + `source` 已经能表达「人写 / gpt 润色」这种双角色，未来扩三分类时不用改 schema。
+
+### 8.3 特征与表示层
+
+**FAID: Fine-Grained AI-Generated Text Detection Using Multi-Task Auxiliary and Multi-Level Contrastive Learning**（arXiv 2505.14271，2025-05）
+
+- 三分类（human / LLM / **human-LLM 协作**）+ LLM 家族辅助头 + 多级对比学习；FAIDSet 多语多域多生成器；对 unseen 域 / 新 LLM 泛化好，且有无需重训的分布偏移适应
+- → 直接印证本链路的「溯源辅助头 + SupCon」设计。建议 v0.2.x 把主任务从二分类扩为三分类（human / ai / collaborative），`augment ∈ {polished, mixcase}` 即 collaborative 标签，schema 不用动。
+
+**Diversity Boosts AI-Generated Text Detection（DivEye）**（arXiv 2509.18880，TMLR 2026）
+
+- 用 **surprisal 的波动**（词汇 / 结构不可预测性随文本的起伏，即「节奏不可预测性」）作可解释特征；单独用超零样本检测器最多 +33.2%，叠加已有检测器最多 +18.7%；对改写与对抗攻击鲁棒
+- → 我们 30 维表层特征（`sf-v1`）里的句长 CV / 标点间隔 CV / 熵是同一思想的无 LM 版本；`sf-v2` 可加 6 维 surprisal 序列统计（均值 / 方差 / 峰度 / 自相关…），代价是推理时多一个小 LM 打分。
+
+**Amplifying, Not Learning: Fine-Tuned AI Text Detectors Amplify a Pretrained Direction**（arXiv 2605.21653，2026-05，2026-08 修订）★
+
+- 主张：微调检测器并没有学到新的「AI vs 人」边界，只是**放大预训练 LM 里已有的「可预测性」轴**
+- 证据：检测器把 **99.5% 的正式人类作文判为 AI**，却放过 10.5% 的高温采样 AI 文本；分解后可迁移（跨生成器）的成分完全来自预训练继承，微调残差是生成器特定、不迁移的；**冻结表示 + 每类 25 条标签的探针在未见生成器上 AUROC 0.893，反超全微调的 0.831**
+- 「no-go 定理」：能跨生成器迁移的那根轴，就是误伤正式人类文本的那根轴；训练目标、阈值、概念擦除、集成都无法在保留检测力的同时去掉这个伤害
+- → 三点直接影响：（1）**学术论文假阳是结构性的**，不是校准问题，产品必须给置信区间 + 阈值 + 人工复核入口而不是单一分数；（2）fusion 加非 LM 支路（表层特征）是少数能引入「第二根轴」的手段，但作者认为特征选择本身也不够 —— 需要在 held-out 生成器上实测 fusion vs cls_only 的 AUROC 差才有结论；（3）**少解冻 + 强正则可能比全微调更泛化**，支持配置里 `unfreeze_layers` 取保守值，并建议加一组「backbone 全冻结 + 探针」对照实验。
+
+### 8.4 假阳与公平性（中文论文场景同构）
+
+**Style as a Confound: False Positives in AI Detection of Non-Native Academic Writing**（arXiv 2608.26710，EMNLP 2026）★
+
+- 135,389 篇非母语学术稿件与其母语编辑版配对（2018-2025 专业润色服务）；13 个检测器 **FPR 从 0% 到 100%**；同一处编辑在不同检测器上把 AI 分数推向相反方向，变化幅度与编辑量正相关
+- 结论：「专业编辑风格」是 authorship 之外的强混淆变量
+- → 中文论文场景是同一个问题的镜像：规范化、低情绪波动的学术文体天然像 AI（Chen §5.5 错误分析也这么说）。落地：（1）评测集加「同一稿件编辑前 / 后」配对，专门看 FPR 漂移；（2）`academic_*` 场景用 `fpr_1pct` 阈值；（3）报告展示区间而非点值。
+
+**AI Detectors Fail Diverse Student Populations: A Mathematical Framing of Structural Detection Limits**（arXiv 2603.20254，2026-03）
+
+- 给出检测器在多样化学生群体上的结构性误差下界，结论「不适合作 authorship 的权威裁判」
+- → 产品定位措辞：检测结果是「疑似标记 + 人工复核」，不是判定。
+
+**Why AI-Generated Text Detection Fails: Evidence from Explainable AI Beyond Benchmark Accuracy**（arXiv 2603.23146，2026-03）
+
+- SHAP 解释 30 个语言学特征，PAN CLEF 2025 / COLING 2025 两个基准；检测器依赖**数据集特有的风格线索**（格式、长度）而非稳定的机器 authorship 信号；域内 F1 0.9734 在分布偏移下显著退化；开源了带实例级解释的 Python 包
+- → 我们 30 维表层特征训完必须做一次 SHAP / permutation importance，把只在 HC3 问答体上有效的特征（如某些标点比例）从 `sf-v2` 里剔除或降权；`eval.py` 分 origin 报告 F1 可以先暴露这类偏差。
+
+### 8.5 零样本 / 白盒
+
+**Luminol-AIDetect: Fast Zero-shot Detection based on Perplexity under Text Shuffling**（arXiv 2604.25860，2026-04）
+
+- 测量文本随机打乱后困惑度的变化：AI 文本在打乱下表现出特征性的不稳定；8 领域 / 11 种对抗攻击 / **18 种语言（含中文）**；FPR 最多降 17×，且比 Fast-DetectGPT / Binoculars 便宜
+- → Phase 2 白盒双检（MODEL_UPGRADE_PLAN M3）里，Luminol 有中文实证，优先级应高于无中文 paper 支撑的 Binoculars。
+
+### 8.6 基准与评测平台（补充）
+
+- **MGTEVAL**（arXiv 2604.25152，2026-04）：机器生成文本检测器的交互式系统评测平台 → 可作为我们六套评测之外的第三方复核。
+- **Detecting AI-Generated Content in Academic Peer Reviews**（arXiv 2602.00319，2026-02）：2025 年约 20% ICLR 审稿、12% Nature Communications 审稿被判为 AI 生成 → 说明「学术文本 AI 化」已是基线现象，训练集的 human 端更要严守 2020 年前红线。
+- **Efficient detection of AI-generated scientific abstracts with a lightweight transformer**（Sci Rep 2026, s41598-026-35203-3）：5,000 arXiv 摘要 + Gemini 2.0 Flash 生成对，域内 99.4% / 跨域 Macro-F1 0.948 → 单一生成器、单一域的高分不可信（对照 8.4 的 XAI 结论）。
+- **Detector-Evasive LLM Paraphrasing via Constrained Policy Optimization**（arXiv 2606.00392，2026-06）：用约束策略优化训练规避检测的改写器 → 对抗评测集应加入这类「优化过的」改写样本，而不只是 prompt 改写。
+
+### 8.7 对本项目训练链路的修正清单
+
+| 优先级 | 动作 | 依据 | 状态 |
+|---|---|---|---|
+| 高 | polished / mixcase 入训 + 单独评测 | ARB · OpAI-Bench · Fraser | ✅ v0.2.0 已落地 |
+| 高 | 评测集按 AI 覆盖比例分档（mixcase 非单调） | OpAI-Bench | 待做：`build_evalsets` 按 `meta.ai_sentence_idx` 比例分桶 |
+| 高 | 评测集加「编辑前 / 后」配对看 FPR 漂移；`academic_*` 用 `fpr_1pct` | Style as a Confound | 待做：数据 + backend 场景阈值接线 |
+| 高 | 产品报告给置信区间 + 阈值 + 人工复核，不给单一分数 | Amplifying no-go · 2603.20254 | 待做：前端 / 报告 |
+| 中 | 主任务扩三分类 human / ai / collaborative | FAID | 待做：v0.2.x，schema 不动 |
+| 中 | `sf-v2` 加 surprisal 波动 6 维 | DivEye | 待做：需小 LM 打分 |
+| 中 | 训完做 SHAP，剔除数据集特有特征 | Why Detection Fails | 待做：`eval.py` 分 origin 已能暴露 |
+| 中 | 加「backbone 全冻结 + 探针」对照，在 held-out 生成器上比 AUROC | Amplifying | 待做：一份 yaml（`unfreeze_layers: 0`） |
+| 中 | Phase 2 句子级走「逐句打分 + 变点 / Lepski 平滑」免标注路径 | 2607.21458 · 2605.03723 | Phase 2 |
+| 低 | 白盒双检用 Luminol 替代 Binoculars | Luminol（含中文） | Phase 2 |
+| 低 | 对抗评测加策略优化改写器产物 | 2606.00392 | Phase 2 |

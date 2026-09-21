@@ -39,6 +39,20 @@
 | Crothers §4.3.1：跨域只需数百专家标注样本 | `build_dataset --sources custom` 支持小规模自建学术集直接并入 |
 | DetectRL-X：Qwen 生成最难检测 | 自建数据 Qwen 占比 20%（DATASETS.md §3.1）；同时作为 cross-generator 未见组之一验证泛化 |
 
+### 1.1 2026-09 新检索文献带来的修正（详见文献笔记 §八）
+
+| 文献 | 对本链路的影响 | 落地 |
+|---|---|---|
+| ARB（2607.29539）：人写被 LLM 改写后 recall −60~78 点 | polished 是最难格，必须单独评测 + 入训 | ✅ 已在 v0.2.0 |
+| OpAI-Bench（2606.06481）：混写可检测性非单调 | mixed 评测按 AI 覆盖比例分桶 | 待做 · `build_evalsets` 读 `meta.ai_sentence_idx` |
+| FAID（2505.14271）：三分类 + 家族辅助头 + 多级对比 | 印证溯源头 + SupCon；v0.2.x 扩 human / ai / collaborative | 待做 · schema 不动 |
+| DivEye（2509.18880, TMLR'26）：surprisal 波动特征抗改写 | `sf-v2` 加 6 维 surprisal 序列统计 | 待做 · 需小 LM |
+| **Amplifying, Not Learning**（2605.21653）：微调只放大 LM「可预测性」轴，跨生成器迁移与误伤正式人类文本是同一根轴（no-go） | ① 学术假阳是结构性的 → 报告给区间 + 阈值 + 复核；② fusion 的非 LM 支路是引入第二根轴的尝试，需在 held-out 上实测；③ 加「全冻结 + 探针」对照 | 待做 · 一份 `unfreeze_layers: 0` yaml |
+| **Style as a Confound**（2608.26710, EMNLP'26）：13 检测器对非母语学术稿 FPR 0-100% | 评测加「编辑前 / 后」配对；`academic_*` 用 `fpr_1pct` | 待做 · 数据 + backend 阈值接线 |
+| Why Detection Fails（2603.23146）：检测器吃数据集特有风格线索 | 训完做 SHAP，剔除只在 HC3 问答体上有效的表层特征 | 待做 |
+| Token-level（2607.21458）· Change Point（2605.03723） | Phase 2 句子级走「逐句打分 + 自适应平滑 / 变点」免标注路径 | Phase 2 |
+| Luminol-AIDetect（2604.25860）：18 语言含中文，FPR 降 17× | 白盒双检优先 Luminol 而非 Binoculars | Phase 2 |
+
 ---
 
 ## 2. 数据集构建
@@ -290,3 +304,5 @@ bash training/scripts/train_baseline.sh eval  fusion    # → ml/checkpoints/tex
 | DeBERTa `gradient_checkpointing` 与 R-Drop 双 forward 叠加显存 / 时间 | large 配置已开 ckpt，必要时把 `rdrop_alpha` 置 0 |
 | 溯源头在公开集上类别极不均衡（gpt 一家独大） | `use_source_head` 可关；自建数据补齐 8 家后再开 |
 | 白盒零样本 / 句子级 CRF 未在本轮 | Phase 2（MODEL_UPGRADE_PLAN M2 / M3），接口留在 `branch_scores` |
+| 「Amplifying, Not Learning」no-go：学术体人类文本高假阳是微调范式的结构性代价，校准 / 阈值 / 集成都不能根除 | 产品侧必须是「疑似标记 + 区间 + 人工复核」而非判定；训练侧用 held-out 生成器实测 fusion 是否真的引入了第二根判别轴，不成立就退回 cls_only + 更强的产品侧兜底 |
+| 表层特征可能学到数据集特有线索（Why Detection Fails） | 训完对 30 维做 SHAP / permutation importance；`eval.py` 分 origin 报 F1 先看差异 |
