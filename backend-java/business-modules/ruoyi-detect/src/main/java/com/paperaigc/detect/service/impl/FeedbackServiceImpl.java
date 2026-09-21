@@ -38,6 +38,10 @@ public class FeedbackServiceImpl implements IFeedbackService {
         if (!FeedbackConstants.CATEGORIES.contains(dto.getCategory())) {
             throw new BizException(ErrorCode.FEEDBACK_CATEGORY_INVALID);
         }
+        // 未登录用户不能提交反馈（W3.c 登录接入前 userId 从请求体透传，为空即未登录）
+        if (dto.getUserId() == null) {
+            throw new BizException(ErrorCode.UNAUTHORIZED);
+        }
         // appeal 必带 taskId
         if (FeedbackConstants.CATEGORY_APPEAL.equals(dto.getCategory()) && dto.getTaskId() == null) {
             throw new BizException(ErrorCode.FEEDBACK_APPEAL_NEED_TASK);
