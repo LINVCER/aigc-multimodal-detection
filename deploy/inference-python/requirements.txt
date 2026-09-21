@@ -2,7 +2,10 @@ fastapi==0.115.6
 uvicorn[standard]==0.34.0
 pydantic==2.10.3
 
-# 文本检测：RoBERTa 编码 + 分类头 + 温度/Platt 校准
+# 文本检测：backbone 编码 + [CLS;CNN;表层特征] 融合 + 分类头 + 温度/Platt 校准
 # CPU 推理 ~5s/段；GPU 装对应 cuda 版本可到 ~100ms/段
 torch>=2.2,<3.0
 transformers>=4.44,<5.0
+sentencepiece>=0.2.0        # DeBERTa-v3 / mDeBERTa tokenizer
+numpy>=1.26
+jieba==0.42.1               # 表层特征分词；缺失时自动退化为字级统计（维度不变）

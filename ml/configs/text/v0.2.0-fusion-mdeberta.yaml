@@ -1,0 +1,89 @@
+# v0.2.0-fusion-mdeberta · 主推配置
+# 文献依据（docs/research/AIGC文本论文检测-文献精读笔记.md）：
+#   - Chen 2026：[h_cls ; h_cnn ; f] 特征级融合 → 改写集 acc 87.6%（RoBERTa 83.2%）
+#   - Fraser 2025：mixcase / polished 不入训则全线失效；低假阳校准
+#   - MODEL_RESEARCH_TEXT §2：mDeBERTa-v3-base 性价比首选，预期 +3-8pp
+# 用法：python -m ml.training.text.train --config ml/configs/text/v0.2.0-fusion-mdeberta.yaml
+
+version: v0.2.0-fusion-mdeberta
+codename: fusion
+modality: text
+
+model:
+  backbone: microsoft/mdeberta-v3-base
+  local_files_only: false
+  arch: fusion
+  classifier_hidden: 256
+  dropout: 0.1
+  cnn_kernels: [2, 3, 5]
+  cnn_filters: 128
+  surface_hidden: 64
+  use_source_head: true                      # 9 类溯源多任务（human + 8 家族）
+  gradient_checkpointing: false
+
+data:
+  train_jsonl: ml/datasets/text/data/train.jsonl
+  val_jsonl:   ml/datasets/text/data/val.jsonl
+  test_jsonl:  ml/datasets/text/data/test.jsonl
+  max_length: 512
+  min_chars: 120
+  train_total: 120000
+  scenario_mix:
+    academic_bachelor: 0.20
+    academic_master:   0.20
+    academic_phd:      0.10
+    job_report:        0.15
+    self_media:        0.20
+    other:             0.15
+  augment_mix:                               # 相对最终集合的占比；由 paraphrase_augment.py 离线产出
+    paraphrase_weak:   0.05
+    paraphrase_mid:    0.07
+    paraphrase_strong: 0.08
+    polished:          0.10                  # 人写 + LLM 润色（最难区间）
+  online_augment:
+    prob: 0.3
+    p_synonym: 0.15
+    p_shuffle: 0.10
+    p_delete: 0.05
+  num_workers: 4
+
+train:
+  epochs: 4
+  batch_size: 16
+  grad_accum_steps: 2
+  lr: 1.5e-5                                 # DeBERTa-v3 比 RoBERTa 低半档
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  grad_clip: 1.0
+  unfreeze_layers: 10
+  layerwise_lr: {bottom: 0.1, mid: 0.5, head: 5.0}
+  precision: bf16
+  seed: 42
+  loss: focal
+  focal_gamma: 2.0
+  focal_alpha: 0.25
+  rdrop_alpha: 0.5
+  ema_decay: 0.999
+  fgm_epsilon: 0.5
+  fgm_every: 2
+  source_loss_weight: 0.3
+  contrastive_weight: 0.1
+  contrastive_temperature: 0.07
+  early_stop_patience: 2
+  metric_for_best: val_auroc
+  eval_every_steps: 0
+
+calibration:
+  temperature_max_iter: 200
+  platt_c: 1.0
+  target_fprs: [0.01, 0.05]
+
+mlflow:
+  enabled: true
+  tracking_uri: http://localhost:5000
+  experiment: text_detector
+  run_name: v0.2.0-fusion-mdeberta
+
+output:
+  checkpoint_dir: ml/checkpoints/text/v0.2.0-fusion-mdeberta/
+  save_best_only: true

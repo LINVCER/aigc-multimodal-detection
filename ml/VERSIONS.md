@@ -27,23 +27,35 @@
 
 ---
 
-## v0.1.0-baseline · text（📋 待启动）
+## v0.2.0-fusion-mdeberta · text（🟡 链路就位 · 待首跑）
 
 | 字段 | 值 |
 |---|---|
 | 训练日期 | — |
 | 训练人 | — |
-| 数据集 | 待准备（对齐 C 端 6 场景：本科/硕士/博士/职业/自媒体/其他） |
-| Backbone | chinese-roberta-wwm-ext（可选 deberta-v3-base 对比） |
-| 超参配置 | `ml/configs/text/v0.1.0-baseline.yaml` |
-| val F1 | — |
-| val AUROC | — |
-| val ECE | — |
-| 温度 T | — |
-| Platt (a, b) | — |
-| checkpoint | 未产出 |
+| 数据集 | HC3-Chinese + CSL + M4-zh（qwen / deepseek 留作未见生成器）+ paraphrase×3 / polished / mixcase 增强 |
+| Backbone | microsoft/mdeberta-v3-base · arch=fusion `[h_cls ; h_cnn ; f]` + 9 类溯源头 |
+| 超参配置 | `ml/configs/text/v0.2.0-fusion-mdeberta.yaml` |
+| val F1 / AUROC / ECE | — |
+| 温度 T / Platt (a, b) | — |
+| 阈值 fpr_1pct / fpr_5pct | — |
+| 六套评测 | — |
+| checkpoint | `ml/checkpoints/text/v0.2.0-fusion-mdeberta/best.pth`（未产出） |
 | 部署时间 | 未部署 |
-| 备注 | 首个 baseline 目标：接管临时挂的老 `aigc_detector_v3_thesis.pth` |
+| 备注 | 主推版本。文献依据：Chen 2026 特征融合（改写集 acc 87.6%）· Fraser 2025 mixcase 入训 + 低假阳校准。设计文档 `docs/design/202609-text-detector-training-pipeline.md` |
+
+---
+
+## v0.1.0-baseline · text（🟡 链路就位 · 作 A/B 对照）
+
+| 字段 | 值 |
+|---|---|
+| 训练日期 | — |
+| 数据集 | 与 v0.2.0 同源，但 augment_mix 为空（不混改写样本） |
+| Backbone | hfl/chinese-roberta-wwm-ext · arch=cls_only（legacy 同构） |
+| 超参配置 | `ml/configs/text/v0.1.0-baseline.yaml` |
+| checkpoint | `ml/checkpoints/text/v0.1.0-baseline/best.pth`（未产出） |
+| 备注 | 对照组：量化 fusion + 改写增强的净增益；接管临时挂的老 `aigc_detector_v3_thesis.pth` |
 
 ---
 

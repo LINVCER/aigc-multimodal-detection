@@ -1,0 +1,86 @@
+# v0.3.0-fusion-deberta-large · 性能上限配置（单卡 A100 40GB 可训）
+# 在 v0.2.0 验证 fusion 增益后再上；batch 减半 + accum 翻倍保持等效 32，开 gradient checkpointing。
+# 用法：python -m ml.training.text.train --config ml/configs/text/v0.3.0-fusion-deberta-large.yaml
+
+version: v0.3.0-fusion-deberta-large
+codename: fusion-large
+modality: text
+
+model:
+  backbone: microsoft/deberta-v3-large
+  local_files_only: false
+  arch: fusion
+  classifier_hidden: 256
+  dropout: 0.1
+  cnn_kernels: [2, 3, 5]
+  cnn_filters: 128
+  surface_hidden: 64
+  use_source_head: true
+  gradient_checkpointing: true
+
+data:
+  train_jsonl: ml/datasets/text/data/train.jsonl
+  val_jsonl:   ml/datasets/text/data/val.jsonl
+  test_jsonl:  ml/datasets/text/data/test.jsonl
+  max_length: 512
+  min_chars: 120
+  train_total: 200000
+  scenario_mix:
+    academic_bachelor: 0.20
+    academic_master:   0.20
+    academic_phd:      0.10
+    job_report:        0.15
+    self_media:        0.20
+    other:             0.15
+  augment_mix:
+    paraphrase_weak:   0.05
+    paraphrase_mid:    0.07
+    paraphrase_strong: 0.08
+    polished:          0.10
+  online_augment:
+    prob: 0.3
+    p_synonym: 0.15
+    p_shuffle: 0.10
+    p_delete: 0.05
+  num_workers: 6
+
+train:
+  epochs: 3
+  batch_size: 8
+  grad_accum_steps: 4
+  lr: 1.0e-5
+  weight_decay: 0.01
+  warmup_ratio: 0.1
+  grad_clip: 1.0
+  unfreeze_layers: 14
+  layerwise_lr: {bottom: 0.1, mid: 0.5, head: 5.0}
+  precision: bf16
+  seed: 42
+  loss: focal
+  focal_gamma: 2.0
+  focal_alpha: 0.25
+  rdrop_alpha: 0.5
+  ema_decay: 0.9995
+  fgm_epsilon: 0.5
+  fgm_every: 2
+  source_loss_weight: 0.3
+  contrastive_weight: 0.1
+  contrastive_temperature: 0.07
+  early_stop_patience: 1
+  metric_for_best: val_auroc
+  eval_every_steps: 2000                     # 大数据集 epoch 内也评估，早停更及时
+
+calibration:
+  temperature_max_iter: 200
+  platt_c: 1.0
+  target_fprs: [0.01, 0.05]
+
+mlflow:
+  enabled: true
+  tracking_uri: http://localhost:5000
+  experiment: text_detector
+  run_name: v0.3.0-fusion-deberta-large
+
+output:
+  checkpoint_dir: ml/checkpoints/text/v0.3.0-fusion-deberta-large/
+  save_best_only: true

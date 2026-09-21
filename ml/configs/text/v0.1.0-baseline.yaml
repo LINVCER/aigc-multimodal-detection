@@ -1,52 +1,79 @@
-# v0.1.0-baseline · 文本检测首个基线
-# 目标：跑通训练 → 评估 → 校准 → 导出流程，取代 legacy 兜底 checkpoint
+# v0.1.0-baseline · 对照基线（legacy 同构：chinese-roberta-wwm-ext + [CLS]→MLP）
+# 目的：跑通 数据 → 训练 → 校准 → 评估 → 导出，并作为 v0.2.0 fusion 的 A/B 对照组
+# 用法：python -m ml.training.text.train --config ml/configs/text/v0.1.0-baseline.yaml
 
 version: v0.1.0-baseline
 codename: baseline
 modality: text
 
-# ---------------- 模型 ----------------
 model:
-  backbone: chinese-roberta-wwm-ext        # HF repo id 或本地 dir
-  hidden_size: 768
+  backbone: hfl/chinese-roberta-wwm-ext     # HF repo id 或本地目录
+  local_files_only: false
+  arch: cls_only                             # cls_only | fusion
   classifier_hidden: 256
-  num_classes: 2                            # 0=human, 1=ai
   dropout: 0.1
+  use_source_head: false                     # 溯源多任务；对照组关
+  gradient_checkpointing: false
 
-# ---------------- 数据 ----------------
 data:
-  train_jsonl: ml/datasets/text/train.jsonl
-  val_jsonl:   ml/datasets/text/val.jsonl
-  test_jsonl:  ml/datasets/text/test.jsonl
+  train_jsonl: ml/datasets/text/data/train.jsonl
+  val_jsonl:   ml/datasets/text/data/val.jsonl
+  test_jsonl:  ml/datasets/text/data/test.jsonl
   max_length: 512
-  # 场景采样比例（对齐 C 端 6 场景，避免偏科）
-  scenario_mix:
+  min_chars: 120                             # Fraser §5.3 长度门槛
+  train_total: 60000                         # 场景均衡采样后规模；null = 用全量
+  scenario_mix:                              # 对齐 C 端 6 场景
     academic_bachelor: 0.20
     academic_master:   0.15
     academic_phd:      0.10
     job_report:        0.20
     self_media:        0.20
     other:             0.15
+  augment_mix: {}                            # 对照组不混改写 / 润色样本
+  online_augment:
+    prob: 0.3
+    p_synonym: 0.15
+    p_shuffle: 0.10
+    p_delete: 0.05
+  num_workers: 4
 
-# ---------------- 训练 ----------------
 train:
-  epochs: 5
+  epochs: 4
   batch_size: 16
+  grad_accum_steps: 2                        # 等效 batch 32
   lr: 2.0e-5
   weight_decay: 0.01
   warmup_ratio: 0.1
   grad_clip: 1.0
-  unfreeze_layers: 4          # roberta 只解冻最后 N 层，其余 freeze
+  unfreeze_layers: 8                         # 只解冻最后 N 层 encoder
+  layerwise_lr: {bottom: 0.25, mid: 0.5, head: 5.0}
+  precision: bf16                            # bf16 | fp16 | fp32（A100/H100 用 bf16）
   seed: 42
+  loss: focal                                # focal | ce | label_smoothing
+  focal_gamma: 2.0
+  focal_alpha: 0.25
+  rdrop_alpha: 0.5                           # 0 = 关闭 R-Drop
+  ema_decay: 0.999                           # 0 = 关闭 EMA
+  fgm_epsilon: 0.5                           # 0 = 关闭 FGM
+  fgm_every: 2                               # 每 N step 做一次对抗 forward
+  source_loss_weight: 0.0                    # 溯源头权重（use_source_head=false 时忽略）
+  contrastive_weight: 0.0                    # SupCon 权重
+  contrastive_temperature: 0.07
   early_stop_patience: 2
+  metric_for_best: val_auroc                 # val_auroc | val_f1
+  eval_every_steps: 0                        # 0 = 每 epoch 末评估
 
-# ---------------- 校准 ----------------
 calibration:
-  temperature_lbfgs_max_iter: 200
-  platt_c_regularization: 1.0
+  temperature_max_iter: 200
+  platt_c: 1.0
+  target_fprs: [0.01, 0.05]                  # 低假阳阈值写入 checkpoint
 
-# ---------------- 输出 ----------------
+mlflow:
+  enabled: false
+  tracking_uri: http://localhost:5000
+  experiment: text_detector
+  run_name: v0.1.0-baseline
+
 output:
   checkpoint_dir: ml/checkpoints/text/v0.1.0-baseline/
   save_best_only: true
-  metric_for_best: val_f1
