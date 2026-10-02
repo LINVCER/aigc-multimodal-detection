@@ -33,6 +33,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * 检测任务业务实现
@@ -378,6 +379,7 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
 
         Map<String, Object> py = inferenceClient.humanize(original, dto.getStyle());
         Map<String, Object> resp = new HashMap<>();
+        resp.put("humanizeTaskId", UUID.randomUUID().toString());
         resp.put("originalText", original);
         resp.put("rewrittenText", py.get("rewritten_text"));
         resp.put("qualityScore", py.get("quality_score"));
