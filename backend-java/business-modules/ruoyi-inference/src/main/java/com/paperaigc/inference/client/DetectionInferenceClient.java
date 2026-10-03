@@ -32,7 +32,7 @@ public class DetectionInferenceClient {
     public DetectionInferenceClient(
             @Value("${platform.inference.host:localhost}") String host,
             @Value("${platform.inference.port:8000}") int port,
-            @Value("${platform.inference.deadline-seconds:10}") long deadlineSeconds) {
+            @Value("${platform.inference.deadline-seconds:15}") long deadlineSeconds) {
         this.channel = ManagedChannelBuilder.forAddress(host, port)
                 .usePlaintext()  // 集群内网通信；跨网必须换 TLS
                 .build();

@@ -159,8 +159,14 @@ services:
       PLATFORM_INFERENCE_HOST: inference
       PLATFORM_INFERENCE_PORT: "8000"
       PLATFORM_ASSISTANT_BASE_URL: http://inference:8000
+      # 论文文件落盘目录（LocalFileSystemStorageService 读 platform.storage.local-root）。
+      # 必须指向下面挂的持久卷，否则路径解析到容器可写层，重建即丢
+      PLATFORM_STORAGE_LOCAL_ROOT: /app/storage
       JWT_SECRET: ${JWT_SECRET}
       JAVA_TOOL_OPTIONS: "-Xms512m -Xmx1536m -XX:+UseZGC"
+    volumes:
+      # 上传的论文原件：不挂卷则随容器重建丢失
+      - backend_storage:/app/storage
     ports:
       - "8080:8080"
     healthcheck:
@@ -243,3 +249,5 @@ volumes:
   mysql_data:
   redis_data:
   minio_data:
+  # 论文原件（backend 容器的 /app/storage）；docker compose down 不丢，down -v 才清
+  backend_storage:

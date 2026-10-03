@@ -57,15 +57,69 @@ C 端定位（个人用户，非校园 SaaS），跟 `docs/design/OPERATIONS_REQ
 
 ## 4. 配置
 
-`ruoyi-admin/src/main/resources/application-dev.yml` 追加：
+### 4.1 `platform.*` 平台业务配置 —— **无需手工改基座文件**
+
+默认值统一放在 **`business-modules/ruoyi-detect/src/main/resources/platform-defaults.yml`**，
+由 `PlatformDefaultsEnvironmentPostProcessor` 在 Environment 准备阶段以 `addLast` 追加
+（优先级最低，任何 `application.yml` / profile / 环境变量都能覆盖）。
+
+覆盖的键：
 
 ```yaml
 platform:
   inference:
     host: ${INFERENCE_HOST:localhost}
     port: ${INFERENCE_PORT:8000}
-    deadline-seconds: 10
+    deadline-seconds: ${INFERENCE_DEADLINE_SECONDS:15}   # HttpInferenceClient 单次请求超时
+  storage:
+    local-root: ${STORAGE_LOCAL_ROOT:./storage}          # LocalFileSystemStorageService
+  assistant:
+    base-url: ${ASSISTANT_BASE_URL:http://localhost:8000}
+    rate-per-minute: ${ASSISTANT_RATE_PER_MINUTE:8}
+    rate-per-day: ${ASSISTANT_RATE_PER_DAY:100}
+    stream-timeout-seconds: ${ASSISTANT_STREAM_TIMEOUT_SECONDS:120}
+```
 
+> ⚠️ 键名必须与代码里 `@Value("${platform.*}")` 的读取路径一致。
+> 历史上这里踩过坑：`platform.storage.local-path` 曾经被写进配置文件，而
+> `LocalFileSystemStorageService` 读的是 `platform.storage.local-root` —— 死键，静默失效。
+
+**加载方式（两种后端形态都覆盖）**：`PlatformDefaultsEnvironmentPostProcessor` 由
+`ruoyi-detect/src/main/resources/META-INF/spring.factories` 注册（`spring.factories` 而非
+`AutoConfiguration.imports` —— 前者在 Environment 准备阶段就执行，后者太晚）。
+
+⚠️ 该 `spring.factories` 在 `standalone-app/src/main/resources/META-INF/` 下有**一份内容一致的副本**，
+两处必须同步修改：`standalone-app/pom.xml` 的 build-helper 把 `ruoyi-detect` 的 `src/main/resources`
+一并纳入本模块资源，而 Maven 资源拷贝是「后写覆盖前写」，两份同名文件内容不一致时会静默丢掉一份。
+（build-helper 只排除 `META-INF/spring/**`，所以 `AutoConfiguration.imports` 在 standalone 里确实
+被排除了，改由 `@SpringBootApplication` 组件扫描兜底 —— 这正是 standalone 需要的形态；
+`META-INF/spring.factories` 不在排除范围内，因此两份同名文件会互相覆盖，必须保持一致。）
+
+**为什么不用手改 `ruoyi-admin/src/main/resources/application-dev.yml`**：
+
+1. `deploy/docker-compose.yml` 用 `SPRING_PROFILES_ACTIVE=prod` 启动，**dev profile 根本不加载**，
+   写在里面的 `platform.inference.*` 在容器里从来不会生效；
+2. `ruoyi-admin/src/main/resources` 属于若依基座，本仓库只保留业务模块，
+   部署镜像里的基座是 clone 来的 —— 改本地基座副本不会被带进镜像；
+3. `platform.assistant.*` / `platform.storage.*` 在若依态从未被声明过，
+   原先只能靠 `@Value` 的行内兜底值，不可审查也无法在部署前发现写错。
+
+### 4.2 文件存储
+
+`LocalFileSystemStorageService` 是当前生效的实现（不装 MinIO 也能跑），
+落盘路径 = `platform.storage.local-root` + `/uploads/{yyyyMM}/{taskId}.{ext}`。
+
+容器里 `deploy/docker-compose.yml` 已固定 `PLATFORM_STORAGE_LOCAL_ROOT=/app/storage`
+并挂载命名卷 `backend_storage` —— **不挂卷的话论文原件落在容器可写层，重建即丢**。
+
+若改用若依自带 OSS 模块（`ruoyi-common-oss`），在管理后台「系统管理 → 文件配置」里配 MinIO 即可，
+新增 `MinioStorageService @Primary` 顶替现有 bean，业务代码零改动。
+
+### 4.3 熔断（可选，尚未接线）
+
+`HttpInferenceClient` 目前是全阻塞实现，没有熔断 / 重试。若要启用，在基座引入 resilience4j 后加：
+
+```yaml
 resilience4j:
   circuitbreaker:
     instances:
@@ -75,7 +129,8 @@ resilience4j:
         wait-duration-in-open-state: 10s
 ```
 
-文件存储用若依自带 OSS 模块（`ruoyi-common-oss`），在管理后台「系统管理 → 文件配置」里配 MinIO 即可，**不需要自己写 MinIO client**。
+注意 `platform.inference.deadline-seconds` 此前是**死配置**（客户端硬编码 15s），
+现已改为真正读取该键 —— 超时行为可从配置调整。
 
 ## 5. 权限与菜单
 

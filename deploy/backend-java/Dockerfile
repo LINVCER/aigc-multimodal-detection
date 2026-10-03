@@ -39,7 +39,7 @@ RUN sed -i '/<\/modules>/i\        <module>ruoyi-detect</module>\n        <modul
     sed -i '/<\/dependencies>/i\        <dependency>\n            <groupId>org.dromara</groupId>\n            <artifactId>ruoyi-detect</artifactId>\n            <version>${revision}</version>\n        </dependency>' \
         ruoyi/ruoyi-admin/pom.xml && \
     echo "===== 校验业务模块已挂载 =====" && \
-    grep -c "ruoyi-detect\|ruoyi-inference" ruoyi/ruoyi-modules/pom.xml
+    grep -cE "ruoyi-detect|ruoyi-inference" ruoyi/ruoyi-modules/pom.xml
 
 # 4) 业务模块 pom 里写死的 5.2.3 parent 版本需要对齐若依实际版本
 #    从 ruoyi 根 pom 读 revision 再刷入两个业务模块

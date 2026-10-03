@@ -49,25 +49,20 @@ mybatis-plus:
       logic-not-delete-value: 0
 
 # ============================================================
-# 平台业务配置
+# 平台业务配置（platform.*）
 # ============================================================
-platform:
-  inference:
-    # 容器里由 compose 注入 PLATFORM_INFERENCE_HOST/PORT 覆盖（Spring 松散绑定，不需要占位符）
-    host: localhost
-    port: 8000                     # 与 deploy/inference-python/Dockerfile 的监听端口一致
-    deadline-seconds: 10
-
-  storage:
-    # 本地文件存储根目录（LocalFileSystemStorageService 使用）
-    local-path: ${STORAGE_LOCAL_PATH:./uploads}
-
-  # 论文检测助手：Java 透传到 Python assistant/，容器里由 compose 注入 PLATFORM_ASSISTANT_BASE_URL 覆盖
-  assistant:
-    base-url: http://localhost:8000
-    rate-per-minute: 8
-    rate-per-day: 100
-    stream-timeout-seconds: 120
+# 不在此处声明：platform.* 的统一默认值在
+#   business-modules/ruoyi-detect/src/main/resources/platform-defaults.yml
+# 由 PlatformDefaultsEnvironmentPostProcessor 在 Environment 准备阶段追加（addLast，优先级最低）。
+#
+# 这样做的原因：
+#   1. 若依基座态（ruoyi-admin）与本 standalone 共用同一份默认值，避免两边漂移；
+#   2. 原先这里写的是 platform.storage.local-path，而代码读的是 platform.storage.local-root，
+#      是个不生效的死键 —— 集中到一处后由启动期统一校验。
+#
+# 覆盖方式：环境变量（PLATFORM_INFERENCE_HOST / PLATFORM_STORAGE_LOCAL_ROOT /
+# PLATFORM_ASSISTANT_BASE_URL ...），或在本文件显式写 platform.* 覆盖默认值。
+# ============================================================
 
 # ============================================================
 # Sa-Token（注解驱动；当前业务全用 @SaIgnore 放通，认证由业务层管理）

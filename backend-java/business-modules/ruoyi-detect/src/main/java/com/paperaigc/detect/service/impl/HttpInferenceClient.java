@@ -32,6 +32,10 @@ public class HttpInferenceClient implements IInferenceClient {
     @Value("${platform.inference.port:8000}")   // 对齐 deploy/inference-python 默认监听端口（8000）
     private int port;
 
+    /** 单次推理请求超时；默认值同 platform-defaults.yml。此前是硬编码 15s，配置项形同虚设 */
+    @Value("${platform.inference.deadline-seconds:15}")
+    private long deadlineSeconds;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final HttpClient httpClient = HttpClient.newBuilder()
             .version(HttpClient.Version.HTTP_1_1)
@@ -92,7 +96,7 @@ public class HttpInferenceClient implements IInferenceClient {
         HttpRequest req = HttpRequest.newBuilder()
                 .uri(URI.create(base() + path))
                 .header("Content-Type", "application/json")
-                .timeout(Duration.ofSeconds(15))
+                .timeout(Duration.ofSeconds(deadlineSeconds))
                 .POST(HttpRequest.BodyPublishers.ofString(bodyJson))
                 .build();
         HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
