@@ -4,7 +4,7 @@
 
 ```
 前端（web / mobile-uniapp） ──HTTP──▶ Java 后端（RuoYi-Vue-Plus） ──HTTP──▶ Python 推理
-     :5173 / :5175                        :8080                            :18000
+     :5173 / :5175                        :8080                            :8000
 ```
 
 ---
@@ -111,8 +111,8 @@ pip install -r requirements.txt
 # 配置模型路径（首次）
 copy .env.example .env
 
-# 启动（端口 18000）
-uvicorn main:app --host 0.0.0.0 --port 18000 --env-file .env
+# 启动（端口 8000）
+uvicorn main:app --host 0.0.0.0 --port 8000 --env-file .env
 ```
 
 不启动推理服务，后端 health 接口会返回错误信息但不影响启动。
@@ -256,7 +256,7 @@ D:\AAA\image_nious\
 ├── mobile-app/             React Native + Expo · iOS/Android 原生
 ├── backend-java/           业务模块（ruoyi-detect / ruoyi-inference）
 │   └── scripts/patch-schema.sql   全量 schema 快照
-├── deploy/inference-python/       FastAPI 推理服务（:18000）
+├── deploy/inference-python/       FastAPI 推理服务（:8000）
 ├── ml/                     新一代模型训练（与 legacy 分离）
 ├── legacy/                 老实验代码（只做参考）
 ├── docs/

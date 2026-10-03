@@ -10,7 +10,7 @@ info:
     name: PaperAIGC Team
 
 servers:
-  - url: http://localhost:18000
+  - url: http://localhost:8000
     description: 本地开发（与 backend-java application-dev.yml `platform.inference.port` 对齐）
 
 tags:

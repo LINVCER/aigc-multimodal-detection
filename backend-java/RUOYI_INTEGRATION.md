@@ -63,7 +63,7 @@ C 端定位（个人用户，非校园 SaaS），跟 `docs/design/OPERATIONS_REQ
 platform:
   inference:
     host: ${INFERENCE_HOST:localhost}
-    port: ${INFERENCE_PORT:9090}
+    port: ${INFERENCE_PORT:8000}
     deadline-seconds: 10
 
 resilience4j:

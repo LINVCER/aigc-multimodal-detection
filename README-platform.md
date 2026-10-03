@@ -14,7 +14,7 @@ C 端为主的 AIGC 检测 + 降 AIGC 工具。6 场景红线（本科 20% / 硕
 │  web/ + mobile-uniapp│  HTTP│  backend-java/         │  HTTP│  deploy/inference-python│
 └──────────────────────┘      └────────────────────────┘      └────────────────────────┘
         独立端口                    独立端口                       独立端口
-      web: 5173                  admin: 18080                    infer: 18000
+      web: 5173                  admin: 8080                     infer: 8000
       mobile: 5175
 ```
 
@@ -29,8 +29,8 @@ C 端为主的 AIGC 检测 + 降 AIGC 工具。6 场景红线（本科 20% / 硕
 
 ## 通信
 
-- **前端 → 后端**：HTTP。前端 dev server 走 vite proxy `/api → http://localhost:18080`。生产走 Nginx 反代。
-- **后端 → Python 推理**：HTTP。后端 `application-*.yml` 里 `platform.inference.host/port` 指到 Python 端（默认 `localhost:18000`）。加载失败 / 超时 → 后端 fallback 报错，前端有兜底展示。
+- **前端 → 后端**：HTTP。前端 dev server 走 vite proxy `/api → http://localhost:8080`。生产走 Nginx 反代。
+- **后端 → Python 推理**：HTTP。后端 `application-*.yml` 里 `platform.inference.host/port` 指到 Python 端（默认 `localhost:8000`）。加载失败 / 超时 → 后端 fallback 报错，前端有兜底展示。
 - **Python 端**：完全独立进程，任何一端挂掉不影响其它端启动。
 
 ## 目录结构

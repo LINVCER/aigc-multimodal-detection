@@ -4,7 +4,7 @@ info:
   description: |
     面向论文 AIGC 检测平台的 Java 后端（RuoYi-Vue-Plus 基座 + ruoyi-detect 业务模块）对外/管理端接口。
     统一响应包裹 `R<T>`：`{ code, msg, data }`，`code=200` 表示成功。
-    推理层接口（/api/v1/detect/paragraph 的内部实现）见 `inference-openapi.yaml`（独立服务于 18000 端口）。
+    推理层接口（/api/v1/detect/paragraph 的内部实现）见 `inference-openapi.yaml`（独立服务于 8000 端口）。
   version: 0.2.0
   contact:
     name: PaperAIGC Team

@@ -92,7 +92,7 @@ mvn -pl ruoyi-admin -am spring-boot:run
 ## 与其它端的通信
 
 - **前端 → 后端**：HTTP。前端 dev server 走 vite proxy `/api → http://localhost:8080`
-- **后端 → Python 推理**：HTTP。`application-dev.yml` 里 `platform.inference.host/port` 指到 Python 端（默认 `localhost:18000`）
+- **后端 → Python 推理**：HTTP。`application-dev.yml` 里 `platform.inference.host/port` 指到 Python 端（默认 `localhost:8000`）
 - **Python 推理端启动完全独立**，见 `deploy/inference-python/README.md`
 
 ## 分层规范

@@ -30,8 +30,8 @@ copy .env.example .env         # Windows
 # cp .env.example .env         # macOS / Linux
 # 编辑 .env，把 TEXT_BASE_MODEL_PATH / TEXT_CHECKPOINT_PATH 指向本机权重
 
-# 4) 起服务（默认监听 18000 端口，对齐 backend-java application-dev.yml）
-uvicorn main:app --host 0.0.0.0 --port 18000 --env-file .env
+# 4) 起服务（默认监听 8000 端口，对齐 backend-java application-dev.yml）
+uvicorn main:app --host 0.0.0.0 --port 8000 --env-file .env
 ```
 
 ## 校准公式（对齐训练脚本）

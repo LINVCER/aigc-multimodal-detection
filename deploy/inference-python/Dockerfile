@@ -2,7 +2,7 @@
 # build context 必须是仓库根目录，因为要把 ml/common（模型定义 / 表层特征 / checkpoint 契约）一起打进去：
 #   docker build -f deploy/inference-python/Dockerfile -t paperaigc-inference .
 # 运行时挂 checkpoint 与 backbone：
-#   docker run -p 18000:8000 -v ./ml/checkpoints:/app/ml/checkpoints -v ./models:/app/models \
+#   docker run -p 8000:8000 -v ./ml/checkpoints:/app/ml/checkpoints -v ./models:/app/models \
 #     -e TEXT_CHECKPOINT_PATH=/app/ml/checkpoints/text/v0.2.0-fusion-mdeberta/best.pth paperaigc-inference
 FROM python:3.11-slim
 

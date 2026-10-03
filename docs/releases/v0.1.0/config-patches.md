@@ -9,13 +9,13 @@
 
 ## 1. 平台推理服务连接（必需）
 
-后端调 Python 推理的 host/port。默认值代码里已给 `localhost:18000`，配置显式声明更利于运维：
+后端调 Python 推理的 host/port。默认值代码里已给 `localhost:8000`，配置显式声明更利于运维：
 
 ```yaml
 platform:
   inference:
     host: ${INFERENCE_HOST:localhost}
-    port: ${INFERENCE_PORT:18000}
+    port: ${INFERENCE_PORT:8000}
     # 超时（HttpInferenceClient 内 hardcoded 15s，如需覆盖走系统属性）
 ```
 
@@ -66,16 +66,16 @@ Phase 0 联调期为快速打通链路加了类级旁路，Phase B 上线**前**
 
 ## 3. 服务端口对齐（可选覆盖）
 
-若基座 `server.port` 默认是 8080，改成 18080 与前端 vite proxy 对齐（如已改则忽略）：
+基座默认 `server.port` 为 8080，前端 vite proxy 统一指向 8080：
 
 ```yaml
 server:
-  port: 18080
+  port: 8080
 ```
 
 前端默认值：
-- `web/vite.config.ts` → `apiTarget = 'http://localhost:18080'`（本版已改）
-- `mobile-uniapp/manifest.json` → `h5.devServer.proxy["/api"].target = 'http://localhost:18080'`（本版已改）
+- `web/vite.config.ts` → `apiTarget = 'http://localhost:8080'`（本版已改）
+- `mobile-uniapp/manifest.json` → `h5.devServer.proxy["/api"].target = 'http://localhost:8080'`（本版已改）
 
 ---
 

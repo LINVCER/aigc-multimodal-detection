@@ -36,7 +36,7 @@ mysql -uroot -p ry-vue < docs/releases/v0.1.0/sql/R__seed_scenario_threshold.sql
 # 5) 启动
 cd ~/workspace/RuoYi-Vue-Plus
 mvn -pl ruoyi-admin -am spring-boot:run
-# 默认端口 18080
+# 默认端口 8080
 ```
 
 ---
@@ -59,7 +59,7 @@ cp .env.example .env
 #   - TEXT_BASE_MODEL_PATH    基座 RoBERTa（HF repo 或本地路径）
 #   - TEXT_CHECKPOINT_PATH    权重路径（legacy 兜底 or ml/checkpoints/{ver}/best.pth）
 
-uvicorn main:app --host 0.0.0.0 --port 18000 --env-file .env
+uvicorn main:app --host 0.0.0.0 --port 8000 --env-file .env
 ```
 
 **Python 端未启也不阻断后端启动**：后端 IInferenceClient 调用超时会返回 `DETECT_INFERENCE_ERROR`，前端有兜底展示。
@@ -73,7 +73,7 @@ uvicorn main:app --host 0.0.0.0 --port 18000 --env-file .env
 ```bash
 cd web
 npm install
-npm run dev       # 端口 5173，vite proxy /api → http://localhost:18080
+npm run dev       # 端口 5173，vite proxy /api → http://localhost:8080
 ```
 
 访问：
@@ -98,8 +98,8 @@ npm run dev:mp-weixin    # 产物在 unpackage/dist/dev/mp-weixin/，用微信�
 
 | 端 | 探测方式 |
 |---|---|
-| Java 后端 | `curl http://localhost:18080/api/v1/detect/health` → 返 Python 端 health |
-| Python 推理 | `curl http://localhost:18000/health` → `text.backend = "real" \| "stub"` + `load_error` |
+| Java 后端 | `curl http://localhost:8080/api/v1/detect/health` → 返 Python 端 health |
+| Python 推理 | `curl http://localhost:8000/health` → `text.backend = "real" \| "stub"` + `load_error` |
 | Web 前端 | 浏览器 devtools Network 看是否 200 |
 | Mobile H5 | 同上，端口 5175 |
 
