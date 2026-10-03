@@ -109,6 +109,14 @@ services:
       - "8000:8000"
     environment:
       LOG_LEVEL: INFO
+      # 论文检测助手（assistant/）：不配 ASSISTANT_LLM_API_KEY 则端点返回 LLM_UNAVAILABLE，检测不受影响
+      ASSISTANT_ENABLED: ${ASSISTANT_ENABLED:-true}
+      ASSISTANT_LLM_BASE_URL: ${ASSISTANT_LLM_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      ASSISTANT_LLM_API_KEY: ${ASSISTANT_LLM_API_KEY:-}
+      ASSISTANT_LLM_MODEL: ${ASSISTANT_LLM_MODEL:-qwen-plus}
+      ASSISTANT_JAVA_BASE_URL: http://backend:8080
+      ASSISTANT_REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
+      ASSISTANT_SAFETY_PROVIDER: ${ASSISTANT_SAFETY_PROVIDER:-none}
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
       interval: 10s
@@ -150,6 +158,7 @@ services:
       # 键名必须能绑到 HttpInferenceClient 读的 platform.inference.*（Spring 松散绑定：下划线转点）
       PLATFORM_INFERENCE_HOST: inference
       PLATFORM_INFERENCE_PORT: "8000"
+      PLATFORM_ASSISTANT_BASE_URL: http://inference:8000
       JWT_SECRET: ${JWT_SECRET}
       JAVA_TOOL_OPTIONS: "-Xms512m -Xmx1536m -XX:+UseZGC"
     ports:

@@ -13,6 +13,7 @@ import lombok.Getter;
  *   <li>4xxx 用户反馈</li>
  *   <li>5xxx 用户 / 运营账号</li>
  *   <li>6xxx 报告导出</li>
+ *   <li>7xxx 论文检测助手</li>
  * </ul>
  * 前端按 code 区分文案与跳转，不依赖 msg 字符串。</p>
  */
@@ -49,6 +50,11 @@ public enum ErrorCode {
 
     /* ========== 5xxx 用户 ========== */
     USER_NOT_FOUND         (5404, "用户不存在"),
+
+    /* ========== 7xxx 论文检测助手 ========== */
+    ASSISTANT_RATE_LIMITED   (7429, "提问太频繁，请稍后再试"),
+    ASSISTANT_UPSTREAM_ERROR (7502, "助手服务暂时不可用"),
+    ASSISTANT_DISABLED       (7503, "助手暂未开放"),
     ;
 
     private final int code;

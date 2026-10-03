@@ -6,11 +6,13 @@ import com.paperaigc.detect.domain.dto.DetectTaskQueryDTO;
 import com.paperaigc.detect.domain.dto.HumanizeDTO;
 import com.paperaigc.detect.domain.dto.ParagraphDetectDTO;
 import com.paperaigc.detect.domain.entity.DetectTask;
+import com.paperaigc.detect.domain.entity.ScenarioThreshold;
 import com.paperaigc.detect.domain.vo.DetectTaskDetailVO;
 import com.paperaigc.detect.domain.vo.DetectTaskVO;
 import com.paperaigc.detect.domain.vo.PageVO;
 import com.paperaigc.detect.domain.vo.StatisticsVO;
 import com.paperaigc.detect.service.IDetectTaskService;
+import com.paperaigc.detect.service.IScenarioThresholdService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -46,6 +49,7 @@ import java.util.Map;
 public class DetectController {
 
     private final IDetectTaskService detectTaskService;
+    private final IScenarioThresholdService scenarioThresholdService;
 
     /* ==================== §3.1 提交 ==================== */
 
@@ -124,6 +128,13 @@ public class DetectController {
     public R<Map<String, Object>> detectParagraph(@Valid @RequestBody ParagraphDetectDTO dto) {
         boolean withSentences = Boolean.TRUE.equals(dto.getReturnSentences());
         return R.ok(detectTaskService.detectParagraph(dto.getText(), withSentences));
+    }
+
+    /* ==================== 场景阈值（只读；助手 get_threshold_policy 工具读当前生效值） ==================== */
+
+    @GetMapping("/detect/scenario-thresholds")
+    public R<List<ScenarioThreshold>> scenarioThresholds() {
+        return R.ok(scenarioThresholdService.listAll());
     }
 
     /* ==================== 运维 · 推理健康 ==================== */
