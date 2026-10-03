@@ -101,3 +101,7 @@ resilience4j:
 - gRPC proto 在 `ruoyi-inference/src/main/proto/detection.proto`，`mvn compile` 自动生成 stub（需要网络拉 protoc）
 - Java 21 虚拟线程：RuoYi-Vue-Plus 5.2+ 支持 `spring.threads.virtual.enabled=true`
 - 若依的 `ruoyi-common-encrypt` 可直接用于论文文件字段加密（替代自写 AES 逻辑）
+- 启动类 `DromaraApplication` 需改 `@SpringBootApplication(scanBasePackages = {"org.dromara", "com.paperaigc"})`，否则 `com.paperaigc` 业务包不被扫描
+- 开发机用 WSL 跑 Redis（16379）时，启动类内置 `startRedisInWsl()` 自动拉起；可删 `DromaraServletInitializer` 按独立 jar 启动
+- `application.yml` 已加开发阶段 API 白名单兜底：`/api/v1/auth/login`、`/api/v1/auth/logout`、`/api/v1/auth/me`、`/api/v1/feedback`、`/api/v1/detect/**`、`/api/v1/report/**`（W3.c 登录接入后收回，改 `@SaCheckPermission`）
+- `application-dev.yml` 本地适配：`snail-job.enabled=false` 关闭分布式调度、exclude `RateLimiterAutoConfiguration`（与若依 `rateLimiterAspect` 冲突）、Redis `16379/123456`
