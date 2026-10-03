@@ -18,6 +18,7 @@ RUN pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ -r req
 COPY ml/__init__.py ml/__init__.py
 COPY ml/common ml/common
 COPY deploy/inference-python/detectors detectors
+COPY deploy/inference-python/assistant assistant
 COPY deploy/inference-python/main.py .
 
 ENV PYTHONPATH=/app

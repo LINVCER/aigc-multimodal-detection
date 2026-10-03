@@ -9,3 +9,8 @@ transformers>=4.44,<5.0
 sentencepiece>=0.2.0        # DeBERTa-v3 / mDeBERTa tokenizer
 numpy>=1.26
 jieba==0.42.1               # 表层特征分词；缺失时自动退化为字级统计（维度不变）
+
+# 论文检测助手（assistant/）：OpenAI-compatible 流式 + 回调 Java 业务接口 + Redis 会话（可选）
+openai>=1.40.0
+httpx>=0.27
+redis>=5.0                  # 未配 ASSISTANT_REDIS_URL 时不会连接，会话退化为进程内内存

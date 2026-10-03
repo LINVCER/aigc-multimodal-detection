@@ -82,6 +82,11 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="paperaigc-inference", version="0.2.0", lifespan=lifespan)
 
+# 论文检测助手（陪伴型 agent）：/api/v1/assistant/*。模型未加载时工具会如实告知「未加载」，不阻塞服务启动
+from assistant.router import mount as _mount_assistant  # noqa: E402
+
+_mount_assistant(app, lambda: text_detector)
+
 
 # ==========================================================
 # 请求 / 响应（与 backend-java proto 对齐）

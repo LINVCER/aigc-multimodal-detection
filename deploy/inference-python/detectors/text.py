@@ -153,6 +153,18 @@ class TextAIGCDetector:
             thresholds=self.thresholds, source_probs=source_probs, warning=warning,
         )
 
+    def surface_profile(self, text: str) -> dict[str, float] | None:
+        """
+        30 维表层特征的 z-score（按训练集 scaler 标准化），供助手把「为什么像 AI」翻成具体证据。
+        cls_only 模型没有表层支路，返回 None。
+        """
+        det = self._det
+        if det is None or not det.uses_surface:
+            return None
+        from ml.common.surface_features import SURFACE_FEATURE_NAMES
+        z = det.scaler.transform(extract_surface_features(text)[None])[0]
+        return {name: float(v) for name, v in zip(SURFACE_FEATURE_NAMES, z)}
+
     def health(self) -> dict[str, Any]:
         det = self._det
         return {
