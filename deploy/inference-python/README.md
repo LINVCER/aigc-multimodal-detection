@@ -14,6 +14,8 @@ FastAPI 推理服务，对齐 `backend-java/.../proto/detection.proto` 的 HTTP 
 
 ## 本地运行（不走 docker）
 
+> 完整启动规范（环境准备 / 验证 / 停止 / 一键脚本 / 排障）见 [START.md](START.md)；切换检测模型见 [MODEL_SWITCH.md](MODEL_SWITCH.md)。
+
 ```bash
 cd deploy/inference-python
 
@@ -29,6 +31,7 @@ pip install -r requirements.txt
 copy .env.example .env         # Windows
 # cp .env.example .env         # macOS / Linux
 # 编辑 .env，把 TEXT_BASE_MODEL_PATH / TEXT_CHECKPOINT_PATH 指向本机权重
+# 切换模型的完整规范见 MODEL_SWITCH.md（改 .env + 重启 + /health 验证 + 回滚）
 
 # 4) 起服务（默认监听 8000 端口，对齐 backend-java application-dev.yml）
 uvicorn main:app --host 0.0.0.0 --port 8000 --env-file .env
