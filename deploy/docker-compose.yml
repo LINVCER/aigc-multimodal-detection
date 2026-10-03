@@ -14,6 +14,13 @@ version: "3.9"
 # 直连端口（用于调试）:
 #   :8080 Java API   :5173 用户端   :8090 管理端   :8000 Python 推理   :9001 MinIO Console
 
+# 日志上限：Docker 默认不轮转，不分服务限流的话单个容器日志能涨到几十 G
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "100m"
+    max-file: "3"
+
 services:
 
   # ============ 数据层 ============
@@ -22,12 +29,16 @@ services:
     container_name: paperaigc-mysql
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      # 不声明则容器不会建库，后端连上来直接失败
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-ry-vue}
       TZ: Asia/Shanghai
     ports:
       - "${MYSQL_PORT:-3306}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ../docs/sql/init.sql:/docker-entrypoint-initdb.d/10-business.sql:ro
+      # 业务表全量快照，对齐 domain/entity。若走若依基座部署，需先导入其 ry_vue_5.X.sql 的 sys_* 全套
+      - ../backend-java/scripts/patch-schema.sql:/docker-entrypoint-initdb.d/10-business.sql:ro
+    logging: *default-logging
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_0900_ai_ci --default-authentication-plugin=mysql_native_password
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
@@ -89,9 +100,11 @@ services:
   # ============ Python 推理服务（Phase 0 stub） ============
   inference:
     build:
-      context: ./inference-python
-      dockerfile: Dockerfile
+      # context 必须是仓库根：Dockerfile 要把 ml/common（模型定义 / 表层特征 / checkpoint 契约）打进去
+      context: ..
+      dockerfile: deploy/inference-python/Dockerfile
     container_name: paperaigc-inference
+    logging: *default-logging
     ports:
       - "8000:8000"
     environment:
@@ -112,6 +125,7 @@ services:
         RUOYI_GIT_URL: ${RUOYI_GIT_URL:-https://gitee.com/dromara/RuoYi-Vue-Plus.git}
         RUOYI_BRANCH: ${RUOYI_BRANCH:-5.X}
     container_name: paperaigc-backend
+    logging: *default-logging
     depends_on:
       mysql:
         condition: service_healthy
@@ -133,8 +147,9 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
       MINIO_BUCKET: ${MINIO_BUCKET}
-      INFERENCE_HOST: inference
-      INFERENCE_PORT: 8000
+      # 键名必须能绑到 HttpInferenceClient 读的 platform.inference.*（Spring 松散绑定：下划线转点）
+      PLATFORM_INFERENCE_HOST: inference
+      PLATFORM_INFERENCE_PORT: "8000"
       JWT_SECRET: ${JWT_SECRET}
       JAVA_TOOL_OPTIONS: "-Xms512m -Xmx1536m -XX:+UseZGC"
     ports:

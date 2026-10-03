@@ -15,11 +15,12 @@ spring:
     active: dev
 
   # ---------- 数据源 ----------
+  # 库名默认 ry-vue，与 deploy/.env.example 的 MYSQL_DATABASE 一致；容器里由 SPRING_DATASOURCE_* 覆盖
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/paperaigc?useUnicode=true&characterEncoding=utf8mb4&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
-    username: root
-    password: root
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:ry-vue}?useUnicode=true&characterEncoding=utf8mb4&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD:root}
 
   # ---------- 文件上传 ----------
   servlet:
@@ -52,8 +53,9 @@ mybatis-plus:
 # ============================================================
 platform:
   inference:
-    host: ${INFERENCE_HOST:localhost}
-    port: ${INFERENCE_PORT:8000}   # 对齐 deploy/inference-python 本地默认端口
+    # 容器里由 compose 注入 PLATFORM_INFERENCE_HOST/PORT 覆盖（Spring 松散绑定，不需要占位符）
+    host: localhost
+    port: 8000                     # 与 deploy/inference-python/Dockerfile 的监听端口一致
     deadline-seconds: 10
 
   storage:

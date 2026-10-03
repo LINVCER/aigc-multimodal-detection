@@ -10,7 +10,7 @@
 
 | 面 | 现状 | 问题 |
 |---|---|---|
-| Java → Python 推理 | `DetectController` 硬编码 `localhost:18000` | 端口错（应 `:8000`），host 应为容器名/环境变量 |
+| Java → Python 推理 | ✅ 已对齐（2026-09-30） | `HttpInferenceClient` 读 `platform.inference.host/port`，默认 `localhost:8000`；容器由 compose 注入 `PLATFORM_INFERENCE_*` |
 | Mobile → Java | Mobile 端全调 `/api/v1/mobile/detect/*`；Java 只提供 `/detect/paragraph` | 路径完全不匹配，全部走 mock |
 | Web `frontend/` → Java | `frontend/src/api/` 目录不存在 | 前端根本没有 API 层 |
 | Admin `plus-ui` → Java | 未部署 | 我们的业务 API 一个都没接进管理端 |
@@ -420,8 +420,8 @@ MASTER
 
 ### 10.1 Java 后端（S1 owner）
 
-- [ ] `DetectController` 端口从 18000 → **配置化**（默认 8000）
-- [ ] host 从 `localhost` → 环境变量 `INFERENCE_HOST`
+- [x] `DetectController` 端口从 18000 → **配置化**（默认 8000）
+- [x] host 从 `localhost` → 环境变量（实际键名 `PLATFORM_INFERENCE_HOST`，Spring 松散绑定到 `platform.inference.host`）
 - [ ] 补齐 `/api/v1/detect/*` 全套接口（submit / tasks / tasks/{id} / retry / cancel / delete）
 - [ ] 补齐 `/api/v1/humanize` + `/api/v1/humanize/direct`
 - [ ] 补齐 `/api/v1/report/*`

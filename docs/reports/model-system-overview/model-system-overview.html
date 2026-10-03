@@ -504,7 +504,7 @@
             <tr>
               <th scope="row">推理</th>
               <td><code>FastAPI (Python 3.10) + PyTorch</code></td>
-              <td>独立推理服务，端口 18000，走 HTTP · <code>HttpInferenceClient</code> 调用</td>
+              <td>独立推理服务，端口 8000，走 HTTP · <code>HttpInferenceClient</code> 调用</td>
             </tr>
             <tr>
               <th scope="row">Web 端</th>
@@ -552,7 +552,7 @@ flowchart TD
         Client["IInferenceClient<br/>（HttpClient / gRPC 可切）"]
     end
 
-    subgraph Inference["Python 推理服务 · 18000"]
+    subgraph Inference["Python 推理服务 · 8000"]
         FastAPI["FastAPI 主服务"]
         Txt["文本检测器<br/>RoBERTa v3_thesis"]
     end

@@ -137,7 +137,38 @@ def map_scenario(origin: str, raw_domain: str | None) -> str:
 
 def _hf_load(name: str, *args, **kw):
     from datasets import load_dataset   # 延迟 import：只有真拉数据才需要
-    return load_dataset(name, *args, **kw)
+    try:
+        return load_dataset(name, *args, **kw)
+    except Exception as e:
+        msg = str(e)
+        if any(k in msg for k in ("401", "403", "GatedRepo", "gated", "authenticated")):
+            raise SystemExit(
+                f"\n{name} 是受限（gated）数据集，未授权访问。三步走：\n"
+                f"  1) pip install -U huggingface_hub && hf auth login     # 或 export HF_TOKEN=hf_xxx\n"
+                f"  2) 浏览器打开 https://huggingface.co/datasets/{name} 点 Agree 接受条款\n"
+                f"  3) 重跑本命令\n"
+                f"原始错误：{msg[:200]}\n"
+            ) from e
+        raise
+
+
+# CHEAT 各文件 → (label, augment)。官方文件名是 ieee-{init,generation,polish,fusion}
+CHEAT_FILE_MAP: dict[str, tuple[int, str]] = {
+    "init":       (0, "none"),       # 人写原始摘要
+    "generation": (1, "none"),       # ChatGPT 首轮生成
+    "polish":     (1, "polished"),   # ChatGPT 润色的人写稿
+    "fusion":     (1, "mixcase"),    # 人机句级混合
+}
+
+_TEXT_KEYS = ("abstract", "text", "content", "abstract_text", "body", "summary")
+
+
+def _pick_text(row: dict) -> str:
+    for k in _TEXT_KEYS:
+        v = row.get(k)
+        if isinstance(v, str) and v.strip():
+            return v
+    return ""
 
 
 def collect_hc3(max_per_source: int | None) -> list[TextSample]:
@@ -160,7 +191,10 @@ def collect_hc3(max_per_source: int | None) -> list[TextSample]:
 
 def collect_csl(max_per_source: int | None) -> list[TextSample]:
     log.info("拉取 CSL 学术摘要（human 端）...")
+    # 全量约 40 万条；不设上限会全读进内存，默认封顶 8 万
+    cap = max_per_source or 80_000
     ds = _hf_load("neuclir/csl", split="csl")
+    ds = ds.shuffle(seed=42).select(range(min(cap, len(ds))))
     out: list[TextSample] = []
     for i, row in enumerate(ds):
         abstract = row.get("abstract") or row.get("abst") or ""
@@ -172,50 +206,79 @@ def collect_csl(max_per_source: int | None) -> list[TextSample]:
     return out
 
 
+M4_LANG_ZH = ("zh", "zh-cn", "zh_cn", "chinese", "中文")
+
+
+def _m4_label(raw_label, model: str) -> int:
+    """M4 的 label 可能是 int / 字符串 / None；认不出来时按生成器名兜底判。"""
+    if raw_label is not None:
+        s = str(raw_label).strip().lower()
+        if s in ("1", "true", "machine", "machine-generated", "ai", "llm"):
+            return 1
+        if s in ("0", "false", "human", "human-written"):
+            return 0
+    return 1 if model and model.strip().lower() not in ("human", "") else 0
+
+
 def collect_m4(max_per_source: int | None) -> list[TextSample]:
+    """M4 中文子集。数据集为 gated，需先 `hf auth login` 并在页面接受条款。"""
     log.info("拉取 M4 中文子集（streaming）...")
     ds = _hf_load("mbzuai-nlp/M4", split="train", streaming=True)
+    # streaming 默认按分片顺序吐；不 shuffle 会只吃到前几个分片的语料，与生成器分布强相关
+    ds = ds.shuffle(buffer_size=10_000, seed=42)
     out: list[TextSample] = []
-    for i, row in enumerate(ds):
-        lang = str(row.get("language") or row.get("lang") or "").lower()
-        if lang not in ("zh", "chinese", "zh-cn"):
+    logged_keys = False
+    scanned = 0
+    for row in ds:
+        scanned += 1
+        if not logged_keys:
+            log.info("M4 实际字段：%s", list(row)[:15])
+            logged_keys = True
+        lang = str(row.get("language") or row.get("lang") or "").strip().lower()
+        if lang not in M4_LANG_ZH:
             continue
-        text = row.get("text") or row.get("generation") or ""
-        raw_label = row.get("label")
-        model = row.get("model") or row.get("source") or ""
-        label = 1 if (raw_label in (1, "1", "machine", "ai") or (raw_label is None and model and model.lower() != "human")) else 0
-        out.append(TextSample(text=text, label=label, scenario=map_scenario("m4", row.get("domain") or row.get("source", "")),
+        text = _pick_text(row)
+        if not text:
+            continue
+        model = str(row.get("model") or row.get("source") or row.get("generator") or "")
+        label = _m4_label(row.get("label"), model)
+        out.append(TextSample(text=text, label=label,
+                              scenario=map_scenario("m4", str(row.get("domain") or "")),
                               source="human" if label == 0 else normalize_source(model), origin="m4",
-                              doc_id=f"m4-{i:07d}", meta={"model": model}))
+                              doc_id=f"m4-{scanned:07d}", meta={"model": model}))
         if max_per_source and len(out) >= max_per_source:
             break
+    if not out:
+        log.warning("M4 一条中文样本都没扫到（扫了 %d 行）——检查上面的实际字段名，language 可能不叫 language", scanned)
     return out
 
 
 def collect_cheat(cheat_dir: str, max_per_source: int | None) -> list[TextSample]:
-    """CHEAT 目录里按官方 release：generation.json（ChatGPT）/ polish.json / fusion.json / human 摘要。"""
+    """按官方 release 的四个文件读 CHEAT：ieee-init / ieee-generation / ieee-polish / ieee-fusion。"""
     log.info("读取 CHEAT %s ...", cheat_dir)
     out: list[TextSample] = []
-    for path in glob.glob(os.path.join(cheat_dir, "**", "*.json*"), recursive=True):
-        fname = os.path.basename(path).lower()
-        if "polish" in fname:
-            label, aug = 1, "polished"
-        elif "fusion" in fname or "mix" in fname:
-            label, aug = 1, "mixcase"
-        elif "human" in fname or "ieee" in fname:
-            label, aug = 0, "none"
-        else:
-            label, aug = 1, "none"
+    unknown_schema_logged = False
+    for path in sorted(glob.glob(os.path.join(cheat_dir, "**", "*.jsonl"), recursive=True)):
+        # 后缀取 ieee-generation → generation；必须精确匹配，不能让 generation 落到默认分支当人类文本
+        stem = os.path.splitext(os.path.basename(path))[0].lower().split("-")[-1]
+        label, aug = CHEAT_FILE_MAP.get(stem, (1, "none"))
+        if stem not in CHEAT_FILE_MAP:
+            log.warning("CHEAT 文件名 %s 不在已知集合 %s 内，按 label=1/none 处理", path, sorted(CHEAT_FILE_MAP))
         with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f) if path.endswith(".json") else [json.loads(l) for l in f if l.strip()]
-        rows = data if isinstance(data, list) else data.get("data", [])
-        for i, row in enumerate(rows):
-            text = row.get("abstract") or row.get("text") or row.get("content") or ""
-            out.append(TextSample(text=text, label=label, scenario="academic_master",
-                                  source="human" if label == 0 else "gpt", augment=aug, origin="cheat",
-                                  doc_id=f"cheat-{row.get('id', i)}"))
-        if max_per_source and len(out) >= max_per_source:
-            break
+            for i, line in enumerate(f):
+                if not line.strip():
+                    continue
+                row = json.loads(line)
+                text = _pick_text(row)
+                if not text and not unknown_schema_logged:
+                    log.warning("CHEAT %s 的字段名不在 %s 内，实际键：%s", path, _TEXT_KEYS, list(row)[:12])
+                    unknown_schema_logged = True
+                rid = row.get("id") or row.get("paper_id") or i
+                out.append(TextSample(text=text, label=label, scenario="academic_master",
+                                      source="human" if label == 0 else "gpt", augment=aug, origin="cheat",
+                                      doc_id=f"cheat-{stem}-{rid}"))
+                if max_per_source and len(out) >= max_per_source:
+                    return out
     return out
 
 

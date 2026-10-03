@@ -1,3 +1,9 @@
+-- ⚠️ 已废弃（2026-09-30）：本文件是 v0.1.0 企业级设计稿的 schema，与当前代码不符——
+--    建了 humanize_task / report / credit_account / payment_order / audit_log 等代码里不存在的表，
+--    且 detect_task 用 paper_id 而非 user_id，缺 modality / scenario / threshold / file_path 等列。
+--    权威 schema 是 backend-java/scripts/patch-schema.sql（已由 deploy/docker-compose.yml 挂载）。
+--    本文件保留仅作历史参考，勿再用于建库。
+--
 -- 企业级论文 AIGC 检测平台 · 初始 Schema
 -- 字符集 utf8mb4，排序 utf8mb4_0900_ai_ci
 -- 生产环境请改由 Flyway/Liquibase 管理版本化迁移
