@@ -416,6 +416,36 @@ MASTER
 
 ---
 
+### 9.4 论文检测助手 `/api/v1/assistant/*`（SSE · v0.3.0 骨架）
+
+Java 只做限流 / 审计 / 透传，真正的 LLM 与工具循环在 Python `deploy/inference-python/assistant/`（同路径同协议，Java 原样转发）。
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| POST | `/api/v1/assistant/chat` | 流式对话，`Content-Type: text/event-stream`。请求体 `{ message, conversationId?, taskId?, paragraphIdx?, userId?, locale?, clientContext? }` |
+| GET | `/api/v1/assistant/conversations?userId&limit` | 会话列表 `[{ conversationId, title, taskId, updatedAt, turns }]` |
+| GET / DELETE | `/api/v1/assistant/conversations/{id}` | 会话详情（消息列表）/ 删除 |
+| GET | `/api/v1/assistant/quick-prompts?taskId` | `{ welcome, prompts[] }`，带 taskId 返回任务场景问题 |
+| GET | `/api/v1/assistant/health` | Java 限流配置 + Python 侧健康 |
+| GET | `/api/v1/detect/scenario-thresholds` | 只读场景阈值列表（助手 `get_threshold_policy` 工具用） |
+
+SSE 帧 `event: <name>
+data: <json>
+
+`，事件顺序：
+
+| event | data | 说明 |
+|---|---|---|
+| `meta` | `{ conversationId, model, intent }` | 首帧；新会话在此返回 id |
+| `token` | `{ delta }` | 增量正文 |
+| `tool_call` | `{ name, label, args }` | 助手开始调工具（端上显示「正在查看报告」等） |
+| `tool_result` | `{ name, ok, summary? }` | 工具返回 |
+| `done` | `{ finishReason, usage, tools[], safety, boundaryFlag, intent }` | 结束帧 |
+| `error` | `{ code, message, retryable }` | 错误帧，之后流关闭。code：`ASSISTANT_DISABLED / LLM_UNAVAILABLE / LLM_TIMEOUT / SAFETY_BLOCKED / TOOL_FAILED / BAD_REQUEST / ASSISTANT_UPSTREAM_ERROR` |
+
+限流：每用户 8 次/分、100 次/天，超限返回 `R.code=7429`（非 SSE，普通 JSON）。
+端上实现：uniapp `utils/request.js#httpStream`（MP 走 `enableChunked`，H5 走 fetch 流，其它整包退化）；web `api/assistant.ts#chatStream`。
+
 ## 10. 各端对齐 Checklist
 
 ### 10.1 Java 后端（S1 owner）

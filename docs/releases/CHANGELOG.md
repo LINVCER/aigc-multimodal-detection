@@ -6,6 +6,19 @@
 
 ---
 
+## [v0.3.0] · 2026-10-03 · 论文检测助手骨架 🚧（线路已铺通，暂不对用户开放）
+
+按调研路线 B 落地「论文检测助手」端到端：Python `assistant/`（LLM / 7 工具 / BM25 知识库 / Redis 会话 / SSE）→ Java `/api/v1/assistant/*` 限流 + 审计 + SseEmitter 透传 → uniapp 流式对话页 + FAB + 报告页入口 → web 抽屉。零新部署单元。
+
+- **Added**（Python）：`assistant/` 11 个模块 + 6 篇知识库（32 块）· `TextAIGCDetector.surface_profile()` 表层特征 z-score
+- **Added**（Java）：`AssistantController / IAssistantService / AssistantServiceImpl / AssistantChatDTO / AssistantLog / AssistantLogMapper` · `ErrorCode` 7xxx 段 · `GET /detect/scenario-thresholds` · `assistant_log` 表（V0.3.0.001）
+- **Added**（端上）：uniapp `httpStream`（chunked / fetch 流 / 整包退化）· `pages/assistant/chat` · `AssistantFab` 挂 4 tab · detail「问助手」「为什么这段像 AI？」· web `AssistantDrawer`
+- **Changed**：compose 给 inference 注入 `ASSISTANT_*`、给 backend 注入 `PLATFORM_ASSISTANT_BASE_URL`；`.env.example` 加 ASSISTANT 段
+- **Known Issues**：本机未编译 Java、未真机；`sec-check` 代理 / 会话历史页 / 边界测试集 归 W2-W3；助手须等新 checkpoint 上线后再开放
+- 详情 → [`v0.3.0/release-notes.md`](v0.3.0/release-notes.md)
+
+---
+
 ## [v0.2.0] · 2026-09-19 · Phase B 落库 ✅ · mobile-uniapp Wave 2/3/4 联发
 
 后端：InMemoryRepository 逐 batch 换 MyBatis-Plus，数据落 MySQL；Repository `@Primary` 顶 InMemory，Service/Controller/前端零改动。

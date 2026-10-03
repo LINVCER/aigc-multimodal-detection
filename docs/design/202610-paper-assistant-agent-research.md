@@ -1,6 +1,6 @@
 # 论文助手 Agent · 调研与方案
 
-> 状态：调研完成，待拍板路线
+> 状态：路线 B 已落地骨架（v0.3.0，2026-10-03），§5 W1 全部 + W2 端上部分完成；W2 `sec-check` / 会话历史页、W3 测试集与 prompt 调优待做。代码：`deploy/inference-python/assistant/`、Java `AssistantController`、uniapp `pages/assistant/chat.vue`、web `AssistantDrawer.vue`
 > 日期：2026-10-03
 > 范围：在现有 app（mobile-uniapp + web）里增加一个围绕「论文 AIGC 检测」的对话式助手——答疑、指导、建议、陪伴式聊天
 > 前提：humanize（降 AIGC 改写）处于待定状态。本助手**可以给原则性的写作指导与建议，不产出可直接替换进论文的改写文本**（边界见 §3.3）
@@ -103,7 +103,7 @@ Nginx ──► Java (Sa-Token 校验 + 限流 + 审计) ──► Python infere
 
 - Java 只做鉴权、限流、审计日志透传，不碰 LLM；用 `SseEmitter` 转发 Python 的 SSE，或 Nginx 直接路由（需 Python 侧校验 token，一期走 Java 透传更稳）。
 - Python 侧新模块 `deploy/inference-python/assistant/`：`router.py`（端点）、`tools.py`（5 工具）、`prompts.py`（system prompt）、`llm.py`（OpenAI client + 重试）。
-- 多轮：一期由客户端带最近 10 轮 history，服务端无状态；二期落 Redis（已在 compose 里）。
+- 多轮：实现上直接落 Redis（`assistant:conv:{cid}`，无 Redis 时内存兜底），服务端取最近 10 轮拼上下文；客户端只带 `conversationId`。
 
 ### 3.2 能力矩阵：能做 / 灰区 / 不做
 
@@ -225,7 +225,7 @@ event: error      data: {"code": "RATE_LIMITED", "message": "问得太快了，�
 
 ## 6. 待拍板
 
-1. 路线 A / **B** / C
+1. ~~路线 A / **B** / C~~ → 已按 B 落地
 2. ~~一期入口~~ → 已定：悬浮球 + 详情页按钮两者同做
 3. 模型：DashScope qwen-plus（中文闲聊自然、与 daimai 共用经验，**推荐**）/ DeepSeek（便宜约 1/3，兜底）
 4. ~~是否一期接 `msgSecCheck`~~ → 已定：开放对话必接
