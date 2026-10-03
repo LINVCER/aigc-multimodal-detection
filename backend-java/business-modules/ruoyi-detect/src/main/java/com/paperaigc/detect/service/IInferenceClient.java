@@ -21,7 +21,7 @@ public interface IInferenceClient {
     Map<String, Object> detectParagraph(String text, boolean returnSentences);
 
     /**
-     * 降 AIGC 改写
+     * 降 AIGC 改写（状态待定：监管定性未确认前不接入真实模型，勿继续开发）
      * @param text 原文
      * @param style 风格 academic / casual / concise
      * @return Python 原始响应（rewritten_text / quality_score / model_version）

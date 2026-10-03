@@ -3,6 +3,7 @@
 =========================================
 
 音频 / 图像检测已暂停，相关代码归档于 _archive/，请勿继续开发该方向。
+降 AIGC 改写（/api/v1/humanize）状态待定：监管定性未确认前不接入真实模型，接口保留、勿继续开发。
 
 Phase 0 → Phase 1 推理服务
 ==========================
@@ -265,7 +266,8 @@ def detect_batch(req: DetectBatchRequest) -> DetectBatchResponse:
 
 @app.post("/api/v1/humanize", response_model=HumanizeResponse)
 def humanize(req: HumanizeRequest) -> HumanizeResponse:
-    # 真实改写模型尚未接入，保留 stub
+    # 状态待定：监管定性未确认前不接真实改写模型。当前只是套话剔除的占位实现，
+    # 输出不具备改写能力，勿据此开发或对外宣称
     rewritten = (req.text
                  .replace("值得注意的是，", "")
                  .replace("综上所述，", "")

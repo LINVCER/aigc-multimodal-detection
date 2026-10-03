@@ -22,6 +22,9 @@ const scrollIntoId = ref('')
 let pollTimer = null
 let taskId = null
 
+// 降 AIGC 改写状态待定（监管定性未确认）：接口与后端链路保留，前端入口暂不放出
+const ENABLE_HUMANIZE = false
+
 async function load() {
   loadError.value = ''
   try { detail.value = await getTaskDetail(taskId) }
@@ -489,7 +492,7 @@ function toggleExpand(idx) {
           </view>
 
           <button
-            v-if="!p.excluded && (p.calibratedProb || 0) >= 0.7 && !rewrittenMap[p.paragraphIdx]"
+            v-if="ENABLE_HUMANIZE && !p.excluded && (p.calibratedProb || 0) >= 0.7 && !rewrittenMap[p.paragraphIdx]"
             class="btn-tinted humanize-btn"
             :loading="humanizingMap[p.paragraphIdx]"
             @click="humanize(p.paragraphIdx)"

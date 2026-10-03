@@ -18,6 +18,9 @@ const rewrittenMap = ref<Record<number, string>>({})
 const humanizingMap = ref<Record<number, boolean>>({})
 let pollTimer: any = null
 
+// 降 AIGC 改写状态待定（监管定性未确认）：接口与后端链路保留，前端入口暂不放出
+const ENABLE_HUMANIZE: boolean = false
+
 const SOURCE_LABEL: Record<string, string> = {
   human: '人类', gpt: 'GPT', claude: 'Claude', qwen: '通义千问',
   deepseek: 'DeepSeek', glm: '智谱GLM', kimi: 'Kimi', ernie: '文心', other: '其他',
@@ -504,7 +507,7 @@ function suggestionBg(sev: 'info' | 'warn' | 'danger'): string {
               </div>
 
               <el-button
-                v-if="!p.excluded && (p.calibratedProb || 0) >= 0.7 && !rewrittenMap[p.paragraphIdx]"
+                v-if="ENABLE_HUMANIZE && !p.excluded && (p.calibratedProb || 0) >= 0.7 && !rewrittenMap[p.paragraphIdx]"
                 type="primary" plain size="default" style="margin-top: 14px"
                 :loading="humanizingMap[p.paragraphIdx]" @click="humanize(p)"
               >✨ 降 AIGC 改写建议</el-button>
