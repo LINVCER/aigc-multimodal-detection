@@ -4,6 +4,7 @@ import { onShow, onPullDownRefresh, onShareAppMessage, onShareTimeline } from '@
 import { listTasks, getStatistics } from '@/api/detect'
 import { SCENARIO_MAP, aiRateColor } from '@/utils/constants'
 import { useAuth } from '@/store/auth'
+import AssistantFab from '@/components/AssistantFab.vue'
 
 const auth = useAuth()
 
@@ -232,6 +233,9 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
     <text class="privacy">
       论文原文加密存储，30 天后自动删除；报告保留 3 年
     </text>
+
+    <!-- 论文检测助手入口 -->
+    <AssistantFab />
   </view>
 </template>
 

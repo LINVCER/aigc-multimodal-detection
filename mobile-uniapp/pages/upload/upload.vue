@@ -1,6 +1,7 @@
 <script setup>
 import { onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
 import { SCENARIO_MAP } from '@/utils/constants'
+import AssistantFab from '@/components/AssistantFab.vue'
 
 /* Wave 3.2 · 微信分享（上传页作为拉新第一入口） */
 onShareAppMessage(() => ({
@@ -96,6 +97,9 @@ function pick(m) {
     <text class="privacy">
       论文原文加密存储，30 天后自动删除；报告保留 3 年
     </text>
+
+    <!-- 论文检测助手入口 -->
+    <AssistantFab />
   </view>
 </template>
 

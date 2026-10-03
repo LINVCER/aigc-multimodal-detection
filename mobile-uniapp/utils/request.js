@@ -77,3 +77,132 @@ export function http(opts) {
     })
   })
 }
+
+/* ======================================================================
+ * SSE 流式请求（论文检测助手 /api/v1/assistant/chat）
+ *
+ * 三条路径：
+ *   MP-WEIXIN · uni.request({ enableChunked:true }) + requestTask.onChunkReceived（基础库 ≥ 2.20.1）
+ *   H5        · fetch + ReadableStream
+ *   其它 / 不支持 chunked · 退化为一次性请求，收到完整 body 后按帧回放
+ * 服务端帧格式：`event: x\ndata: {json}\n\n`，这里做跨 chunk 的缓冲切帧。
+ * ====================================================================== */
+
+function makeSseParser(onEvent) {
+  let buf = ''
+  return {
+    push(text) {
+      buf += text
+      let idx
+      while ((idx = buf.indexOf('\n\n')) >= 0) {
+        const frame = buf.slice(0, idx)
+        buf = buf.slice(idx + 2)
+        let event = 'message'
+        const dataLines = []
+        for (const line of frame.split('\n')) {
+          if (line.startsWith('event:')) event = line.slice(6).trim()
+          else if (line.startsWith('data:')) dataLines.push(line.slice(5).trim())
+        }
+        if (!dataLines.length) continue
+        let data = dataLines.join('\n')
+        try { data = JSON.parse(data) } catch (e) { /* 保持字符串 */ }
+        onEvent(event, data)
+      }
+    },
+    flush() { if (buf.trim()) { this.push('\n\n') } },
+  }
+}
+
+function decodeChunk(chunk) {
+  // 小程序给 ArrayBuffer；H5 给 Uint8Array
+  const bytes = chunk instanceof ArrayBuffer ? new Uint8Array(chunk) : chunk
+  if (typeof TextDecoder !== 'undefined') {
+    decodeChunk._td = decodeChunk._td || new TextDecoder('utf-8')
+    return decodeChunk._td.decode(bytes, { stream: true })
+  }
+  // 极老环境兜底：手工 utf-8 解码
+  let s = ''
+  for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i])
+  try { return decodeURIComponent(escape(s)) } catch (e) { return s }
+}
+
+/**
+ * 流式 POST
+ * @param {object} opts { url, data, header, auth, onEvent(event, data), onError(err) }
+ * @returns {{ abort(): void, done: Promise<void> }}
+ */
+export function httpStream(opts) {
+  const { url, data, header = {}, auth = true, onEvent = () => {}, onError = () => {} } = opts
+  if (auth) {
+    const token = uni.getStorageSync('access_token')
+    if (token) header.Authorization = `Bearer ${token}`
+  }
+  header['Content-Type'] = 'application/json'
+  header.Accept = 'text/event-stream'
+  const fullUrl = (API_BASE || '') + url
+  const parser = makeSseParser(onEvent)
+  let aborted = false
+  let task = null
+  let controller = null
+
+  const done = new Promise((resolve) => {
+    // #ifdef H5
+    if (typeof fetch === 'function' && typeof ReadableStream !== 'undefined') {
+      controller = typeof AbortController !== 'undefined' ? new AbortController() : null
+      fetch(fullUrl, { method: 'POST', headers: header, body: JSON.stringify(data), signal: controller?.signal })
+        .then(async (resp) => {
+          if (!resp.ok || !resp.body) {
+            onError(new Error(`HTTP ${resp.status}`))
+            return
+          }
+          const reader = resp.body.getReader()
+          for (;;) {
+            const { value, done: end } = await reader.read()
+            if (end) break
+            parser.push(decodeChunk(value))
+          }
+          parser.flush()
+        })
+        .catch((err) => { if (!aborted) onError(err) })
+        .finally(resolve)
+      return
+    }
+    // #endif
+
+    let gotChunk = false
+    task = uni.request({
+      url: fullUrl,
+      method: 'POST',
+      data,
+      header,
+      enableChunked: true,
+      responseType: 'arraybuffer',
+      timeout: 120_000,
+      success: (res) => {
+        // 不支持 chunked 的端会把完整 body 一次给到 success；已走过 onChunkReceived 的不重复回放
+        if (!gotChunk && res.data) {
+          const text = typeof res.data === 'string' ? res.data : decodeChunk(res.data)
+          parser.push(text)
+          parser.flush()
+        }
+      },
+      fail: (err) => { if (!aborted) onError(new Error(classifyFailMsg(err))) },
+      complete: resolve,
+    })
+    if (task && typeof task.onChunkReceived === 'function') {
+      task.onChunkReceived((res) => {
+        gotChunk = true
+        parser.push(decodeChunk(res.data))
+      })
+    }
+  })
+
+  return {
+    abort() {
+      aborted = true
+      try { controller?.abort() } catch (e) { /* ignore */ }
+      try { task?.abort?.() } catch (e) { /* ignore */ }
+    },
+    done,
+  }
+}

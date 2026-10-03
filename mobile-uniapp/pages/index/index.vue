@@ -6,6 +6,7 @@ import { SCENARIO_MAP, aiRateColor } from '@/utils/constants'
 import StatusChip from '@/components/StatusChip.vue'
 import EmptyState from '@/components/EmptyState.vue'
 import Skeleton from '@/components/Skeleton.vue'
+import AssistantFab from '@/components/AssistantFab.vue'
 
 const tasks = ref([])
 const loading = ref(false)
@@ -261,6 +262,9 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
         </view>
       </view>
     </view>
+
+    <!-- 论文检测助手入口 -->
+    <AssistantFab />
   </view>
 </template>
 

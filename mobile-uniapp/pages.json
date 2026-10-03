@@ -1,5 +1,7 @@
 {
-  "easycom": { "autoscan": true },
+  "easycom": {
+    "autoscan": true
+  },
   "pages": [
     {
       "path": "pages/login/login",
@@ -82,6 +84,14 @@
         "navigationBarBackgroundColor": "#FFFFFF",
         "navigationBarTextStyle": "black"
       }
+    },
+    {
+      "path": "pages/assistant/chat",
+      "style": {
+        "navigationBarTitleText": "论文检测助手",
+        "navigationStyle": "custom",
+        "backgroundColor": "#F2F2F7"
+      }
     }
   ],
   "globalStyle": {
@@ -97,10 +107,22 @@
     "borderStyle": "white",
     "backgroundColor": "#FFFFFF",
     "list": [
-      { "pagePath": "pages/home/home",       "text": "首页" },
-      { "pagePath": "pages/index/index",     "text": "记录" },
-      { "pagePath": "pages/upload/upload",   "text": "上传" },
-      { "pagePath": "pages/profile/profile", "text": "我的" }
+      {
+        "pagePath": "pages/home/home",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/index/index",
+        "text": "记录"
+      },
+      {
+        "pagePath": "pages/upload/upload",
+        "text": "上传"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的"
+      }
     ]
   }
 }

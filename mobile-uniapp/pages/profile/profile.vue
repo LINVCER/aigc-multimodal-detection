@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useAuth } from '@/store/auth'
 import FeedbackSheet from '@/components/FeedbackSheet.vue'
+import AssistantFab from '@/components/AssistantFab.vue'
 
 const auth = useAuth()
 const feedbackOpen = ref(false)
@@ -132,6 +133,9 @@ function goMyFeedback() { uni.navigateTo({ url: '/pages/feedback/mine' }) }
     </view>
 
     <FeedbackSheet v-model="feedbackOpen" default-category="suggestion" />
+
+    <!-- 论文检测助手入口 -->
+    <AssistantFab />
   </view>
 </template>
 

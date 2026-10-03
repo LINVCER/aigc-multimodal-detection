@@ -5,9 +5,17 @@ import { ElMessage } from 'element-plus'
 import { getTaskDetail, requestHumanize, downloadReportPdf } from '@/api/detect'
 import Skeleton from '@/components/Skeleton.vue'
 import FeedbackDialog from '@/components/FeedbackDialog.vue'
+import AssistantDrawer from '@/components/AssistantDrawer.vue'
 import type { TaskDetail, ParagraphResult } from '@/api/types'
 
 const feedbackOpen = ref(false)
+// 论文检测助手抽屉；assistantParagraph 非空时打开即自动追问该段
+const assistantOpen = ref(false)
+const assistantParagraph = ref<number | null>(null)
+function openAssistant(paragraphIdx?: number) {
+  assistantParagraph.value = paragraphIdx ?? null
+  assistantOpen.value = true
+}
 
 const props = defineProps<{ id: string }>()
 const router = useRouter()
@@ -280,6 +288,7 @@ function suggestionBg(sev: 'info' | 'warn' | 'danger'): string {
         <el-button link @click="router.back()">← 返回</el-button>
         <span class="header-title">检测报告</span>
         <div v-if="detail && detail.status === 'DONE'" class="header-actions">
+          <el-button link size="small" @click="openAssistant()">💬 问助手</el-button>
           <el-button link size="small" @click="feedbackOpen = true">🚩 申诉</el-button>
           <el-button
             type="primary" round size="small"
@@ -507,6 +516,12 @@ function suggestionBg(sev: 'info' | 'warn' | 'danger'): string {
               </div>
 
               <el-button
+                v-if="!p.excluded && (p.calibratedProb || 0) >= 0.5"
+                link type="primary" size="small" style="margin-top: 10px"
+                @click="openAssistant(p.paragraphIdx)"
+              >💬 为什么这段像 AI？</el-button>
+
+              <el-button
                 v-if="ENABLE_HUMANIZE && !p.excluded && (p.calibratedProb || 0) >= 0.7 && !rewrittenMap[p.paragraphIdx]"
                 type="primary" plain size="default" style="margin-top: 14px"
                 :loading="humanizingMap[p.paragraphIdx]" @click="humanize(p)"
@@ -527,6 +542,7 @@ function suggestionBg(sev: 'info' | 'warn' | 'danger'): string {
     </el-main>
 
     <FeedbackDialog v-model="feedbackOpen" :task-id="Number(id)" default-category="appeal" />
+    <AssistantDrawer v-model="assistantOpen" :task-id="Number(id)" :paragraph-idx="assistantParagraph" />
   </el-container>
 </template>
 

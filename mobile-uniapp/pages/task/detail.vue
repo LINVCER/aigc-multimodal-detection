@@ -95,6 +95,13 @@ async function onDownload() {
   finally { downloading.value = false }
 }
 
+/* 论文检测助手：带任务（可选段落）进入对话页 */
+function goAssistant(paragraphIdx) {
+  let url = `/pages/assistant/chat?taskId=${taskId}`
+  if (paragraphIdx !== undefined && paragraphIdx !== null) url += `&paragraphIdx=${paragraphIdx}`
+  uni.navigateTo({ url })
+}
+
 function goBack() {
   const pages = getCurrentPages()
   if (pages.length > 1) uni.navigateBack()
@@ -372,6 +379,7 @@ function toggleExpand(idx) {
           :disabled="downloading"
           @click="onDownload"
         >下载 PDF</button>
+        <button class="btn-tinted assist-btn" @click="goAssistant()">问助手</button>
         <!-- Wave 3.4 · 分享给同学（微信小程序 open-type=share 走 onShareAppMessage）-->
         <!-- #ifdef MP-WEIXIN -->
         <button class="btn-tinted share-btn" open-type="share">分享给同学</button>
@@ -490,6 +498,12 @@ function toggleExpand(idx) {
               :style="{ background: paragraphRisk(s.aiProb).bg }"
             >{{ s.text }}</text>
           </view>
+
+          <button
+            v-if="!p.excluded && (p.calibratedProb || 0) >= 0.5"
+            class="btn-tinted why-btn"
+            @click="goAssistant(p.paragraphIdx)"
+          >为什么这段像 AI？</button>
 
           <button
             v-if="ENABLE_HUMANIZE && !p.excluded && (p.calibratedProb || 0) >= 0.7 && !rewrittenMap[p.paragraphIdx]"
@@ -864,6 +878,7 @@ function toggleExpand(idx) {
 .para-text { font-size: $fs-body; line-height: $lh-relaxed; color: $label-primary; }
 .para-excluded-text { font-size: $fs-callout; line-height: $lh-normal; color: $label-secondary; }
 
+.why-btn { margin-top: $sp-3; }
 .humanize-btn {
   margin-top: $sp-3;
   width: 100%;
