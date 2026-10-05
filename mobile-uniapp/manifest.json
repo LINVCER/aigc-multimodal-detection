@@ -51,7 +51,7 @@
     "h5" : {
         "title" : "论文AIGC检测",
         "router" : {
-            "mode" : "hash",
+            "mode" : "history",
             "base" : "/"
         },
         "devServer" : {
