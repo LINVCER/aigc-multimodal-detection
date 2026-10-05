@@ -20,8 +20,7 @@ function open() {
 
 <template>
   <view v-if="ENABLE_ASSISTANT" class="fab" :style="{ bottom }" hover-class="fab--hover" @click="open">
-    <text class="fab-icon">AI</text>
-    <text class="fab-label">问助手</text>
+    <image class="fab-img" src="/static/ai_tag.png" mode="widthFix" />
   </view>
 </template>
 
@@ -30,18 +29,10 @@ function open() {
   position: fixed;
   right: $sp-4;
   z-index: $z-sticky;
-  display: flex; align-items: center; gap: $sp-1;
-  padding: $sp-2 $sp-3 $sp-2 $sp-2;
-  border-radius: $radius-pill;
-  background: $brand-gradient-vivid; color: #fff;
-  box-shadow: $shadow-lift;
   &--hover { opacity: 0.85; transform: scale(0.97); }
 }
-.fab-icon {
-  width: 52rpx; height: 52rpx; border-radius: $radius-pill;
-  background: rgba(255, 255, 255, 0.22);
-  font-size: $fs-caption-1; font-weight: $fw-bold;
-  display: flex; align-items: center; justify-content: center;
+.fab-img {
+  display: block;
+  width: 186rpx;
 }
-.fab-label { font-size: $fs-footnote; font-weight: $fw-semibold; }
 </style>
