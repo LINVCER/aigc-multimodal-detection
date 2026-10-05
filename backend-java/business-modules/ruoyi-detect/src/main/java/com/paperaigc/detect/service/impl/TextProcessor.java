@@ -46,9 +46,9 @@ public class TextProcessor {
             "^\\s*(图|表|figure|table|fig\\.|tab\\.|公式|equation|eq\\.)\\s*\\d",
             Pattern.CASE_INSENSITIVE);
 
-    /** 单条参考文献 */
+    /** 单条参考文献（仅 [n] / (n) 编号；不用「n.」以免误伤正文有序步骤） */
     private static final Pattern REF_ITEM = Pattern.compile(
-            "^\\s*(\\[\\d+\\]|\\(\\d+\\)|\\d+\\.)\\s+\\S");
+            "^\\s*(\\[\\d+\\]|\\(\\d+\\))\\s+\\S");
 
     /* ==================== 文件格式校验 ==================== */
 
