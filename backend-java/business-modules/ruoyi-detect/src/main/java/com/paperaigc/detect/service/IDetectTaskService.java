@@ -28,7 +28,8 @@ public interface IDetectTaskService {
      * @param modality 模态（当前仅支持 text；字段保留兼容）
      * @return 新建任务实体
      */
-    DetectTask submit(MultipartFile file, String scenario, String degreeType, String title, Long userId, String modality);
+    DetectTask submit(MultipartFile file, String scenario, String degreeType, String title, Long userId, String modality,
+                      Long parentTaskId);
 
     /**
      * §3.2 列表（分页 + 过滤）

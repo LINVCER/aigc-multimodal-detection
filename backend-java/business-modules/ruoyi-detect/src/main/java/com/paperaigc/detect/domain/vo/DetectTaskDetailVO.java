@@ -42,6 +42,22 @@ public class DetectTaskDetailVO {
     private List<ParagraphResult> paragraphs;
     private Map<String, Double> sourceLabels;
 
+    /** 复测关联：上一次任务（Service.detail 填充；同用户且 DONE 才返回） */
+    private Long parentTaskId;
+    private Double parentAiRate;
+    private String parentModelVersion;
+    private String parentPaperTitle;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime parentCreatedAt;
+
+    /** 复测关联：上一次任务（Service.detail 填充；同用户且 DONE 才返回） */
+    private Long parentTaskId;
+    private Double parentAiRate;
+    private String parentModelVersion;
+    private String parentPaperTitle;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime parentCreatedAt;
+
     public static DetectTaskDetailVO from(DetectTask t) {
         if (t == null) return null;
         return DetectTaskDetailVO.builder()
@@ -61,6 +77,8 @@ public class DetectTaskDetailVO {
                 .finishedAt(t.getFinishedAt())
                 .paragraphs(t.getParagraphs())
                 .sourceLabels(t.getSourceLabels())
+                .parentTaskId(t.getParentTaskId())
+                .parentTaskId(t.getParentTaskId())
                 .build();
     }
 }

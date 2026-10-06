@@ -27,6 +27,8 @@ public class DetectTaskVO {
     private Integer threshold;
     private Double aiRate;
     private String modelVersion;
+    private Long parentTaskId;
+    private Long parentTaskId;
     private Integer wordCount;
     private Long bodyParagraphCount;
     private Integer excludedParagraphCount;
@@ -48,6 +50,8 @@ public class DetectTaskVO {
                 .threshold(t.getThreshold())
                 .aiRate(t.getAiRate())
                 .modelVersion(t.getModelVersion())
+                .parentTaskId(t.getParentTaskId())
+                .parentTaskId(t.getParentTaskId())
                 .wordCount(t.getWordCount())
                 .bodyParagraphCount(t.getBodyParagraphCount())
                 .excludedParagraphCount(t.getExcludedParagraphCount())

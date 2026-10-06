@@ -13,6 +13,7 @@ import com.paperaigc.detect.domain.vo.PageVO;
 import com.paperaigc.detect.repository.IFeedbackRepository;
 import com.paperaigc.detect.service.IFeedbackService;
 import com.paperaigc.detect.service.IHardSampleService;
+import com.paperaigc.detect.service.INotifyService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,7 @@ public class FeedbackServiceImpl implements IFeedbackService {
 
     private final IFeedbackRepository feedbackRepository;
     private final IHardSampleService hardSampleService;
+    private final INotifyService notifyService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -117,5 +119,13 @@ public class FeedbackServiceImpl implements IFeedbackService {
         fb.setHandledReply(reply);
         fb.setHandledAt(LocalDateTime.now());
         feedbackRepository.update(fb);
+
+        if (FeedbackConstants.STATUS_REPLIED.equals(newStatus) && FeedbackConstants.CATEGORY_APPEAL.equals(fb.getCategory())) {
+            try {
+                notifyService.appealReplied(fb);
+            } catch (Exception e) {
+                log.warn("notify appealReplied failed feedback={}: {}", id, e.toString());
+            }
+        }
     }
 }

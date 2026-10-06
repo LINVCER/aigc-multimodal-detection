@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS user_profile (
 CREATE TABLE IF NOT EXISTS detect_task (
   id                        BIGINT PRIMARY KEY AUTO_INCREMENT,
   user_id                   BIGINT NULL COMMENT 'Sa-Token 接入后填 sys_user.user_id',
+  parent_task_id            BIGINT NULL COMMENT '修改稿对应的上一次任务（复测关联）',
   modality                  VARCHAR(16) NOT NULL DEFAULT 'text' COMMENT '模态：text',
   paper_title               VARCHAR(255) NOT NULL,
   status                    VARCHAR(16) NOT NULL COMMENT 'PENDING / RUNNING / DONE / FAILED',
@@ -114,7 +115,8 @@ CREATE TABLE IF NOT EXISTS detect_task (
   INDEX idx_user_time      (user_id, created_at),
   INDEX idx_status_time    (status,  created_at),
   INDEX idx_scenario_time  (scenario, created_at),
-  INDEX idx_modality_time  (modality, created_at)
+  INDEX idx_modality_time  (modality, created_at),
+  INDEX idx_parent         (parent_task_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT '检测任务';
 
 -- ==================== 段级结果 ====================
@@ -187,6 +189,20 @@ CREATE TABLE IF NOT EXISTS detect_hard_sample (
   INDEX idx_task (task_id),
   INDEX idx_verdict_time (ops_verdict, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT '误判候选样本池（评测用）';
+
+-- ==================== 助手对话质检标注（增长闭环 §3） ====================
+CREATE TABLE IF NOT EXISTS assistant_quality_note (
+  id               BIGINT PRIMARY KEY AUTO_INCREMENT,
+  conversation_id  VARCHAR(32) NOT NULL,
+  log_id           BIGINT NULL COMMENT '具体哪一轮 assistant_log.id，空=整段会话',
+  score            TINYINT NULL COMMENT '1-5',
+  tag              VARCHAR(32) NOT NULL COMMENT 'good / wrong_fact / off_point / boundary / tone',
+  note             VARCHAR(500) NULL,
+  reviewer         BIGINT NULL,
+  created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_conv (conversation_id),
+  INDEX idx_tag_time (tag, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT '助手对话质检标注';
 
 -- ==================== 句级结果 ====================
 CREATE TABLE IF NOT EXISTS detect_sentence_result (

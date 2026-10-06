@@ -33,6 +33,10 @@ public class DetectTask {
     private Long id;
 
     private Long userId;
+    /** 修改稿对应的上一次任务（复测关联，增长闭环 §5） */
+    private Long parentTaskId;
+    /** 修改稿对应的上一次任务（复测关联，增长闭环 §5） */
+    private Long parentTaskId;
 
     /** 模态：text */
     private String modality;

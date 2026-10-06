@@ -5,9 +5,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.paperaigc.detect.common.enums.ErrorCode;
 import com.paperaigc.detect.common.exception.BizException;
 import com.paperaigc.detect.domain.dto.KnowledgeChunkDTO;
+import com.paperaigc.detect.domain.entity.AssistantConversation;
 import com.paperaigc.detect.domain.entity.AssistantLog;
+import com.paperaigc.detect.domain.entity.AssistantQualityNote;
 import com.paperaigc.detect.domain.entity.KnowledgeChunk;
+import com.paperaigc.detect.mapper.AssistantConversationMapper;
 import com.paperaigc.detect.mapper.AssistantLogMapper;
+import com.paperaigc.detect.mapper.AssistantQualityNoteMapper;
 import com.paperaigc.detect.mapper.KnowledgeChunkMapper;
 import com.paperaigc.detect.service.IAssistantService;
 import jakarta.validation.Valid;
@@ -28,7 +32,9 @@ import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 /**
  * 运营后台 · 助手运营（增长闭环 P0）
@@ -51,6 +57,8 @@ public class AdminAssistantController {
     private static final String OPS_DOC = "ops-faq";
 
     private final AssistantLogMapper logMapper;
+    private final AssistantConversationMapper conversationMapper;
+    private final AssistantQualityNoteMapper noteMapper;
     private final KnowledgeChunkMapper chunkMapper;
     private final IAssistantService assistantService;
 
@@ -133,6 +141,129 @@ public class AdminAssistantController {
         out.put("errorRate", rate(errors, total));
         out.put("promptTokens", promptTokens);
         out.put("completionTokens", completionTokens);
+        return R.ok(out);
+    }
+
+    /* ==================== 对话质检（增长闭环 §3） ==================== */
+
+    private static final Set<String> QUALITY_TAGS = Set.of("good", "wrong_fact", "off_point", "boundary", "tone");
+
+    /**
+     * 待质检会话列表：越界的全列，其余按时间倒序抽
+     * @param days 最近 N 天
+     * @param boundaryOnly 只看含越界标记的会话
+     * @param limit 条数
+     * @return 会话摘要 + 该会话的越界次数 / 轮数 / 已有质检数
+     */
+    @GetMapping("/conversations")
+    public R<List<Map<String, Object>>> conversations(
+            @RequestParam(value = "days", defaultValue = "14") int days,
+            @RequestParam(value = "boundaryOnly", defaultValue = "false") boolean boundaryOnly,
+            @RequestParam(value = "limit", defaultValue = "50") int limit) {
+        LocalDateTime since = LocalDateTime.now().minusDays(Math.max(days, 1));
+        List<AssistantLog> logs = logMapper.selectList(new LambdaQueryWrapper<AssistantLog>()
+                .ge(AssistantLog::getCreatedAt, since).isNotNull(AssistantLog::getConversationId));
+        Map<String, List<AssistantLog>> byConv = logs.stream().collect(Collectors.groupingBy(AssistantLog::getConversationId));
+
+        LambdaQueryWrapper<AssistantConversation> qw = new LambdaQueryWrapper<AssistantConversation>()
+                .ge(AssistantConversation::getUpdatedAt, since)
+                .orderByDesc(AssistantConversation::getUpdatedAt)
+                .last("LIMIT " + Math.min(Math.max(limit, 1), 300));
+        if (boundaryOnly) {
+            List<String> ids = byConv.entrySet().stream()
+                    .filter(e -> e.getValue().stream().anyMatch(l -> Boolean.TRUE.equals(l.getBoundaryFlag())))
+                    .map(Map.Entry::getKey).toList();
+            if (ids.isEmpty()) return R.ok(List.of());
+            qw.in(AssistantConversation::getConversationId, ids);
+        }
+        List<AssistantConversation> convs = conversationMapper.selectList(qw);
+        List<String> convIds = convs.stream().map(AssistantConversation::getConversationId).toList();
+        Map<String, Long> noteCount = convIds.isEmpty() ? Map.of() : noteMapper.selectList(
+                new LambdaQueryWrapper<AssistantQualityNote>().in(AssistantQualityNote::getConversationId, convIds))
+                .stream().collect(Collectors.groupingBy(AssistantQualityNote::getConversationId, Collectors.counting()));
+
+        List<Map<String, Object>> rows = convs.stream().map(c -> {
+            List<AssistantLog> ls = byConv.getOrDefault(c.getConversationId(), List.of());
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("conversationId", c.getConversationId());
+            m.put("userId", c.getUserId());
+            m.put("taskId", c.getTaskId());
+            m.put("title", c.getTitle());
+            m.put("turns", c.getMessages() == null ? 0 : c.getMessages().size() / 2);
+            m.put("boundaryCount", ls.stream().filter(l -> Boolean.TRUE.equals(l.getBoundaryFlag())).count());
+            m.put("intents", ls.stream().map(AssistantLog::getIntent).filter(i -> i != null).distinct().toList());
+            m.put("noteCount", noteCount.getOrDefault(c.getConversationId(), 0L));
+            m.put("updatedAt", c.getUpdatedAt());
+            return m;
+        }).toList();
+        return R.ok(rows);
+    }
+
+    /**
+     * 会话详情：完整消息 + 每轮审计 + 已有质检
+     * @param cid 会话 id
+     * @return {conversation, logs, notes}
+     */
+    @GetMapping("/conversations/{cid}")
+    public R<Map<String, Object>> conversation(@PathVariable("cid") String cid) {
+        AssistantConversation c = conversationMapper.selectOne(new LambdaQueryWrapper<AssistantConversation>()
+                .eq(AssistantConversation::getConversationId, cid).last("LIMIT 1"));
+        if (c == null) throw new BizException(ErrorCode.NOT_FOUND);
+        List<AssistantLog> logs = logMapper.selectList(new LambdaQueryWrapper<AssistantLog>()
+                .eq(AssistantLog::getConversationId, cid).orderByAsc(AssistantLog::getCreatedAt));
+        List<AssistantQualityNote> notes = noteMapper.selectList(new LambdaQueryWrapper<AssistantQualityNote>()
+                .eq(AssistantQualityNote::getConversationId, cid).orderByDesc(AssistantQualityNote::getCreatedAt));
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("conversation", c);
+        out.put("logs", logs);
+        out.put("notes", notes);
+        return R.ok(out);
+    }
+
+    /**
+     * 写质检标注
+     * @param body {conversationId, logId?, score?, tag, note?, reviewer?}
+     * @return 新标注 id
+     */
+    @PostMapping("/quality-notes")
+    public R<Map<String, Object>> addQualityNote(@RequestBody Map<String, Object> body) {
+        String cid = body.get("conversationId") == null ? null : String.valueOf(body.get("conversationId"));
+        String tag = body.get("tag") == null ? null : String.valueOf(body.get("tag"));
+        if (cid == null || cid.isBlank()) throw new BizException(ErrorCode.PARAM_MISSING, "conversationId");
+        if (tag == null || !QUALITY_TAGS.contains(tag)) throw new BizException(ErrorCode.PARAM_INVALID, "tag 必须是 " + QUALITY_TAGS);
+        Object score = body.get("score");
+        Object logId = body.get("logId");
+        Object reviewer = body.get("reviewer");
+        AssistantQualityNote n = AssistantQualityNote.builder()
+                .conversationId(cid)
+                .logId(logId instanceof Number x ? x.longValue() : null)
+                .score(score instanceof Number x ? Math.max(1, Math.min(5, x.intValue())) : null)
+                .tag(tag)
+                .note(body.get("note") == null ? null : String.valueOf(body.get("note")))
+                .reviewer(reviewer instanceof Number x ? x.longValue() : null)
+                .createdAt(LocalDateTime.now())
+                .build();
+        noteMapper.insert(n);
+        return R.ok(Map.of("id", n.getId()));
+    }
+
+    /**
+     * 质检统计：各标签占比（指向不同改进动作）
+     * @param days 最近 N 天
+     * @return {total, tags{...}, avgScore}
+     */
+    @GetMapping("/quality-notes/stats")
+    public R<Map<String, Object>> qualityStats(@RequestParam(value = "days", defaultValue = "30") int days) {
+        List<AssistantQualityNote> notes = noteMapper.selectList(new LambdaQueryWrapper<AssistantQualityNote>()
+                .ge(AssistantQualityNote::getCreatedAt, LocalDateTime.now().minusDays(Math.max(days, 1))));
+        Map<String, Long> tags = new TreeMap<>();
+        for (AssistantQualityNote n : notes) tags.merge(n.getTag(), 1L, Long::sum);
+        double avg = notes.stream().filter(n -> n.getScore() != null).mapToInt(AssistantQualityNote::getScore).average().orElse(0);
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("days", days);
+        out.put("total", notes.size());
+        out.put("tags", tags);
+        out.put("avgScore", notes.isEmpty() ? null : Math.round(avg * 100) / 100.0);
         return R.ok(out);
     }
 

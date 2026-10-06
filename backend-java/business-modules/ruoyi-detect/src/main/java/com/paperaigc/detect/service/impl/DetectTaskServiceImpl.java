@@ -51,13 +51,14 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
     private final IStorageService storageService;
     private final TextProcessor textProcessor;
     private final com.paperaigc.detect.service.IScenarioThresholdService scenarioThresholdService;
+    private final com.paperaigc.detect.service.INotifyService notifyService;
 
     /* ==================== §3.1 提交 ==================== */
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public DetectTask submit(MultipartFile file, String scenario, String degreeType, String title,
-                             Long userId, String modality) {
+                             Long userId, String modality, Long parentTaskId) {
         if (file == null || file.isEmpty()) throw new BizException(ErrorCode.DETECT_EXTRACT_FAILED, "未上传文件");
 
         // 归一模态：客户端指定优先；否则按后缀猜
@@ -68,12 +69,22 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
             throw new BizException(ErrorCode.PARAM_INVALID, "unknown modality: " + mod);
         }
 
-        return submitText(file, scenario, degreeType, title, userId);
+        return submitText(file, scenario, degreeType, title, userId, resolveParent(parentTaskId, userId));
     }
 
     /* ==================== §3.1 文本模态 ==================== */
 
-    private DetectTask submitText(MultipartFile file, String scenario, String degreeType, String title, Long userId) {
+    /** 复测关联校验：父任务必须存在、DONE、同一用户；不满足就忽略而不是报错，复测关联不是主流程 */
+    private Long resolveParent(Long parentTaskId, Long userId) {
+        if (parentTaskId == null) return null;
+        DetectTask parent = taskRepository.findById(parentTaskId).orElse(null);
+        if (parent == null || !DetectConstants.STATUS_DONE.equals(parent.getStatus())) return null;
+        if (parent.getUserId() != null && userId != null && !parent.getUserId().equals(userId)) return null;
+        return parentTaskId;
+    }
+
+    private DetectTask submitText(MultipartFile file, String scenario, String degreeType, String title, Long userId,
+                                  Long parentTaskId) {
         // 基础校验
         if (file.getSize() > DetectConstants.FILE_SIZE_MAX) throw new BizException(ErrorCode.DETECT_FILE_TOO_LARGE);
         if (!textProcessor.isAllowedFormat(file)) throw new BizException(ErrorCode.DETECT_FORMAT_UNSUPPORT);
@@ -99,6 +110,7 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
                 .scenario(sc)
                 .threshold(scenarioThresholdService.threshold(sc))
                 .modelVersion("stub-v0")
+                .parentTaskId(parentTaskId)
                 .originalFilename(file.getOriginalFilename())
                 .fileSize(file.getSize())
                 .wordCount(metas.stream().mapToInt(m -> ((String) m.get("text")).length()).sum())
@@ -181,6 +193,13 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
         boolean allFailed = attemptedCount > 0 && rateCount == 0;
         task.setStatus(allFailed ? DetectConstants.STATUS_FAILED : DetectConstants.STATUS_DONE);
         task.setFinishedAt(LocalDateTime.now());
+        if (!allFailed) {
+            try {
+                notifyService.taskDone(task);
+            } catch (Exception e) {
+                log.warn("notify taskDone failed task={}: {}", task.getId(), e.toString());
+            }
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -230,8 +249,19 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
 
     @Override
     public DetectTaskDetailVO detail(Long id) {
-        return DetectTaskDetailVO.from(taskRepository.findById(id)
-                .orElseThrow(() -> new BizException(ErrorCode.DETECT_TASK_NOT_FOUND)));
+        DetectTask t = taskRepository.findById(id)
+                .orElseThrow(() -> new BizException(ErrorCode.DETECT_TASK_NOT_FOUND));
+        DetectTaskDetailVO vo = DetectTaskDetailVO.from(t);
+        // 复测对比：带上上一次的 AI 率与模型版本；版本不同页面要明示「不可直接比较」
+        if (t.getParentTaskId() != null) {
+            taskRepository.findById(t.getParentTaskId()).ifPresent(p -> {
+                vo.setParentAiRate(p.getAiRate());
+                vo.setParentModelVersion(p.getModelVersion());
+                vo.setParentPaperTitle(p.getPaperTitle());
+                vo.setParentCreatedAt(p.getCreatedAt());
+            });
+        }
+        return vo;
     }
 
     /* ==================== §3.4 重试 ==================== */

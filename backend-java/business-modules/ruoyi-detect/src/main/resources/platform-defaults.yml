@@ -44,3 +44,10 @@ platform:
     rate-per-minute: ${ASSISTANT_RATE_PER_MINUTE:8}
     rate-per-day: ${ASSISTANT_RATE_PER_DAY:100}
     stream-timeout-seconds: ${ASSISTANT_STREAM_TIMEOUT_SECONDS:120}
+
+  # ---------- 事务通知（订阅消息）· 增长闭环 §5 ----------
+  # LogNotifyServiceImpl 读取；模板 id 在微信公众平台申请后注入。当前实现只记日志（微信登录 mock 无 openid）
+  notify:
+    wechat:
+      detect-done-template: ${WECHAT_TMPL_DETECT_DONE:}
+      appeal-replied-template: ${WECHAT_TMPL_APPEAL_REPLIED:}

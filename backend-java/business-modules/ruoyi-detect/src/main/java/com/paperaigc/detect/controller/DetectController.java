@@ -60,8 +60,9 @@ public class DetectController {
             @RequestParam(value = "degreeType", required = false) String degreeType,   // 兼容旧字段
             @RequestParam(value = "title", required = false) String title,
             @RequestParam(value = "userId", required = false) Long userId,             // W3.c 前透传
-            @RequestParam(value = "modality", required = false) String modality) {     // 当前仅 text；不传默认 text
-        DetectTask task = detectTaskService.submit(file, scenario, degreeType, title, userId, modality);
+            @RequestParam(value = "modality", required = false) String modality,       // 当前仅 text；不传默认 text
+            @RequestParam(value = "parentTaskId", required = false) Long parentTaskId) { // 修改稿对比上一次
+        DetectTask task = detectTaskService.submit(file, scenario, degreeType, title, userId, modality, parentTaskId);
         Map<String, Object> resp = new HashMap<>();
         resp.put("taskId",     task.getId());
         resp.put("paperTitle", task.getPaperTitle());
