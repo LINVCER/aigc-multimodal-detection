@@ -61,6 +61,9 @@ uniapp 与 web 各有一个对话入口。零新服务、零新部署单元，LL
 - golden set：`assistant/eval/golden.jsonl` 40 条（知识 / 解读 / 边界 / 政策各 10）+ `eval_golden.py`（离线验规则层，`--live` 真跑 run_chat 判可确定项，结果追加 `history.csv`）。离线基线：知识 9/10（k09「写作过程材料」检索偏到答辩材料块，真实检索缺口，留给检索升级方案）、边界硬拦截 7/7
 - Java：`AssistantLog.kbTopScore / kbTopRef` 落库；新增 `AdminAssistantController`：`GET /admin/assistant/knowledge-gaps?days&threshold&limit`、`GET /admin/assistant/stats?days&threshold`
 - SQL：`V0.3.0.005__add_assistant_kb_score.sql`（两列 + `idx_intent_kb`），`patch-schema.sql` 同步
+- 知识库管理：`KnowledgeChunk` 实体 + Mapper + `KnowledgeChunkDTO`；`AdminAssistantController` 加 `GET/POST /admin/assistant/knowledge`、`GET/PUT /knowledge/{id}`、`POST /knowledge/{id}/enabled`、`POST /knowledge/reload`、`GET /knowledge-gaps/{logId}/draft`（转成知识草稿）；写库后通知 Python `knowledge/reload`，失败不回滚（块已入库，可手动重载）
+- compose：inference 注入 `ASSISTANT_KB_DB_*` 指向 mysql，知识库从 `knowledge_chunk` 读，reload 才真正生效
+- web 管理端：新页 `/admin/assistant`（菜单「助手运营」）三个 tab：概览 KPI / 知识缺口（转成知识）/ 知识库（新增、编辑、上下线、热加载）
 
 ## 验证状态
 

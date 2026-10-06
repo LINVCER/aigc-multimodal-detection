@@ -3,7 +3,7 @@
 > 日期：2026-10 · 修订：2026-10-07
 > 范围：让论文检测助手「越用越强」——知识、边界、提示词、模型四个层面持续迭代（§1-§4 能力飞轮），并让助手把「看完报告就走」变成「知道下一步做什么」（§5 用户回路）
 > 前置（已在 `agent` 分支落地）：知识库入库 `knowledge_chunk` · 对话落库 `assistant_log` / `assistant_conversation` · 边界类型化 `boundary_type` · 硬拦截 `HARD_BLOCK_INTENTS`
-> 状态：方案评审中 · P0 数据层已落地（kb_top_score/kb_top_ref 落库、结束语规则、golden set 40 条 + eval_golden.py、/admin/assistant/knowledge-gaps 与 /stats）；缺口列表界面与「转成知识」待 product-feature-plan
+> 状态：方案评审中 · P0 数据层已落地（kb_top_score/kb_top_ref 落库、结束语规则、golden set 40 条 + eval_golden.py、/admin/assistant/knowledge-gaps 与 /stats）；缺口列表界面、「转成知识」与知识库管理已在 web `/admin/assistant` 落地（P0 完成）
 > 定位：本篇是闭环**总纲**，只定义回路、信号、指标与分期。界面与表结构细节交给姊妹方案：知识库管理 / 越界看板 / 对话质检 → `202610-product-feature-plan.md` §3.1；知识分点与边界规则 → `202610-assistant-boundary-knowledge-plan.md`；检索升级 → `202610-knowledge-base-retrieval-plan.md`；申诉合理率看板 → `202610-detect-analytics-plan.md` §2
 
 ---
