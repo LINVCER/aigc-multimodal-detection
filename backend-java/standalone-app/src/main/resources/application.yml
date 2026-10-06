@@ -18,7 +18,9 @@ spring:
   # 库名默认 ry-vue，与 deploy/.env.example 的 MYSQL_DATABASE 一致；容器里由 SPRING_DATASOURCE_* 覆盖
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:ry-vue}?useUnicode=true&characterEncoding=utf8mb4&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    # characterEncoding 必须是 Java 编码名：Connector/J 8.x 只认 UTF-8 / UTF8，
+    # 写成数据库侧的 utf8mb4 会抛 UnsupportedEncodingException，导致全部查询失败（错误码 1500）
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:ry-vue}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
     username: ${MYSQL_USER:root}
     password: ${MYSQL_PASSWORD:root}
 
