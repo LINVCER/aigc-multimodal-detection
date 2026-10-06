@@ -115,6 +115,7 @@ async def run_chat(req: ChatRequest, detector_getter: DetectorGetter) -> AsyncIt
             task_ctx = res.data
     kb_hits = get_kb().search(req.message)
     knowledge_ctx = get_kb().format_context(kb_hits) if kb_hits else ""
+    kb_meta = _kb_meta(kb_hits)
 
     messages: list[dict[str, Any]] = [{"role": "system", "content": build_system_prompt(task_ctx, knowledge_ctx)}]
     messages.extend(SESSIONS.recent_history(conv, CONFIG.history_turns))
@@ -206,7 +207,16 @@ async def run_chat(req: ChatRequest, detector_getter: DetectorGetter) -> AsyncIt
         "safety": out_guard.label,
         "boundaryFlag": boundary_type is not None,   # bool，兼容 Java 侧 assistant_log.boundary_flag
         "boundaryType": boundary_type,               # 类型：rewrite / bypass / ghostwrite / null
+        **kb_meta,                                   # kbHits / kbTopScore / kbTopRef：知识缺口信号（增长闭环 §1.1）
     })
+
+
+def _kb_meta(hits: list) -> dict[str, Any]:
+    """知识检索元数据。search 走倒排索引几乎总会返回 top-k，缺口要看 top-1 分数而不是是否为空。"""
+    if not hits:
+        return {"kbHits": 0, "kbTopScore": None, "kbTopRef": None}
+    chunk, score = hits[0]
+    return {"kbHits": len(hits), "kbTopScore": round(float(score), 3), "kbTopRef": chunk.ref[:160]}
 
 
 def _safe_args(raw: str) -> Any:

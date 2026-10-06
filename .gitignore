@@ -207,3 +207,6 @@ RuoYi-Vue-Plus/
 _tmp_pdf/
 appendonly.aof
 deploy/minio-data/
+
+# 助手 golden set 本地运行记录
+deploy/inference-python/assistant/eval/history.csv
