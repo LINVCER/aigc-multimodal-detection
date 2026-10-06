@@ -97,3 +97,107 @@ export async function listAdminTasks(params: {
   })
   return resp.data.data
 }
+
+/* =========== 助手运营（增长闭环 P0） =========== */
+
+export interface AssistantStats {
+  days: number
+  conversations: number
+  users: number
+  intents: Record<string, number>
+  boundaryRate: number | null
+  boundaryTypes: Record<string, number>
+  kbHitRate: number | null
+  kbSample: number
+  toolFailedRate: number | null
+  errorRate: number | null
+  promptTokens: number
+  completionTokens: number
+}
+
+export interface KnowledgeGap {
+  id: number
+  question: string
+  intent: string
+  kbTopScore: number | null
+  kbTopRef: string | null
+  conversationId: string
+  createdAt: string
+}
+
+export interface KnowledgeChunkRow {
+  id: number
+  doc: string
+  title: string
+  tags: string
+  bodyPreview: string
+  sortOrder: number
+  enabled: boolean
+  updatedAt: string
+}
+
+export interface KnowledgeChunkDetail extends Omit<KnowledgeChunkRow, 'bodyPreview'> {
+  body: string
+  createdAt: string
+}
+
+export interface KnowledgeChunkPayload {
+  doc?: string
+  title: string
+  tags?: string
+  body: string
+  sortOrder?: number
+  enabled?: boolean
+  fromLogId?: number
+}
+
+export interface KnowledgeDraft extends KnowledgeChunkPayload {
+  kbTopRef?: string | null
+}
+
+export interface ReloadResult { ok?: boolean; chunks?: number; error?: string }
+
+export async function getAssistantStats(days = 7, threshold = 1.0): Promise<AssistantStats> {
+  const resp = await http.get('/admin/assistant/stats', { params: { days, threshold } })
+  return resp.data.data
+}
+
+export async function listKnowledgeGaps(params: { days?: number; threshold?: number; limit?: number }): Promise<KnowledgeGap[]> {
+  const resp = await http.get('/admin/assistant/knowledge-gaps', { params })
+  return resp.data.data
+}
+
+export async function getKnowledgeGapDraft(logId: number): Promise<KnowledgeDraft> {
+  const resp = await http.get(`/admin/assistant/knowledge-gaps/${logId}/draft`)
+  return resp.data.data
+}
+
+export async function listKnowledge(params: { doc?: string; keyword?: string; enabled?: boolean }): Promise<KnowledgeChunkRow[]> {
+  const resp = await http.get('/admin/assistant/knowledge', { params })
+  return resp.data.data
+}
+
+export async function getKnowledge(id: number): Promise<KnowledgeChunkDetail> {
+  const resp = await http.get(`/admin/assistant/knowledge/${id}`)
+  return resp.data.data
+}
+
+export async function createKnowledge(payload: KnowledgeChunkPayload): Promise<{ id: number; reload: ReloadResult }> {
+  const resp = await http.post('/admin/assistant/knowledge', payload)
+  return resp.data.data
+}
+
+export async function updateKnowledge(id: number, payload: KnowledgeChunkPayload): Promise<{ id: number; reload: ReloadResult }> {
+  const resp = await http.put(`/admin/assistant/knowledge/${id}`, payload)
+  return resp.data.data
+}
+
+export async function setKnowledgeEnabled(id: number, enabled: boolean): Promise<ReloadResult> {
+  const resp = await http.post(`/admin/assistant/knowledge/${id}/enabled`, null, { params: { enabled } })
+  return resp.data.data
+}
+
+export async function reloadKnowledge(): Promise<ReloadResult> {
+  const resp = await http.post('/admin/assistant/knowledge/reload')
+  return resp.data.data
+}

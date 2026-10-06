@@ -21,6 +21,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'users',     name: 'AdminUsers',     component: () => import('@/views/admin/AdminUsers.vue') },
       { path: 'tasks',     name: 'AdminTasks',     component: () => import('@/views/admin/AdminTasks.vue') },
       { path: 'feedback',  name: 'AdminFeedback',  component: () => import('@/views/admin/AdminFeedback.vue') },
+      { path: 'assistant', name: 'AdminAssistant', component: () => import('@/views/admin/AdminAssistant.vue') },
     ],
   },
 

@@ -12,6 +12,7 @@ const menus = [
   { path: '/admin/users',     icon: '👤', text: '用户管理' },
   { path: '/admin/tasks',     icon: '📄', text: '任务列表' },
   { path: '/admin/feedback',  icon: '💬', text: '用户反馈' },
+  { path: '/admin/assistant', icon: '🤖', text: '助手运营' },
 ]
 const activePath = computed(() => route.path)
 
