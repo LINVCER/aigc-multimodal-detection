@@ -71,10 +71,42 @@ class KnowledgeBase:
         self.chunks: list[Chunk] = []
         self._df: Counter = Counter()
         self._avgdl = 1.0
+        self._inverted: dict[str, set[int]] = {}   # 倒排索引：term → 命中 chunk 下标集合
+        self.source: str = "markdown"              # 数据来源：markdown | database
         self.reload()
 
     # ------------------------------------------------------------------
     def reload(self) -> None:
+        chunks: list[Chunk] = []
+        source = "markdown"
+        # 配了 ASSISTANT_KB_DB_HOST 才走数据库；空表 / 连不上都回退本地 markdown
+        if CONFIG.kb_db_enabled:
+            try:
+                db_chunks = self._load_from_db()
+                if db_chunks:
+                    chunks = db_chunks
+                    source = "database"
+                else:
+                    log.warning("知识库数据库为空，回退 markdown")
+            except Exception as e:
+                log.warning("知识库数据库加载失败（%s），回退 markdown", e)
+        if not chunks:
+            chunks = self._load_from_md()
+
+        self.chunks = chunks
+        self.source = source
+        self._df = Counter()
+        self._inverted = {}
+        for i, c in enumerate(chunks):
+            c.tokens = Counter(_tokenize(c.title + " " + " ".join(c.tags) + " " + c.text))
+            self._df.update(set(c.tokens))
+            for term in c.tokens:
+                self._inverted.setdefault(term, set()).add(i)
+        total = sum(sum(c.tokens.values()) for c in chunks)
+        self._avgdl = (total / len(chunks)) if chunks else 1.0
+        log.info("知识库加载（%s）：%d 文件 %d 块", source, len(set(c.doc for c in chunks)), len(chunks))
+
+    def _load_from_md(self) -> list[Chunk]:
         chunks: list[Chunk] = []
         for path in sorted(glob.glob(os.path.join(self.directory, "*.md"))):
             try:
@@ -84,14 +116,29 @@ class KnowledgeBase:
                 log.warning("读取知识文件失败 %s: %s", path, e)
                 continue
             chunks.extend(self._split(os.path.splitext(os.path.basename(path))[0], raw))
-        self.chunks = chunks
-        self._df = Counter()
-        for c in chunks:
-            c.tokens = Counter(_tokenize(c.title + " " + " ".join(c.tags) + " " + c.text))
-            self._df.update(set(c.tokens))
-        total = sum(sum(c.tokens.values()) for c in chunks)
-        self._avgdl = (total / len(chunks)) if chunks else 1.0
-        log.info("知识库加载：%d 文件 %d 块", len(set(c.doc for c in chunks)), len(chunks))
+        return chunks
+
+    def _load_from_db(self) -> list[Chunk]:
+        import pymysql
+        conn = pymysql.connect(
+            host=CONFIG.kb_db_host, port=CONFIG.kb_db_port,
+            user=CONFIG.kb_db_user, password=CONFIG.kb_db_password,
+            database=CONFIG.kb_db_name, charset="utf8mb4",
+        )
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT doc, title, tags, body, sort_order FROM knowledge_chunk "
+                    "WHERE enabled = 1 ORDER BY sort_order, id"
+                )
+                rows = cur.fetchall()
+            out: list[Chunk] = []
+            for doc, title, tags, body, _sort in rows:
+                tag_list = [t.strip() for t in (tags or "").split(",") if t.strip()]
+                out.append(Chunk(doc=doc, title=title, text=body or "", tags=tag_list))
+            return out
+        finally:
+            conn.close()
 
     @staticmethod
     def _split(doc: str, raw: str) -> list[Chunk]:
@@ -118,12 +165,24 @@ class KnowledgeBase:
         if not self.chunks or not query.strip():
             return []
         q = _tokenize(query)
+        if not q:
+            return []
+        qset = set(q)
+
+        # 倒排索引：只算命中任意查询词的块，避免每次全量遍历（块多时从 O(n) 降到 O(命中块)）
+        candidates: set[int] = set()
+        for term in qset:
+            candidates.update(self._inverted.get(term, ()))
+        if not candidates:
+            return []
+
         n = len(self.chunks)
         scored: list[tuple[Chunk, float]] = []
-        for c in self.chunks:
+        for i in candidates:
+            c = self.chunks[i]
             dl = sum(c.tokens.values()) or 1
             s = 0.0
-            for term in set(q):
+            for term in qset:
                 tf = c.tokens.get(term, 0)
                 if tf == 0:
                     continue
@@ -131,7 +190,7 @@ class KnowledgeBase:
                 idf = math.log(1 + (n - df + 0.5) / (df + 0.5))
                 s += idf * (tf * (k1 + 1)) / (tf + k1 * (1 - b + b * dl / self._avgdl))
             # 标题命中加权：问「红线」就该优先命中标题含「红线」的块
-            if any(t in c.title.lower() for t in q if len(t) >= 2):
+            if any(t in c.title.lower() for t in qset if len(t) >= 2):
                 s *= 1.3
             if s > 0:
                 scored.append((c, s))

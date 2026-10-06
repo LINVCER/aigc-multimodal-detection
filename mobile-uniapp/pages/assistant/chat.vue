@@ -2,20 +2,24 @@
 import { ref, computed, nextTick, onUnmounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { chatStream, getQuickPrompts } from '@/api/assistant'
+import { listTasks, getTaskDetail } from '@/api/detect'
 import { useAuth } from '@/store/auth'
 
 /*
  * 论文检测助手 · 对话页
  * 入口：task/detail「问助手」（带 taskId / paragraphIdx）· 四个 tab 页右下角 FAB（不带任务）
  * 协议：SSE meta / token / tool_call / tool_result / done / error，见 api/assistant.js
+ *
+ * 报告选择条：复用 listTasks 列出最近 DONE 报告，点选绑定对话上下文；
+ * 绑定后复用 getTaskDetail 出「整体分析 + 高风险段落」快捷条，一键「分析原因」。
  */
 
 const auth = useAuth()
 
-const taskId = ref(null)
+const taskId = ref(null)             // null = 通用咨询
 const paragraphIdx = ref(null)
 const conversationId = ref('')
-const messages = ref([])          // { role: 'user'|'assistant', text, tools:[], error, streaming }
+const messages = ref([])             // { role, text, tools:[], error, streaming }
 const input = ref('')
 const streaming = ref(false)
 const welcome = ref('')
@@ -23,10 +27,22 @@ const prompts = ref([])
 const scrollInto = ref('')
 const statusBarHeight = ref(20)
 
+// 报告上下文
+const tasks = ref([])
+const taskDetail = ref(null)
+
 let stream = null
 
 const canSend = computed(() => input.value.trim().length > 0 && !streaming.value)
 const showQuick = computed(() => messages.value.length === 0 && prompts.value.length > 0)
+const activeTask = computed(() => tasks.value.find((t) => t.id === taskId.value) || null)
+const riskParagraphs = computed(() => {
+  const ps = taskDetail.value?.paragraphs || []
+  return ps
+    .filter((p) => !p.excluded && (p.calibratedProb ?? 0) >= 0.4)
+    .sort((a, b) => (b.calibratedProb ?? 0) - (a.calibratedProb ?? 0))
+    .slice(0, 6)
+})
 
 onLoad(async (query) => {
   const sys = uni.getSystemInfoSync()
@@ -35,12 +51,10 @@ onLoad(async (query) => {
   if (query?.paragraphIdx !== undefined && query.paragraphIdx !== '') paragraphIdx.value = Number(query.paragraphIdx)
   if (query?.conversationId) conversationId.value = query.conversationId
 
-  try {
-    const qp = await getQuickPrompts(taskId.value || undefined)
-    welcome.value = qp?.welcome || ''
-    prompts.value = qp?.prompts || []
-  } catch (e) {
-    welcome.value = '嗨，我是论文检测助手。检测结果看不懂、不知道怎么改，都可以直接问我。'
+  loadTasks()
+  await refreshPrompts(taskId.value || undefined)
+  if (taskId.value != null) {
+    try { taskDetail.value = await getTaskDetail(taskId.value) } catch (e) { taskDetail.value = null }
   }
 
   // 从「为什么这段像 AI」直达：自动发第一问
@@ -50,6 +64,47 @@ onLoad(async (query) => {
 })
 
 onUnmounted(() => { stream?.abort() })
+
+function loadTasks() {
+  listTasks()
+    .then((rows) => { tasks.value = (rows || []).filter((t) => t.status === 'DONE') })
+    .catch(() => { tasks.value = [] })
+}
+
+async function refreshPrompts(id) {
+  try {
+    const qp = await getQuickPrompts(id)
+    welcome.value = qp?.welcome || ''
+    prompts.value = qp?.prompts || []
+  } catch (e) {
+    welcome.value = '嗨，我是论文检测助手。检测结果看不懂、不知道怎么改，都可以直接问我。'
+  }
+}
+
+async function selectTask(id) {
+  if (streaming.value) stream?.abort()
+  taskId.value = id
+  conversationId.value = ''
+  messages.value = []
+  taskDetail.value = null
+  paragraphIdx.value = null
+  await refreshPrompts(id)
+  if (id != null) {
+    try { taskDetail.value = await getTaskDetail(id) } catch (e) { taskDetail.value = null }
+  }
+}
+
+function analyzeParagraph(idx) {
+  paragraphIdx.value = idx
+  send(`第 ${idx + 1} 段为什么会被判成像 AI？`)
+}
+
+function analyzeOverall() {
+  const d = taskDetail.value
+  if (!d) return
+  const rate = d.aiRate != null ? `${d.aiRate.toFixed(1)}%` : '未知'
+  send(`这份报告整体 AI 率是 ${rate}（红线 ${d.threshold}%）。帮我分析一下可能的原因，以及哪几段最该先改。`)
+}
 
 function goBack() {
   const pages = getCurrentPages()
@@ -165,9 +220,38 @@ function onNewChat() {
         <text class="nav-btn" @click="goBack">‹ 返回</text>
         <view class="nav-center">
           <text class="nav-title">论文检测助手</text>
-          <text v-if="taskId" class="nav-sub">围绕报告 #{{ taskId }}</text>
+          <text v-if="activeTask" class="nav-sub">{{ activeTask.paperTitle }}</text>
         </view>
         <text class="nav-btn" @click="onNewChat">新对话</text>
+      </view>
+    </view>
+
+    <!-- 报告选择条 -->
+    <scroll-view v-if="tasks.length" class="task-strip" scroll-x :show-scrollbar="false">
+      <view class="task-strip-inner">
+        <view class="task-chip" :class="{ active: taskId == null }" @click="selectTask(undefined)">
+          <text class="task-chip-title">通用咨询</text>
+        </view>
+        <view
+          v-for="t in tasks" :key="t.id"
+          class="task-chip" :class="{ active: taskId === t.id }" @click="selectTask(t.id)"
+        >
+          <text class="task-chip-title">{{ t.paperTitle }}</text>
+          <text v-if="t.aiRate != null" class="task-chip-rate">AI {{ t.aiRate.toFixed(0) }}%</text>
+        </view>
+      </view>
+    </scroll-view>
+
+    <!-- 段落分析条（绑定报告后，一键「分析原因」） -->
+    <view v-if="taskId != null && riskParagraphs.length" class="para-strip">
+      <view class="para-chip primary" hover-class="para-chip--hover" @click="analyzeOverall">
+        <text>📊 整体怎么看</text>
+      </view>
+      <view
+        v-for="p in riskParagraphs" :key="p.paragraphIdx"
+        class="para-chip" hover-class="para-chip--hover" @click="analyzeParagraph(p.paragraphIdx)"
+      >
+        <text>段 {{ p.paragraphIdx + 1 }} · {{ ((p.calibratedProb || 0) * 100).toFixed(0) }}%</text>
       </view>
     </view>
 
@@ -246,9 +330,55 @@ function onNewChat() {
   display: flex; align-items: center; justify-content: space-between;
 }
 .nav-btn { color: $brand-primary; font-size: $fs-body; }
-.nav-center { display: flex; flex-direction: column; align-items: center; }
+.nav-center { display: flex; flex-direction: column; align-items: center; max-width: 55%; }
 .nav-title { font-size: $fs-headline; font-weight: $fw-semibold; color: $label-primary; }
-.nav-sub { font-size: $fs-caption-2; color: $label-secondary; margin-top: 2rpx; }
+.nav-sub {
+  font-size: $fs-caption-2; color: $label-secondary; margin-top: 2rpx;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* ===== 报告选择条 ===== */
+.task-strip {
+  flex: none;
+  background: $bg-primary;
+  border-bottom: $stroke-hairline solid $separator;
+  white-space: nowrap;
+}
+.task-strip-inner { display: inline-flex; gap: $sp-2; padding: $sp-2 $sp-4; }
+.task-chip {
+  display: inline-flex; flex-direction: column; gap: 2rpx;
+  max-width: 320rpx;
+  padding: $sp-1 $sp-3;
+  border-radius: $radius-pill;
+  background: $fill-tertiary;
+  border: $stroke-hairline solid transparent;
+  &.active { background: $brand-primary-wash; border-color: $brand-primary; }
+}
+.task-chip-title {
+  font-size: $fs-footnote; color: $label-primary; font-weight: $fw-medium;
+  max-width: 300rpx; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.task-chip-rate { font-size: $fs-caption-2; color: $label-secondary; }
+.task-chip.active .task-chip-title { color: $brand-primary; }
+
+/* ===== 段落分析条 ===== */
+.para-strip {
+  flex: none;
+  display: flex; gap: $sp-2; overflow-x: auto;
+  padding: $sp-2 $sp-4;
+  background: $brand-primary-wash;
+  white-space: nowrap;
+  &::-webkit-scrollbar { display: none; }
+}
+.para-chip {
+  flex: none;
+  padding: $sp-1 $sp-3;
+  border-radius: $radius-pill;
+  background: $bg-primary; color: $label-primary;
+  font-size: $fs-footnote;
+  &--hover { opacity: 0.6; }
+  &.primary { background: $brand-primary; color: #fff; font-weight: $fw-medium; }
+}
 
 /* ===== 消息流 ===== */
 .msgs { flex: 1; min-height: 0; }

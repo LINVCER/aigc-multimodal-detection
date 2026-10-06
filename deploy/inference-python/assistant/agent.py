@@ -48,7 +48,7 @@ async def run_chat(req: ChatRequest, detector_getter: DetectorGetter) -> AsyncIt
     # 1) 会话
     conv = await SESSIONS.load_or_create(req.conversationId, req.userId, req.taskId)
     cid = conv["conversationId"]
-    yield sse("meta", {"conversationId": cid, "model": CONFIG.llm_model, "intent": intent})
+    yield sse("meta", {"conversationId": cid, "model": CONFIG.resolved_model, "intent": intent, "provider": CONFIG.provider_name})
 
     # 2) 入口内容安全
     guard = await SAFETY.check(req.message, scene="input", user_id=req.userId)
@@ -57,7 +57,7 @@ async def run_chat(req: ChatRequest, detector_getter: DetectorGetter) -> AsyncIt
         await SESSIONS.append(conv, "assistant", BLOCKED_REPLY, blocked=True)
         await SESSIONS.save(conv)
         yield sse("token", {"delta": BLOCKED_REPLY})
-        yield sse("done", {"usage": {}, "model": CONFIG.llm_model, "finishReason": "safety",
+        yield sse("done", {"usage": {}, "model": CONFIG.resolved_model, "finishReason": "safety",
                            "elapsedMs": int((time.monotonic() - t0) * 1000), "intent": intent, "safety": "blocked"})
         return
 
@@ -81,6 +81,7 @@ async def run_chat(req: ChatRequest, detector_getter: DetectorGetter) -> AsyncIt
 
     # 4) 工具循环
     full_text: list[str] = []
+    reasoning_text: list[str] = []   # DeepSeek thinking：带 tools 时必须回传，否则 400
     tool_trace: list[dict[str, Any]] = []
     usage_total = {"prompt_tokens": 0, "completion_tokens": 0}
     finish_reason = "stop"
@@ -91,6 +92,9 @@ async def run_chat(req: ChatRequest, detector_getter: DetectorGetter) -> AsyncIt
                 if kind == "token":
                     full_text.append(payload)
                     yield sse("token", {"delta": payload})
+                elif kind == "reasoning":
+                    # 思考内容不推给用户（只体现为等待时长），但必须留存以便回传
+                    reasoning_text.append(payload)
                 elif kind == "tool_calls":
                     pending_calls = payload
                 elif kind == "finish":
@@ -107,10 +111,17 @@ async def run_chat(req: ChatRequest, detector_getter: DetectorGetter) -> AsyncIt
                 break
 
             # 把本轮 assistant 的 tool_calls 原样放回，再逐个执行追加 tool 消息
-            messages.append({"role": "assistant", "content": "".join(full_text) or None,
-                             "tool_calls": [{"id": c.id, "type": "function",
-                                             "function": {"name": c.name, "arguments": c.arguments or "{}"}}
-                                            for c in pending_calls]})
+            assistant_msg: dict[str, Any] = {
+                "role": "assistant",
+                "content": "".join(full_text) or None,
+                "tool_calls": [{"id": c.id, "type": "function",
+                                "function": {"name": c.name, "arguments": c.arguments or "{}"}}
+                               for c in pending_calls],
+            }
+            # 思考模式下必须带上 reasoning_content，否则下一轮请求被拒（400）
+            if reasoning_text:
+                assistant_msg["reasoning_content"] = "".join(reasoning_text)
+            messages.append(assistant_msg)
             full_text = []   # 工具前的碎片文本不算最终回答
             for call in pending_calls:
                 yield sse("tool_call", {"name": call.name, "args": _safe_args(call.arguments),
@@ -144,7 +155,7 @@ async def run_chat(req: ChatRequest, detector_getter: DetectorGetter) -> AsyncIt
     await SESSIONS.save(conv)
     yield sse("done", {
         "usage": {**usage_total, "total_tokens": usage_total["prompt_tokens"] + usage_total["completion_tokens"]},
-        "model": CONFIG.llm_model, "finishReason": finish_reason,
+        "model": CONFIG.resolved_model, "finishReason": finish_reason,
         "elapsedMs": int((time.monotonic() - t0) * 1000),
         "intent": intent, "tools": [t["name"] for t in tool_trace],
         "safety": out_guard.label, "boundaryFlag": boundary_flag,

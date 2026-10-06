@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, watch, onBeforeUnmount } from 'vue'
 import { chatStream, getQuickPrompts, type ChatHandle } from '@/api/assistant'
+import { listTasks, getTaskDetail } from '@/api/detect'
+import type { DetectTask, TaskDetail } from '@/api/types'
 
 /**
  * 论文检测助手 · 右侧抽屉（Web 端）
- * 从 TaskDetail 头部「问助手」打开；带 taskId 作为对话默认上下文。
+ * - 从 TaskDetail 头部「问助手」打开（带 taskId）；也能在任何地方打开后自行选择报告
+ * - 顶部「报告选择」下拉：复用 listTasks 列出最近 DONE 报告，绑定对话上下文
+ * - 绑定报告后：复用 getTaskDetail 拉段落，出「整体分析 + 高风险段落」快捷条，一键「分析原因」
  */
 
 interface ToolChip { name: string; label: string; status: 'running' | 'done' | 'failed' }
@@ -39,27 +43,94 @@ const listEl = ref<HTMLElement | null>(null)
 let handle: ChatHandle | null = null
 let pendingParagraph: number | null = null
 
+// ---- 报告上下文（「可以选择检测报告进行对话」）----
+const activeTaskId = ref<number | undefined>(undefined)   // undefined = 通用咨询
+const taskOptions = ref<DetectTask[]>([])
+const taskDetail = ref<TaskDetail | null>(null)
+const loadingTasks = ref(false)
+
+const activeTask = computed(() => taskOptions.value.find((t) => t.id === activeTaskId.value))
+const taskTitle = computed(() => activeTask.value?.paperTitle || '')
+
 const canSend = computed(() => input.value.trim().length > 0 && !streaming.value)
 const showQuick = computed(() => messages.value.length === 0 && prompts.value.length > 0)
 
-watch(() => props.modelValue, async (open) => {
-  if (!open) return
-  if (!welcome.value) {
+/** 绑定报告后，供「分析原因」用的高风险段落（正文、≥40%，按概率倒序取前 6） */
+const riskParagraphs = computed(() => {
+  const ps = taskDetail.value?.paragraphs || []
+  return ps
+    .filter((p) => !p.excluded && (p.calibratedProb ?? 0) >= 0.4)
+    .sort((a, b) => (b.calibratedProb ?? 0) - (a.calibratedProb ?? 0))
+    .slice(0, 6)
+})
+
+function pct(prob: number | null | undefined): string {
+  return `${((prob ?? 0) * 100).toFixed(0)}%`
+}
+
+onBeforeUnmount(() => handle?.abort())
+
+async function loadTasks() {
+  if (loadingTasks.value) return
+  loadingTasks.value = true
+  try {
+    const page = await listTasks({ pageNum: 1, pageSize: 20 })
+    taskOptions.value = (page.rows || []).filter((t) => t.status === 'DONE')
+  } catch {
+    taskOptions.value = []
+  } finally {
+    loadingTasks.value = false
+  }
+}
+
+async function refreshPrompts(taskId?: number) {
+  try {
+    const qp = await getQuickPrompts(taskId)
+    welcome.value = qp.welcome
+    prompts.value = qp.prompts || []
+  } catch {
+    welcome.value = '嗨，我是论文检测助手。检测结果看不懂、不知道怎么改，都可以直接问我。'
+  }
+}
+
+/** 切换 / 绑定报告：换上下文即开新对话，并重拉快捷问题与段落 */
+async function selectTask(id?: number) {
+  if (streaming.value) handle?.abort()
+  activeTaskId.value = id
+  conversationId.value = ''
+  messages.value = []
+  taskDetail.value = null
+  pendingParagraph = null
+  await refreshPrompts(id)
+  if (id != null) {
     try {
-      const qp = await getQuickPrompts(props.taskId)
-      welcome.value = qp.welcome
-      prompts.value = qp.prompts || []
+      taskDetail.value = await getTaskDetail(id)
     } catch {
-      welcome.value = '嗨，我是论文检测助手。检测结果看不懂、不知道怎么改，都可以直接问我。'
+      taskDetail.value = null
     }
   }
+}
+
+function onTaskChange(v: number | undefined) {
+  // el-select 清除时可能回传 '' 或 undefined，统一归一为「通用咨询」
+  selectTask(v || undefined)
+}
+
+watch(() => props.modelValue, async (open) => {
+  if (!open) return
+  if (taskOptions.value.length === 0) await loadTasks()
+  // 从 TaskDetail 打开：同步其 taskId
+  if (props.taskId != null && props.taskId !== activeTaskId.value) {
+    await selectTask(props.taskId)
+  } else if (!welcome.value) {
+    await refreshPrompts(activeTaskId.value)
+  }
+  // 「为什么这段像 AI」直达
   if (props.paragraphIdx != null) {
     pendingParagraph = props.paragraphIdx
     send(`第 ${props.paragraphIdx + 1} 段为什么会被判成像 AI？`)
   }
 })
-
-onBeforeUnmount(() => handle?.abort())
 
 function scrollBottom() {
   nextTick(() => { if (listEl.value) listEl.value.scrollTop = listEl.value.scrollHeight })
@@ -84,10 +155,10 @@ function send(text: string) {
   handle = chatStream({
     message: text,
     conversationId: conversationId.value || undefined,
-    taskId: props.taskId,
+    taskId: activeTaskId.value,
     paragraphIdx: pendingParagraph ?? undefined,
     userId: userIdRaw ? Number(userIdRaw) : undefined,
-    clientContext: { platform: 'web', page: 'TaskDetail' },
+    clientContext: { platform: 'web', page: 'AssistantDrawer' },
   }, {
     onEvent: (event, data) => {
       switch (event) {
@@ -123,6 +194,20 @@ function send(text: string) {
   })
 }
 
+/** 一键「分析原因」：追问某个具体段落 */
+function analyzeParagraph(idx: number) {
+  pendingParagraph = idx
+  send(`第 ${idx + 1} 段为什么会被判成像 AI？`)
+}
+
+/** 一键「分析原因」：整体归因 + 优先级 */
+function analyzeOverall() {
+  const d = taskDetail.value
+  if (!d) return
+  const rate = d.aiRate != null ? `${d.aiRate.toFixed(1)}%` : '未知'
+  send(`这份报告整体 AI 率是 ${rate}（红线 ${d.threshold}%）。帮我分析一下可能的原因，以及哪几段最该先改。`)
+}
+
 function onStop() { handle?.abort() }
 
 function onRetry(idx: number) {
@@ -141,24 +226,68 @@ function onNewChat() {
   conversationId.value = ''
   messages.value = []
   streaming.value = false
+  pendingParagraph = null
 }
 </script>
 
 <template>
-  <el-drawer v-model="visible" size="440px" :with-header="false" class="assistant-drawer">
+  <el-drawer v-model="visible" size="460px" :with-header="false" class="assistant-drawer">
     <div class="ad">
       <div class="ad-head">
-        <div class="ad-title">
-          <span class="ad-avatar">AI</span>
-          <div>
-            <div class="ad-name">论文检测助手</div>
-            <div v-if="taskId" class="ad-sub">围绕报告 #{{ taskId }}</div>
+        <div class="ad-head-top">
+          <div class="ad-title">
+            <span class="ad-avatar">AI</span>
+            <div>
+              <div class="ad-name">论文检测助手</div>
+              <div v-if="activeTask" class="ad-sub">{{ activeTask.paperTitle }}</div>
+              <div v-else class="ad-sub">通用咨询</div>
+            </div>
+          </div>
+          <div class="ad-head-actions">
+            <el-button link size="small" @click="onNewChat">新对话</el-button>
+            <el-button link size="small" @click="visible = false">关闭</el-button>
           </div>
         </div>
-        <div>
-          <el-button link size="small" @click="onNewChat">新对话</el-button>
-          <el-button link size="small" @click="visible = false">关闭</el-button>
-        </div>
+
+        <!-- 报告选择：复用 listTasks -->
+        <el-select
+          v-model="activeTaskId"
+          class="ad-task-select"
+          size="small"
+          placeholder="选择要咨询的检测报告…"
+          clearable
+          :loading="loadingTasks"
+          @change="onTaskChange"
+        >
+          <el-option
+            v-for="t in taskOptions"
+            :key="t.id"
+            :value="t.id"
+            :label="t.paperTitle"
+          >
+            <span class="ad-opt-title">{{ t.paperTitle }}</span>
+            <span class="ad-opt-rate" :class="{ over: t.aiRate != null && t.aiRate > t.threshold }">
+              AI {{ t.aiRate != null ? t.aiRate.toFixed(0) + '%' : '—' }}
+            </span>
+          </el-option>
+        </el-select>
+      </div>
+
+      <!-- 报告上下文快捷条：整体分析 + 高风险段落（「分析原因」） -->
+      <div v-if="activeTask && taskDetail && riskParagraphs.length" class="ad-context">
+        <el-tag round effect="plain" type="primary" class="ad-chip" @click="analyzeOverall">
+          📊 整体怎么看
+        </el-tag>
+        <el-tag
+          v-for="p in riskParagraphs"
+          :key="p.paragraphIdx"
+          round
+          effect="plain"
+          class="ad-chip"
+          @click="analyzeParagraph(p.paragraphIdx)"
+        >
+          段 {{ p.paragraphIdx + 1 }} · {{ pct(p.calibratedProb) }}
+        </el-tag>
       </div>
 
       <div ref="listEl" class="ad-list">
@@ -190,7 +319,7 @@ function onNewChat() {
         <div class="ad-input-row">
           <el-input
             v-model="input"
-            :placeholder="taskId ? '问问这份报告…' : '想问点什么？'"
+            :placeholder="activeTaskId ? '问问这份报告…' : '想问点什么？'"
             :disabled="streaming"
             @keyup.enter="onSend"
           />
@@ -205,18 +334,33 @@ function onNewChat() {
 <style scoped lang="scss">
 .ad { height: 100%; display: flex; flex-direction: column; }
 .ad-head {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 16px; border-bottom: 1px solid var(--el-border-color-lighter);
+  padding: 14px 16px 12px; border-bottom: 1px solid var(--el-border-color-lighter);
 }
-.ad-title { display: flex; align-items: center; gap: 10px; }
+.ad-head-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.ad-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .ad-avatar {
-  width: 36px; height: 36px; border-radius: 50%;
+  width: 36px; height: 36px; border-radius: 50%; flex: none;
   background: linear-gradient(135deg, #5E5CE6 0%, #64D2FF 100%);
   color: #fff; font-weight: 700; font-size: 12px;
   display: inline-flex; align-items: center; justify-content: center;
 }
 .ad-name { font-weight: 600; font-size: 15px; }
-.ad-sub { font-size: 12px; color: var(--el-text-color-secondary); }
+.ad-sub {
+  font-size: 12px; color: var(--el-text-color-secondary);
+  max-width: 230px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ad-head-actions { display: flex; gap: 4px; flex: none; }
+.ad-task-select { width: 100%; }
+
+.ad-opt-title { float: left; max-width: 300px; overflow: hidden; text-overflow: ellipsis; }
+.ad-opt-rate { float: right; color: var(--el-text-color-secondary); font-size: 12px; margin-left: 8px; }
+.ad-opt-rate.over { color: var(--el-color-danger); }
+
+.ad-context {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 10px 16px; border-bottom: 1px solid var(--el-border-color-lighter);
+  background: var(--el-fill-color-lighter);
+}
 
 .ad-list { flex: 1; overflow-y: auto; padding: 16px; background: var(--el-fill-color-lighter); }
 .ad-welcome {

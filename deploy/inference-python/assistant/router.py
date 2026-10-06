@@ -83,10 +83,10 @@ async def health():
     await SESSIONS._ensure()
     return {
         "enabled": CONFIG.enabled,
-        "model": CONFIG.llm_model,
-        "llmBaseUrl": CONFIG.llm_base_url,
-        "llmKeyConfigured": bool(CONFIG.llm_api_key),
+        # provider 明细（含 model / baseUrl / 是否配了 key / 启动期告警），已脱敏不含 key 本身
+        **CONFIG.public_dict(),
         "sessionBackend": SESSIONS.kind,
+        "knowledgeSource": kb.source,
         "knowledgeChunks": len(kb.chunks),
         "knowledgeDocs": sorted(set(c.doc for c in kb.chunks)),
         "safetyProvider": CONFIG.safety_provider,
@@ -105,4 +105,9 @@ def mount(app: FastAPI, detector_getter: DetectorGetter) -> None:
     global _detector_getter
     _detector_getter = detector_getter
     app.include_router(router, prefix="/api/v1")
-    log.info("assistant 已挂载 /api/v1/assistant/* · model=%s · key=%s", CONFIG.llm_model, "yes" if CONFIG.llm_api_key else "NO")
+    log.info("assistant 已挂载 /api/v1/assistant/* · provider=%s · model=%s · key=%s · thinking=%s",
+             CONFIG.provider_name, CONFIG.resolved_model,
+             "yes" if CONFIG.resolved_api_key else "NO", CONFIG.thinking_active)
+    # 启动期自检：缺 key / model 名可疑 / provider 不支持 thinking 等，一次说清
+    for w in CONFIG.config_warnings():
+        log.warning("assistant 配置告警：%s", w)
