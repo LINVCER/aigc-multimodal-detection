@@ -7,12 +7,14 @@ export async function submitPaper(
   scenario: string,
   title?: string,
   userId?: number | string,
+  parentTaskId?: number,
 ): Promise<{ taskId: number; paperTitle: string; status: string; createdAt: string }> {
   const form = new FormData()
   form.append('file', file)
   form.append('scenario', scenario)
   if (title) form.append('title', title)
   if (userId != null && userId !== '') form.append('userId', String(userId))
+  if (parentTaskId) form.append('parentTaskId', String(parentTaskId))   // 修改稿对比上一次
   const resp = await http.post('/api/v1/detect/submit', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   })

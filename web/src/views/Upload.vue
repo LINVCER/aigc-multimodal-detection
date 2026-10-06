@@ -1,12 +1,23 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { UploadFile, UploadRawFile } from 'element-plus'
-import { submitPaper, detectTextDirect, type DirectDetectResp } from '@/api/detect'
+import { submitPaper, detectTextDirect, listTasks, type DirectDetectResp } from '@/api/detect'
+import type { DetectTask } from '@/api/types'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
+
+/* 复测关联：选一条已完成任务作为「上一次」 */
+const prevTasks = ref<DetectTask[]>([])
+const parentTaskId = ref<number | undefined>(undefined)
+onMounted(async () => {
+  try {
+    const page = await listTasks({ pageNum: 1, pageSize: 50 })
+    prevTasks.value = (page.rows || []).filter((t) => t.status === 'DONE').slice(0, 20)
+  } catch { prevTasks.value = [] }
+})
 
 const router = useRouter()
 
@@ -78,7 +89,7 @@ async function submit() {
   if (!file.value) return ElMessage.warning('请先选择论文文件')
   submitting.value = true
   try {
-    const resp = await submitPaper(file.value, scenario.value, undefined, auth.user?.id)
+    const resp = await submitPaper(file.value, scenario.value, undefined, auth.user?.id, parentTaskId.value)
     ElMessage.success('提交成功，正在检测')
     router.push({ name: 'TaskDetail', params: { id: resp.taskId } })
   } finally { submitting.value = false }
@@ -126,6 +137,16 @@ async function submit() {
               当前场景建议 AI 率 <span class="footnote-strong">≤ {{ threshold }}%</span>
             </div>
           </el-card>
+
+          <template v-if="prevTasks.length">
+            <div class="group-label">这是修改稿？对比上一次（可选）</div>
+            <el-card class="group-card" body-style="padding: 12px 16px">
+              <el-select v-model="parentTaskId" clearable placeholder="不关联" style="width: 100%">
+                <el-option v-for="t in prevTasks" :key="t.id" :value="t.id"
+                  :label="`${t.paperTitle} · ${t.aiRate == null ? '—' : t.aiRate.toFixed(1) + '%'} · ${t.createdAt}`" />
+              </el-select>
+            </el-card>
+          </template>
 
           <div class="group-label">论文文件</div>
           <el-card class="group-card">

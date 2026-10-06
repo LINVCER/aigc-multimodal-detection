@@ -366,6 +366,14 @@ function suggestionBg(sev: 'info' | 'warn' | 'danger'): string {
               <div v-if="bodyStats" class="hero-body-hint">
                 基于正文 {{ bodyStats.body }} 段计算<template v-if="bodyStats.excluded > 0">，已自动排除 {{ bodyStats.excluded }} 段（参考文献 / 图表标题 等）</template>
               </div>
+              <div v-if="detail.parentTaskId && detail.parentAiRate != null && detail.aiRate != null" class="hero-compare">
+                <span :class="detail.aiRate <= detail.parentAiRate ? 'cmp-down' : 'cmp-up'">
+                  比上次 {{ detail.aiRate <= detail.parentAiRate ? '−' : '+' }}{{ Math.abs(detail.aiRate - detail.parentAiRate).toFixed(1) }}%
+                </span>
+                <span class="cmp-sub">
+                  上次 <router-link :to="{ name: 'TaskDetail', params: { id: detail.parentTaskId } }">#{{ detail.parentTaskId }}</router-link> {{ detail.parentAiRate.toFixed(1) }}%<template v-if="detail.parentModelVersion && detail.parentModelVersion !== detail.modelVersion">，模型已更新，不可直接比较</template>
+                </span>
+              </div>
               <div class="hero-paper">{{ detail.paperTitle }}</div>
             </div>
           </el-card>
@@ -627,6 +635,10 @@ function suggestionBg(sev: 'info' | 'warn' | 'danger'): string {
   color: var(--label-secondary);
   margin-top: 12px;
 }
+.hero-compare { margin-top: 10px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.cmp-down { color: #1B7F3E; font-weight: 600; }
+.cmp-up { color: #C62A22; font-weight: 600; }
+.cmp-sub { font-size: 12px; color: rgba(60,60,67,0.60); }
 .hero-paper {
   font-size: var(--fs-subhead); color: var(--label-secondary);
   margin-top: 20px; padding-top: 20px;

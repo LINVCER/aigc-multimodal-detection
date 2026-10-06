@@ -201,3 +201,45 @@ export async function reloadKnowledge(): Promise<ReloadResult> {
   const resp = await http.post('/admin/assistant/knowledge/reload')
   return resp.data.data
 }
+
+/* =========== 对话质检（增长闭环 §3） =========== */
+
+export type QualityTag = 'good' | 'wrong_fact' | 'off_point' | 'boundary' | 'tone'
+
+export interface ConversationRow {
+  conversationId: string
+  userId: number | null
+  taskId: number | null
+  title: string
+  turns: number
+  boundaryCount: number
+  intents: string[]
+  noteCount: number
+  updatedAt: string
+}
+
+export interface ConversationDetail {
+  conversation: { conversationId: string; userId: number | null; taskId: number | null; title: string; messages: Array<{ role: string; content: string; ts?: number; tools?: any[]; blocked?: boolean }>; updatedAt: string }
+  logs: Array<{ id: number; question: string; answer: string; intent: string; tools: string | null; boundaryFlag: boolean; boundaryType: string | null; kbTopScore: number | null; kbTopRef: string | null; latencyMs: number | null; createdAt: string }>
+  notes: Array<{ id: number; logId: number | null; score: number | null; tag: QualityTag; note: string | null; createdAt: string }>
+}
+
+export async function listAssistantConversations(params: { days?: number; boundaryOnly?: boolean; limit?: number }): Promise<ConversationRow[]> {
+  const resp = await http.get('/admin/assistant/conversations', { params })
+  return resp.data.data
+}
+
+export async function getAssistantConversation(cid: string): Promise<ConversationDetail> {
+  const resp = await http.get(`/admin/assistant/conversations/${cid}`)
+  return resp.data.data
+}
+
+export async function addQualityNote(payload: { conversationId: string; logId?: number; score?: number; tag: QualityTag; note?: string }): Promise<{ id: number }> {
+  const resp = await http.post('/admin/assistant/quality-notes', payload)
+  return resp.data.data
+}
+
+export async function getQualityStats(days = 30): Promise<{ days: number; total: number; tags: Record<string, number>; avgScore: number | null }> {
+  const resp = await http.get('/admin/assistant/quality-notes/stats', { params: { days } })
+  return resp.data.data
+}

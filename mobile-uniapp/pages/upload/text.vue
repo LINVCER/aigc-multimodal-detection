@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { uploadPaper, detectTextDirect } from '@/api/detect'
+import { uploadPaper, detectTextDirect, listTasks } from '@/api/detect'
 import { requestAndSaveSubscribe } from '@/api/wechat'
 import { SCENARIO_MAP, paragraphRisk } from '@/utils/constants'
 import { useAuth } from '@/store/auth'
@@ -10,6 +10,19 @@ import { useAuth } from '@/store/auth'
 const DETECT_DONE_TMPL = 'PLACEHOLDER_DETECT_DONE'
 
 const auth = useAuth()
+
+/* 复测关联：选一条已完成的任务作为「上一次」，报告页显示比上次 −X% */
+const prevTasks = ref([])
+const prevIdx = ref(-1)   // -1 = 不关联
+const prevLabels = computed(() => ['不关联', ...prevTasks.value.map(t => `${t.paperTitle} · ${t.aiRate == null ? '—' : t.aiRate.toFixed(1) + '%'}`)])
+const parentTaskId = computed(() => (prevIdx.value >= 0 ? prevTasks.value[prevIdx.value]?.id : undefined))
+async function loadPrev() {
+  try {
+    const rows = await listTasks()
+    prevTasks.value = (rows || []).filter(t => t.status === 'DONE').slice(0, 20)
+  } catch (e) { prevTasks.value = [] }
+}
+function onPrevChange(e) { prevIdx.value = Number(e.detail.value) - 1 }
 
 // W3.b · 使用场景预设（取代原学位红线）
 const SCENARIOS = [
@@ -29,6 +42,7 @@ const threshold = computed(() => SCENARIOS.find(s => s.key === scenario.value)?.
 
 // 首页 quick-tile / 场景 chip 跳来时预选场景或切 paste 模式（switchTab 不能传参 · 走 storage 兜底）
 onShow(() => {
+  loadPrev()
   const pendingScenario = uni.getStorageSync('pending_scenario')
   if (pendingScenario && SCENARIOS.some(s => s.key === pendingScenario)) {
     scenario.value = pendingScenario
@@ -96,7 +110,7 @@ async function submit() {
   submitting.value = true
   uni.showLoading({ title: '上传中…', mask: true })
   try {
-    const task = await uploadPaper(file.value.path, file.value.name, scenario.value, auth.userId)
+    const task = await uploadPaper(file.value.path, file.value.name, scenario.value, auth.userId, 'text', parentTaskId.value)
     uni.hideLoading()
     if (!task?.id) throw new Error('提交成功但未拿到任务号')
     // 小程序端拉起订阅授权（H5/App 静默 · 详见 api/wechat.js）
@@ -262,6 +276,17 @@ function goBack() {
         </view>
       </template>
     </template>
+
+    <!-- 复测关联（可选） -->
+    <view v-if="mode === 'file' && prevTasks.length" class="prev-card">
+      <text class="prev-label">这是修改稿？对比上一次</text>
+      <picker mode="selector" :range="prevLabels" :value="prevIdx + 1" @change="onPrevChange">
+        <view class="prev-picker">
+          <text class="prev-value">{{ prevLabels[prevIdx + 1] }}</text>
+          <text class="prev-chevron">›</text>
+        </view>
+      </picker>
+    </view>
 
     <!-- 文件模式主 CTA -->
     <button
@@ -569,4 +594,11 @@ function goBack() {
   line-height: $lh-normal;
   padding: 0 $sp-5;
 }
+
+/* 复测关联 */
+.prev-card { @include card; padding: $sp-3 $sp-4; margin-top: $sp-3; }
+.prev-label { display: block; font-size: $fs-footnote; color: $label-secondary; margin-bottom: $sp-1; }
+.prev-picker { display: flex; align-items: center; justify-content: space-between; }
+.prev-value { font-size: $fs-subhead; color: $label-primary; flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.prev-chevron { color: $label-tertiary; font-size: $fs-title-3; margin-left: $sp-2; }
 </style>

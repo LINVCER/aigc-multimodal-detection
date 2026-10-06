@@ -4,7 +4,9 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getAssistantStats, listKnowledgeGaps, getKnowledgeGapDraft,
   listKnowledge, getKnowledge, createKnowledge, updateKnowledge, setKnowledgeEnabled, reloadKnowledge,
+  listAssistantConversations, getAssistantConversation, addQualityNote, getQualityStats,
   type AssistantStats, type KnowledgeGap, type KnowledgeChunkRow, type KnowledgeChunkPayload, type ReloadResult,
+  type ConversationRow, type ConversationDetail, type QualityTag,
 } from '@/api/admin'
 
 /**
@@ -12,7 +14,7 @@ import {
  * 三个 tab：概览（assistant_log 聚合）/ 知识缺口（低分问题 → 转成知识）/ 知识库（knowledge_chunk 编辑 + 热加载）
  */
 
-const tab = ref<'stats' | 'gaps' | 'kb'>('stats')
+const tab = ref<'stats' | 'gaps' | 'kb' | 'qa'>('stats')
 
 const INTENT_LABEL: Record<string, string> = {
   explain: '解释报告', policy: '政策红线', guide: '写作指导', appeal: '申诉', rewrite_request: '要求改写',
@@ -140,10 +142,77 @@ async function confirmReloadAll() {
   onReload()
 }
 
+/* ==================== 对话质检 ==================== */
+
+const qaFilter = reactive({ days: 14, boundaryOnly: false, limit: 50 })
+const convs = ref<ConversationRow[]>([])
+const convsLoading = ref(false)
+const qaStats = ref<{ total: number; tags: Record<string, number>; avgScore: number | null } | null>(null)
+const QA_TAG: Record<QualityTag, { text: string; type: 'success' | 'danger' | 'warning' | 'info' | 'primary'; action: string }> = {
+  good:       { text: '答得好',     type: 'success', action: '无' },
+  wrong_fact: { text: '答错了',     type: 'danger',  action: '查工具返回 → 修工具或知识' },
+  off_point:  { text: '没答到点上', type: 'warning', action: '补知识块' },
+  boundary:   { text: '越界了',     type: 'danger',  action: '收紧边界规则' },
+  tone:       { text: '太啰嗦/太冷', type: 'info',    action: '调提示词' },
+}
+
+async function loadConvs() {
+  convsLoading.value = true
+  try {
+    const [rows, st] = await Promise.all([listAssistantConversations(qaFilter), getQualityStats(30)])
+    convs.value = rows
+    qaStats.value = st
+  } finally { convsLoading.value = false }
+}
+
+const convOpen = ref(false)
+const convDetail = ref<ConversationDetail | null>(null)
+const convLoading = ref(false)
+const noteTag = ref<QualityTag>('good')
+const noteScore = ref<number>(4)
+const noteText = ref('')
+const noteLogId = ref<number | undefined>(undefined)
+const noteSaving = ref(false)
+
+async function openConv(row: ConversationRow) {
+  convOpen.value = true
+  convLoading.value = true
+  convDetail.value = null
+  noteTag.value = 'good'; noteScore.value = 4; noteText.value = ''; noteLogId.value = undefined
+  try { convDetail.value = await getAssistantConversation(row.conversationId) }
+  finally { convLoading.value = false }
+}
+
+async function saveNote() {
+  if (!convDetail.value) return
+  noteSaving.value = true
+  try {
+    await addQualityNote({
+      conversationId: convDetail.value.conversation.conversationId,
+      logId: noteLogId.value,
+      score: noteScore.value,
+      tag: noteTag.value,
+      note: noteText.value.trim() || undefined,
+    })
+    ElMessage.success(`已标注：${QA_TAG[noteTag.value].text} → ${QA_TAG[noteTag.value].action}`)
+    convDetail.value = await getAssistantConversation(convDetail.value.conversation.conversationId)
+    const row = convs.value.find((c) => c.conversationId === convDetail.value!.conversation.conversationId)
+    if (row) row.noteCount += 1
+    noteText.value = ''
+  } finally { noteSaving.value = false }
+}
+
+function fmtTs(ts?: number) {
+  if (!ts) return ''
+  const d = new Date(ts * 1000)
+  return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
 function onTab(name: string | number) {
   if (name === 'stats' && !stats.value) loadStats()
   if (name === 'gaps' && !gaps.value.length) loadGaps()
   if (name === 'kb' && !chunks.value.length) loadKb()
+  if (name === 'qa' && !convs.value.length) loadConvs()
 }
 
 onMounted(loadStats)
@@ -251,7 +320,84 @@ onMounted(loadStats)
         </el-table>
       </el-card>
     </el-tab-pane>
+    <!-- ================= 对话质检 ================= -->
+    <el-tab-pane label="对话质检" name="qa">
+      <el-card class="filter-card">
+        <div class="filter-row">
+          <el-select v-model="qaFilter.days" style="width: 110px">
+            <el-option label="近 7 天" :value="7" /><el-option label="近 14 天" :value="14" /><el-option label="近 30 天" :value="30" />
+          </el-select>
+          <el-checkbox v-model="qaFilter.boundaryOnly">只看越界会话</el-checkbox>
+          <el-button type="primary" @click="loadConvs" :loading="convsLoading">查询</el-button>
+          <span v-if="qaStats" class="hint">
+            近 30 天已标注 {{ qaStats.total }} 条，均分 {{ qaStats.avgScore ?? '—' }}；
+            <template v-for="(v, k) in qaStats.tags" :key="k">{{ QA_TAG[k as QualityTag]?.text || k }} {{ v }} · </template>
+          </span>
+          <span class="hint">抽样规则：越界的全抽，其余按意图分层随机，每周 30 条。</span>
+        </div>
+      </el-card>
+      <el-card class="table-card">
+        <el-table v-loading="convsLoading" :data="convs" empty-text="窗口内没有会话（assistant_conversation 需 Python 配 ASSISTANT_KB_DB_* 且不配 ASSISTANT_REDIS_URL 才落库）">
+          <el-table-column prop="title" label="首问" min-width="260" show-overflow-tooltip />
+          <el-table-column label="任务" width="90"><template #default="{ row }">{{ row.taskId ? '#' + row.taskId : '—' }}</template></el-table-column>
+          <el-table-column prop="turns" label="轮数" width="70" />
+          <el-table-column label="越界" width="70"><template #default="{ row }"><el-tag v-if="row.boundaryCount" type="danger" size="small">{{ row.boundaryCount }}</el-tag><span v-else class="muted">0</span></template></el-table-column>
+          <el-table-column label="意图" min-width="180"><template #default="{ row }">{{ row.intents.map((i: string) => INTENT_LABEL[i] || i).join(' · ') }}</template></el-table-column>
+          <el-table-column prop="noteCount" label="已标注" width="80" />
+          <el-table-column prop="updatedAt" label="最近" width="170" />
+          <el-table-column label="操作" width="90" fixed="right">
+            <template #default="{ row }"><el-button size="small" type="primary" link @click="openConv(row)">质检</el-button></template>
+          </el-table-column>
+        </el-table>
+      </el-card>
+    </el-tab-pane>
   </el-tabs>
+
+  <!-- ================= 质检抽屉 ================= -->
+  <el-drawer v-model="convOpen" size="560px" title="对话质检">
+    <div v-loading="convLoading" class="qa">
+      <template v-if="convDetail">
+        <div class="qa-meta muted">
+          会话 {{ convDetail.conversation.conversationId }} · 用户 {{ convDetail.conversation.userId ?? '匿名' }} · 任务 {{ convDetail.conversation.taskId ? '#' + convDetail.conversation.taskId : '无' }}
+        </div>
+        <div class="qa-msgs">
+          <div v-for="(m, i) in convDetail.conversation.messages" :key="i" class="qa-msg" :class="m.role">
+            <div class="qa-msg-head">{{ m.role === 'user' ? '用户' : '助手' }} <span class="muted">{{ fmtTs(m.ts) }}</span><el-tag v-if="m.blocked" size="small" type="danger">安全拦截</el-tag></div>
+            <div class="qa-msg-body">{{ m.content }}</div>
+          </div>
+        </div>
+        <div v-if="convDetail.logs.length" class="qa-logs">
+          <div class="qa-sub">每轮审计</div>
+          <div v-for="l in convDetail.logs" :key="l.id" class="qa-log" :class="{ picked: noteLogId === l.id }" @click="noteLogId = noteLogId === l.id ? undefined : l.id">
+            <span class="muted">#{{ l.id }}</span> {{ INTENT_LABEL[l.intent] || l.intent }}
+            <el-tag v-if="l.boundaryFlag" size="small" type="danger">{{ l.boundaryType }}</el-tag>
+            <span class="muted"> · 工具 {{ l.tools || '无' }} · 知识 {{ l.kbTopScore ?? '—' }} · {{ l.latencyMs ?? '—' }}ms</span>
+          </div>
+          <div class="hint">点一轮可把标注落到该轮；不点即整段会话。</div>
+        </div>
+        <div v-if="convDetail.notes.length" class="qa-notes">
+          <div class="qa-sub">已有标注</div>
+          <div v-for="n in convDetail.notes" :key="n.id" class="qa-note">
+            <el-tag size="small" :type="QA_TAG[n.tag]?.type">{{ QA_TAG[n.tag]?.text || n.tag }}</el-tag>
+            <span v-if="n.score"> {{ n.score }} 分</span><span v-if="n.logId" class="muted"> · 第 #{{ n.logId }} 轮</span>
+            <span v-if="n.note"> · {{ n.note }}</span><span class="muted"> · {{ n.createdAt }}</span>
+          </div>
+        </div>
+        <div class="qa-form">
+          <div class="qa-sub">新标注</div>
+          <el-radio-group v-model="noteTag">
+            <el-radio-button v-for="(v, k) in QA_TAG" :key="k" :value="k">{{ v.text }}</el-radio-button>
+          </el-radio-group>
+          <div class="qa-form-row">
+            <span class="muted">评分</span><el-rate v-model="noteScore" :max="5" />
+            <span class="hint">→ {{ QA_TAG[noteTag].action }}</span>
+          </div>
+          <el-input v-model="noteText" type="textarea" :rows="2" maxlength="500" placeholder="备注（可选）：哪里错、该补什么" />
+          <el-button type="primary" :loading="noteSaving" @click="saveNote">保存标注</el-button>
+        </div>
+      </template>
+    </div>
+  </el-drawer>
 
   <!-- ================= 编辑弹窗 ================= -->
   <el-dialog v-model="editOpen" width="680" :title="dialogTitle" align-center>
@@ -287,6 +433,21 @@ onMounted(loadStats)
 .kpi-sub { font-size: 12px; color: rgba(60,60,67,0.45); margin-top: 2px; }
 
 .mid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+.qa { display: flex; flex-direction: column; gap: 14px; }
+.qa-meta { font-size: 12px; }
+.qa-sub { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.qa-msgs { display: flex; flex-direction: column; gap: 8px; max-height: 40vh; overflow-y: auto; background: var(--el-fill-color-lighter); padding: 10px; border-radius: 10px; }
+.qa-msg { padding: 8px 10px; border-radius: 10px; background: #fff; font-size: 13px; }
+.qa-msg.user { background: var(--el-color-primary-light-9); }
+.qa-msg-head { font-size: 12px; font-weight: 600; margin-bottom: 4px; display: flex; gap: 8px; align-items: center; }
+.qa-msg-body { white-space: pre-wrap; line-height: 1.5; }
+.qa-log { font-size: 12px; padding: 4px 8px; border-radius: 6px; cursor: pointer; }
+.qa-log:hover { background: var(--el-fill-color); }
+.qa-log.picked { background: var(--el-color-primary-light-8); }
+.qa-note { font-size: 12px; padding: 4px 0; }
+.qa-form { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--el-border-color-lighter); padding-top: 12px; }
+.qa-form-row { display: flex; align-items: center; gap: 10px; }
 .card-title { font-weight: 600; }
 .kv { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(60,60,67,0.08); font-size: 14px; }
 .kv span:first-child { color: rgba(60,60,67,0.60); }

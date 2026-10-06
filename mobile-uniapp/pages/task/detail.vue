@@ -369,6 +369,13 @@ function toggleExpand(idx) {
       <text v-if="bodyStats" class="hero-hint">
         基于正文 {{ bodyStats.body }} 段计算<template v-if="bodyStats.excluded > 0">，已排除 {{ bodyStats.excluded }} 段（参考文献/图表等）</template>
       </text>
+      <!-- 复测对比 -->
+      <view v-if="detail.parentTaskId && detail.parentAiRate != null && detail.aiRate != null" class="compare">
+        <text class="compare-main" :class="detail.aiRate <= detail.parentAiRate ? 'down' : 'up'">
+          比上次 {{ detail.aiRate <= detail.parentAiRate ? '−' : '+' }}{{ Math.abs(detail.aiRate - detail.parentAiRate).toFixed(1) }}%
+        </text>
+        <text class="compare-sub">上次 {{ detail.parentAiRate.toFixed(1) }}%<template v-if="detail.parentModelVersion && detail.parentModelVersion !== detail.modelVersion">，模型已更新，不可直接比较</template></text>
+      </view>
       <text class="hero-paper">{{ detail.paperTitle }}</text>
 
       <!-- 报告操作 · DONE 状态才出现 -->
@@ -726,6 +733,9 @@ function toggleExpand(idx) {
   margin-top: $sp-3; padding: 0 $sp-3;
   line-height: $lh-normal;
 }
+.compare { margin-top: $sp-3; display: flex; flex-direction: column; align-items: center; gap: 4rpx; }
+.compare-main { font-size: $fs-subhead; font-weight: $fw-semibold; &.down { color: $success-fg; } &.up { color: $danger-fg; } }
+.compare-sub { font-size: $fs-caption-1; color: $label-secondary; }
 .hero-paper {
   display: block;
   font-size: $fs-footnote; color: $label-secondary;

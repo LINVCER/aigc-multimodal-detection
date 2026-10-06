@@ -58,7 +58,7 @@ export function getTaskDetail(id) {
  * @param {string} [modality] text|audio|image；不传后端按后缀猜
  * @returns { id, paperTitle, status, createdAt }
  */
-export function uploadPaper(filePath, name, scenario, userId, modality) {
+export function uploadPaper(filePath, name, scenario, userId, modality, parentTaskId) {
   if (MOCK_MODE) {
     return Promise.resolve({
       id: Date.now(),
@@ -75,6 +75,7 @@ export function uploadPaper(filePath, name, scenario, userId, modality) {
     const formData = { scenario }
     if (userId != null && userId !== '') formData.userId = String(userId)
     if (modality) formData.modality = modality
+    if (parentTaskId) formData.parentTaskId = String(parentTaskId)   // 修改稿对比上一次
     uni.uploadFile({
       // §3.1 上传端点 · 必须拼 API_BASE，否则 H5 打到当前源（5175）404
       // H5 dev 场景 API_BASE 为空 → 相对 /api/v1/... 走 manifest.json 里 vite proxy

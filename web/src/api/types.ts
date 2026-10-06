@@ -23,6 +23,8 @@ export interface DetectTask {
   createdAt: string
   finishedAt?: string | null
   modelVersion?: string
+  /** 修改稿对应的上一次任务 */
+  parentTaskId?: number | null
 }
 
 export interface SentenceScore {
@@ -48,6 +50,10 @@ export interface ParagraphResult {
 export interface TaskDetail extends DetectTask {
   paragraphs: ParagraphResult[]
   sourceLabels: Record<string, number>
+  parentAiRate?: number | null
+  parentModelVersion?: string | null
+  parentPaperTitle?: string | null
+  parentCreatedAt?: string | null
 }
 
 export interface PageResp<T> {
