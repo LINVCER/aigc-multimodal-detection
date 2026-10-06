@@ -216,6 +216,10 @@ class ToolRunner:
             "excludedParagraphs": detail.get("excludedParagraphCount"),
             "sourceLabels": detail.get("sourceLabels"),
             "modelVersion": detail.get("modelVersion"),
+            # 复测对比：有上一次就给助手讲「进步了多少」；版本不同要提醒不可直接比
+            "parentTaskId": detail.get("parentTaskId"),
+            "parentAiRate": detail.get("parentAiRate"),
+            "parentModelVersion": detail.get("parentModelVersion"),
             "topRiskParagraphs": [
                 {"idx": p.get("paragraphIdx"), "calibratedProb": p.get("calibratedProb"),
                  "sourceLabel": p.get("sourceLabel"), "preview": (p.get("text") or "")[:60]}
@@ -247,6 +251,7 @@ class ToolRunner:
         page = await self._java("GET", "/api/v1/detect/tasks", params=params)
         rows = (page or {}).get("rows") or (page or {}).get("list") or (page if isinstance(page, list) else [])
         data = [{"taskId": r.get("id"), "title": r.get("paperTitle"), "aiRate": r.get("aiRate"),
+                 "parentTaskId": r.get("parentTaskId"),
                  "threshold": r.get("threshold"), "scenario": r.get("scenario"), "status": r.get("status"),
                  "createdAt": r.get("createdAt")} for r in rows[:limit]]
         return ToolResult(ok=True, data=data, summary=f"最近 {len(data)} 条记录")
