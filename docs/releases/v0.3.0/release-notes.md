@@ -55,6 +55,13 @@ uniapp 与 web 各有一个对话入口。零新服务、零新部署单元，LL
 
 - `api/assistant.ts`（fetch 流）· `components/AssistantDrawer.vue`（右侧抽屉）· `TaskDetail.vue` 头部「问助手」+ 段级「为什么这段像 AI？」
 
+### 增长闭环 P0（`202610-assistant-growth-loop-plan.md`）
+
+- Python：`agent.py` done 事件带 `kbHits / kbTopScore / kbTopRef`（知识缺口信号看 top-1 分数，不看是否为空）；`prompts.py` 加第 8 条「结尾给一句下一步」
+- golden set：`assistant/eval/golden.jsonl` 40 条（知识 / 解读 / 边界 / 政策各 10）+ `eval_golden.py`（离线验规则层，`--live` 真跑 run_chat 判可确定项，结果追加 `history.csv`）。离线基线：知识 9/10（k09「写作过程材料」检索偏到答辩材料块，真实检索缺口，留给检索升级方案）、边界硬拦截 7/7
+- Java：`AssistantLog.kbTopScore / kbTopRef` 落库；新增 `AdminAssistantController`：`GET /admin/assistant/knowledge-gaps?days&threshold&limit`、`GET /admin/assistant/stats?days&threshold`
+- SQL：`V0.3.0.005__add_assistant_kb_score.sql`（两列 + `idx_intent_kb`），`patch-schema.sql` 同步
+
 ## 验证状态
 
 - Python：`compileall` 通过；知识库 32 块可加载。未在本机起服务（无 torch / 无 LLM key）
