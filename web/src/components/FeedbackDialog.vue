@@ -10,6 +10,8 @@ const props = defineProps<{
   taskId?: number
   /** 默认分类，profile 入口传 'suggestion'，详情页传 'appeal' */
   defaultCategory?: FeedbackCategory
+  /** 报告段落（申诉时供勾选「哪几段判错了」） */
+  paragraphs?: Array<{ paragraphIdx: number; text?: string; calibratedProb?: number | null; excluded?: boolean }>
 }>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void }>()
 
@@ -19,6 +21,15 @@ const category = ref<FeedbackCategory>(props.defaultCategory || (props.taskId ? 
 const content = ref('')
 const contact = ref('')
 const submitting = ref(false)
+const pickedIdxs = ref<number[]>([])
+const consentImprove = ref(false)
+
+/** 只列正文里「像 AI」的段（≥ 0.5），用户勾选判错的 */
+const candidateParas = computed(() =>
+  (props.paragraphs || [])
+    .filter((p) => !p.excluded && (p.calibratedProb || 0) >= 0.5)
+    .map((p) => ({ idx: p.paragraphIdx, prob: Math.round((p.calibratedProb || 0) * 100), preview: (p.text || '').slice(0, 40) })),
+)
 
 const remain = computed(() => 2000 - content.value.length)
 const isAppeal = computed(() => category.value === 'appeal')
@@ -30,6 +41,8 @@ watch(() => props.modelValue, (v) => {
     category.value = props.defaultCategory || (props.taskId ? 'appeal' : 'suggestion')
     content.value = ''
     contact.value = ''
+    pickedIdxs.value = []
+    consentImprove.value = false
   }
 })
 
@@ -44,6 +57,8 @@ async function onSubmit() {
       content: content.value.trim(),
       contact: contact.value.trim() || undefined,
       taskId: props.taskId,
+      paragraphIdxs: isAppeal.value && pickedIdxs.value.length ? [...pickedIdxs.value].sort((a, b) => a - b) : undefined,
+      consentImprove: isAppeal.value && pickedIdxs.value.length ? consentImprove.value : undefined,
       userId: auth.user?.id ? Number(auth.user.id) : undefined,
     })
     ElMessage.success('反馈已提交，我们会尽快查看')
@@ -71,6 +86,20 @@ async function onSubmit() {
       </el-radio-group>
       <div v-else class="appeal-hint">
         针对任务 #{{ taskId }} 的检测结果申诉，我们会人工复核并回复
+      </div>
+
+      <!-- 段级申诉：勾选判错的段，复核更快；同时是误判样本池的入口 -->
+      <div v-if="isAppeal && candidateParas.length" class="para-pick">
+        <div class="para-pick-title">哪几段判错了？（可多选，不选表示整体申诉）</div>
+        <el-checkbox-group v-model="pickedIdxs" class="para-list">
+          <el-checkbox v-for="p in candidateParas" :key="p.idx" :value="p.idx" class="para-item">
+            <span class="para-tag">第 {{ p.idx + 1 }} 段 · {{ p.prob }}%</span>
+            <span class="para-preview">{{ p.preview }}…</span>
+          </el-checkbox>
+        </el-checkbox-group>
+        <el-checkbox v-model="consentImprove" :disabled="!pickedIdxs.length" class="consent">
+          同意把勾选的段落用于改进检测模型（仅做内部评测，不公开、不用于训练；不勾只保留哈希）
+        </el-checkbox>
       </div>
 
       <el-input
@@ -110,4 +139,12 @@ async function onSubmit() {
   border-radius: 10px;
 }
 .contact-input { max-width: 320px; }
+.para-pick { background: #F2F2F7; border-radius: 10px; padding: 12px 14px; }
+.para-pick-title { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.para-list { display: flex; flex-direction: column; gap: 4px; max-height: 180px; overflow-y: auto; }
+.para-item :deep(.el-checkbox__label) { display: inline-flex; gap: 8px; align-items: baseline; }
+.para-tag { font-size: 12px; color: #C62A22; font-weight: 600; white-space: nowrap; }
+.para-preview { font-size: 12px; color: rgba(60,60,67,0.72); }
+.consent { margin-top: 8px; font-size: 12px; }
+.consent :deep(.el-checkbox__label) { font-size: 12px; white-space: normal; line-height: 1.4; }
 </style>

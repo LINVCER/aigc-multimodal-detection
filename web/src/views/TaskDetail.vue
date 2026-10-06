@@ -541,7 +541,7 @@ function suggestionBg(sev: 'info' | 'warn' | 'danger'): string {
       </template>
     </el-main>
 
-    <FeedbackDialog v-model="feedbackOpen" :task-id="Number(id)" default-category="appeal" />
+    <FeedbackDialog v-model="feedbackOpen" :task-id="Number(id)" default-category="appeal" :paragraphs="detail?.paragraphs" />
     <AssistantDrawer v-model="assistantOpen" :task-id="Number(id)" :paragraph-idx="assistantParagraph" />
   </el-container>
 </template>

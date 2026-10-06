@@ -548,7 +548,7 @@ function toggleExpand(idx) {
     </view>
   </scroll-view>
 
-  <FeedbackSheet v-model="feedbackOpen" :task-id="Number(taskId) || 0" default-category="appeal" />
+  <FeedbackSheet v-model="feedbackOpen" :task-id="Number(taskId) || 0" default-category="appeal" :paragraphs="detail?.paragraphs || []" />
 </template>
 
 <style lang="scss" scoped>

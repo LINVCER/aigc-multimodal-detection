@@ -7,6 +7,7 @@ const props = defineProps({
   modelValue: { type: Boolean, default: false },
   taskId:  { type: Number, default: 0 },       // 传值 => 锁定 appeal 分类
   defaultCategory: { type: String, default: '' },
+  paragraphs: { type: Array, default: () => [] },   // 报告段落，申诉时勾选「哪几段判错了」
 })
 const emit = defineEmits(['update:modelValue'])
 const auth = useAuth()
@@ -15,6 +16,25 @@ const category = ref(props.defaultCategory || (props.taskId ? 'appeal' : 'sugges
 const content  = ref('')
 const contact  = ref('')
 const submitting = ref(false)
+const pickedIdxs = ref([])
+const consentImprove = ref(false)
+
+/* 只列正文里 ≥ 0.5 的段 */
+const candidateParas = computed(() =>
+  (props.paragraphs || [])
+    .filter((p) => !p.excluded && (p.calibratedProb || 0) >= 0.5)
+    .map((p) => ({ idx: p.paragraphIdx, prob: Math.round((p.calibratedProb || 0) * 100), preview: (p.text || '').slice(0, 30) })),
+)
+function togglePara(idx) {
+  const i = pickedIdxs.value.indexOf(idx)
+  if (i >= 0) pickedIdxs.value.splice(i, 1)
+  else pickedIdxs.value.push(idx)
+  if (!pickedIdxs.value.length) consentImprove.value = false
+}
+function toggleConsent() {
+  if (!pickedIdxs.value.length) return
+  consentImprove.value = !consentImprove.value
+}
 
 const canSubmit = computed(() => content.value.trim().length > 0 && content.value.length <= 2000)
 const isAppeal  = computed(() => category.value === 'appeal')
@@ -24,6 +44,8 @@ watch(() => props.modelValue, (v) => {
     category.value = props.defaultCategory || (props.taskId ? 'appeal' : 'suggestion')
     content.value = ''
     contact.value = ''
+    pickedIdxs.value = []
+    consentImprove.value = false
   }
 })
 
@@ -40,6 +62,8 @@ async function onSubmit() {
       content:  content.value.trim(),
       contact:  contact.value.trim() || undefined,
       taskId:   props.taskId || undefined,
+      paragraphIdxs: isAppeal.value && pickedIdxs.value.length ? [...pickedIdxs.value].sort((a, b) => a - b) : undefined,
+      consentImprove: isAppeal.value && pickedIdxs.value.length ? consentImprove.value : undefined,
       userId:   auth.userId ? Number(auth.userId) : undefined,
     })
     uni.showToast({ title: '反馈已提交', icon: 'success' })
@@ -73,6 +97,26 @@ async function onSubmit() {
       </view>
       <view v-else class="fb-appeal-hint">
         <text>针对任务 #{{ taskId }} 的检测结果申诉，我们会人工复核并回复</text>
+      </view>
+
+      <!-- 段级申诉 -->
+      <view v-if="isAppeal && candidateParas.length" class="fb-paras">
+        <text class="fb-paras-title">哪几段判错了？可多选，不选表示整体申诉</text>
+        <scroll-view scroll-y class="fb-paras-scroll">
+          <view
+            v-for="p in candidateParas" :key="p.idx"
+            class="fb-para" :class="{ on: pickedIdxs.includes(p.idx) }"
+            @click="togglePara(p.idx)"
+          >
+            <view class="fb-para-box" :class="{ on: pickedIdxs.includes(p.idx) }">{{ pickedIdxs.includes(p.idx) ? '✓' : '' }}</view>
+            <text class="fb-para-tag">第 {{ p.idx + 1 }} 段 · {{ p.prob }}%</text>
+            <text class="fb-para-preview">{{ p.preview }}…</text>
+          </view>
+        </scroll-view>
+        <view class="fb-consent" :class="{ off: !pickedIdxs.length }" @click="toggleConsent">
+          <view class="fb-para-box" :class="{ on: consentImprove }">{{ consentImprove ? '✓' : '' }}</view>
+          <text class="fb-consent-text">同意把勾选段落用于改进检测模型（仅内部评测，不公开、不用于训练；不勾只保留哈希）</text>
+        </view>
       </view>
 
       <textarea
@@ -184,4 +228,21 @@ async function onSubmit() {
   border-radius: 20rpx;
   &.disabled { background: rgba(0,122,255,0.35); }
 }
+
+/* 段级申诉 */
+.fb-paras { background: $bg-grouped-primary; border-radius: $radius-md; padding: $sp-3; margin-bottom: $sp-3; }
+.fb-paras-title { display: block; font-size: $fs-footnote; font-weight: $fw-semibold; color: $label-primary; margin-bottom: $sp-2; }
+.fb-paras-scroll { max-height: 280rpx; }
+.fb-para { display: flex; align-items: center; gap: $sp-2; padding: $sp-2 0; }
+.fb-para-box {
+  flex: none; width: 36rpx; height: 36rpx; border-radius: $radius-xs;
+  border: $stroke-thin solid $separator-opaque; background: $bg-primary;
+  font-size: $fs-caption-1; color: #fff; display: flex; align-items: center; justify-content: center;
+  &.on { background: $brand-primary; border-color: $brand-primary; }
+}
+.fb-para-tag { flex: none; font-size: $fs-caption-1; color: $danger-fg; font-weight: $fw-semibold; }
+.fb-para-preview { flex: 1; font-size: $fs-caption-1; color: $label-secondary; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.fb-consent { display: flex; align-items: flex-start; gap: $sp-2; margin-top: $sp-2; padding-top: $sp-2; border-top: $stroke-hairline solid $separator; }
+.fb-consent.off { opacity: 0.45; }
+.fb-consent-text { font-size: $fs-caption-2; color: $label-secondary; line-height: $lh-normal; }
 </style>

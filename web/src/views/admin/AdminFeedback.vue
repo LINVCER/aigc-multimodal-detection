@@ -2,7 +2,10 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
-import { listFeedbackAdmin, handleFeedback, type FeedbackItem, type FeedbackStatus } from '@/api/feedback'
+import {
+  listFeedbackAdmin, handleFeedback, listFeedbackSamples, setHardSampleVerdict,
+  type FeedbackItem, type FeedbackStatus, type HardSample, type HardSampleVerdict,
+} from '@/api/feedback'
 
 const router = useRouter()
 
@@ -40,8 +43,29 @@ const replyStatus = ref<FeedbackStatus>('REPLIED')
 const replyText = ref('')
 const submitting = ref(false)
 
+/* ==================== 申诉段级复核（误判样本池） ==================== */
+
+const samples = ref<HardSample[]>([])
+const samplesLoading = ref(false)
+const VERDICT_LABEL: Record<HardSampleVerdict, string> = { confirm_fp: '确认误判', confirm_tp: '确认是 AI', unsure: '拿不准' }
+
+async function loadSamples(fb: FeedbackItem) {
+  samples.value = []
+  if (fb.category !== 'appeal' || !fb.paragraphIdxs?.length) return
+  samplesLoading.value = true
+  try { samples.value = await listFeedbackSamples(fb.id) }
+  finally { samplesLoading.value = false }
+}
+
+async function verdict(s: HardSample, v: HardSampleVerdict) {
+  await setHardSampleVerdict(s.id, v)
+  s.opsVerdict = v
+  ElMessage.success(`第 ${s.paragraphIdx + 1} 段：${VERDICT_LABEL[v]}`)
+}
+
 function openReply(row: FeedbackItem) {
   current.value = row
+  loadSamples(row)
   replyStatus.value = row.status === 'REPLIED' ? 'REPLIED' : 'REPLIED'
   replyText.value = row.handledReply || ''
   replyOpen.value = true
@@ -144,7 +168,27 @@ onMounted(load)
         <div v-if="current.taskId" class="orig-task">
           关联任务：
           <el-button size="small" link type="primary" @click="viewAppealTask(current.taskId)">#{{ current.taskId }}</el-button>
+          <span v-if="current.paragraphIdxs?.length" class="muted"> · 申诉段：{{ current.paragraphIdxs.map((i) => i + 1).join('、') }}</span>
+          <span v-if="current.consentImprove" class="muted"> · 已授权用于评测</span>
         </div>
+      </div>
+
+      <!-- 段级复核：结论只进误判样本池，不改用户报告 -->
+      <div v-if="current.category === 'appeal' && current.paragraphIdxs?.length" v-loading="samplesLoading" class="samples">
+        <div class="samples-title">段级复核（结论进误判样本池，不改报告结论）</div>
+        <div v-for="s in samples" :key="s.id" class="sample">
+          <div class="sample-head">
+            <span class="sample-tag">第 {{ s.paragraphIdx + 1 }} 段 · 模型 {{ s.modelProb == null ? '—' : Math.round(Number(s.modelProb) * 100) + '%' }} · {{ s.modelVersion }}</span>
+            <el-tag v-if="s.opsVerdict" size="small" :type="s.opsVerdict === 'confirm_fp' ? 'danger' : s.opsVerdict === 'confirm_tp' ? 'success' : 'info'">{{ VERDICT_LABEL[s.opsVerdict] }}</el-tag>
+          </div>
+          <div class="sample-text">{{ s.text || '（用户未授权保留原文，只有哈希；复核请打开关联任务查看）' }}</div>
+          <div class="sample-actions">
+            <el-button size="small" :type="s.opsVerdict === 'confirm_fp' ? 'danger' : 'default'" @click="verdict(s, 'confirm_fp')">确认误判</el-button>
+            <el-button size="small" :type="s.opsVerdict === 'confirm_tp' ? 'success' : 'default'" @click="verdict(s, 'confirm_tp')">确认是 AI</el-button>
+            <el-button size="small" :type="s.opsVerdict === 'unsure' ? 'info' : 'default'" @click="verdict(s, 'unsure')">拿不准</el-button>
+          </div>
+        </div>
+        <div v-if="!samplesLoading && !samples.length" class="muted">样本池里没有这条申诉的段落（可能迁移 V0.3.0.006 未跑）</div>
       </div>
       <el-radio-group v-model="replyStatus">
         <el-radio value="REPLIED">已回复</el-radio>
@@ -180,4 +224,12 @@ onMounted(load)
 .orig-meta { font-weight: 600; margin-bottom: 6px; }
 .orig-content { color: #1C1C1E; white-space: pre-wrap; }
 .orig-contact, .orig-task { margin-top: 8px; color: rgba(60,60,67,0.72); }
+
+.samples { display: flex; flex-direction: column; gap: 10px; }
+.samples-title { font-size: 13px; font-weight: 600; }
+.sample { border: 1px solid rgba(60,60,67,0.12); border-radius: 10px; padding: 10px 12px; }
+.sample-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.sample-tag { font-size: 12px; color: #C62A22; font-weight: 600; }
+.sample-text { font-size: 13px; color: #1C1C1E; white-space: pre-wrap; max-height: 120px; overflow-y: auto; margin-bottom: 8px; }
+.sample-actions { display: flex; gap: 6px; }
 </style>
