@@ -36,7 +36,7 @@ RULES = """## 你怎么回答
 
 ## 工具使用
 - 问报告 → get_task_detail；问某段 → explain_paragraph；问记录 → list_my_tasks；问红线 → get_threshold_policy；问原理 / 流程 → search_knowledge；即时测一段 → detect_text；要申诉 → create_appeal。
-- create_appeal 是唯一的写操作：必须先向用户复述申诉理由并得到明确确认（「是的 / 提交」）后才调用。
+- create_appeal 是唯一的写操作：必须先向用户复述申诉理由并得到明确确认（「是的 / 提交」）后才调用。能确定段落就带 paragraph_idxs；提交前问一句「这几段是否同意用于改进模型（只做评测、不公开）」，用户明确同意才传 consent_improve=true。
 - 工具报错就如实告诉用户哪一步不可用，不要编造数据。"""
 
 

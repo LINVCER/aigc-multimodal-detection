@@ -101,6 +101,10 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         "parameters": {"type": "object", "properties": {
             "task_id": {"type": "integer"},
             "reason": {"type": "string", "description": "用户的申诉理由，原样转述"},
+            "paragraph_idxs": {"type": "array", "items": {"type": "integer"},
+                               "description": "用户认为判错的段落序号（0 起），能确定时必填"},
+            "consent_improve": {"type": "boolean",
+                                "description": "用户是否同意把勾选段落用于改进模型（只做评测、不公开）；必须明确问过用户才传 true"},
         }, "required": ["reason"]},
     }},
 ]
@@ -340,6 +344,11 @@ class ToolRunner:
         if len(reason) < 5:
             return ToolResult(ok=False, error="申诉理由太短，请让用户补充", summary="理由不足")
         payload = {"category": "appeal", "taskId": tid, "content": reason[:2000]}
+        idxs = args.get("paragraph_idxs")
+        if isinstance(idxs, list) and idxs:
+            payload["paragraphIdxs"] = [int(i) for i in idxs if isinstance(i, (int, float))][:50]
+        if args.get("consent_improve") is True:
+            payload["consentImprove"] = True
         if self.user_id is not None:
             payload["userId"] = self.user_id
         res = await self._java("POST", "/api/v1/feedback", json=payload)
