@@ -5,12 +5,14 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 用户反馈实体 —— 对齐 docs/releases/v0.1.0/sql · user_feedback
@@ -21,7 +23,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName("user_feedback")
+@TableName(value = "user_feedback", autoResultMap = true)
 public class Feedback {
 
     /** 反馈 ID */
@@ -33,6 +35,11 @@ public class Feedback {
     private String category;
     /** 结果申诉时关联的检测任务 ID */
     private Long taskId;
+    /** 申诉勾选的段落序号（JSON 列） */
+    @TableField(value = "paragraph_idxs", typeHandler = JacksonTypeHandler.class)
+    private List<Integer> paragraphIdxs;
+    /** 用户同意勾选段落用于改进模型（仅评测） */
+    private Boolean consentImprove;
     /** 反馈内容 ≤ 2000 字 */
     private String content;
     /** 联系方式（选填） */

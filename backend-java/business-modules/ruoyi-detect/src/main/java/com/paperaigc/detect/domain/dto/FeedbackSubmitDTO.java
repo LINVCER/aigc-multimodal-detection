@@ -4,6 +4,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * C 端提交反馈请求
  *
@@ -25,6 +27,12 @@ public class FeedbackSubmitDTO {
 
     /** 结果申诉关联的检测任务 ID；appeal 场景 Service 层校验必填 */
     private Long taskId;
+
+    /** 申诉勾选「判错了」的段落序号；为空表示整体申诉 */
+    private List<Integer> paragraphIdxs;
+
+    /** 同意勾选段落用于改进模型（只进评测集）；不勾只存哈希 */
+    private Boolean consentImprove;
 
     /** 联系方式（选填） */
     @Size(max = 128, message = "长度不能超过 128 字")

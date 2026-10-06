@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS user_feedback (
   user_id       BIGINT NOT NULL,
   category      VARCHAR(16) NOT NULL COMMENT 'bug / suggestion / appeal',
   task_id       BIGINT NULL COMMENT '结果申诉时关联的检测任务 ID',
+  paragraph_idxs JSON NULL COMMENT '申诉勾选的段落序号 [0,3,7]',
+  consent_improve TINYINT(1) NOT NULL DEFAULT 0 COMMENT '用户同意勾选段落用于改进模型（仅评测）',
   content       TEXT NOT NULL,
   contact       VARCHAR(128) NULL,
   status        VARCHAR(16) NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING/PROCESSING/REPLIED/IGNORED',
@@ -162,6 +164,29 @@ CREATE TABLE IF NOT EXISTS assistant_log (
   INDEX idx_intent_time (intent, created_at),
   INDEX idx_boundary    (boundary_flag, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT '助手对话审计';
+
+-- ==================== 误判候选样本池（增长闭环 §2.2，只进评测） ====================
+CREATE TABLE IF NOT EXISTS detect_hard_sample (
+  id             BIGINT PRIMARY KEY AUTO_INCREMENT,
+  feedback_id    BIGINT NULL COMMENT '来源申诉 user_feedback.id',
+  task_id        BIGINT NOT NULL,
+  paragraph_idx  INT NOT NULL,
+  text_sha256    CHAR(64) NOT NULL COMMENT '段落文本哈希；未授权时只存这个',
+  text           TEXT NULL COMMENT '仅 consent_improve=1 时快照，否则 NULL',
+  model_prob     DECIMAL(6,4) NULL COMMENT '当时的 calibratedProb',
+  model_version  VARCHAR(64) NOT NULL DEFAULT 'unknown',
+  user_label     VARCHAR(16) NOT NULL DEFAULT 'human' COMMENT '用户主张：human / ai / mixed',
+  ops_verdict    VARCHAR(16) NULL COMMENT '运营复核：confirm_fp / confirm_tp / unsure',
+  source         VARCHAR(16) NOT NULL DEFAULT 'appeal' COMMENT 'appeal / assistant / ops',
+  scenario       VARCHAR(32) NULL,
+  reviewed_by    BIGINT NULL,
+  reviewed_at    DATETIME NULL,
+  created_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_hash_version (text_sha256, model_version),
+  INDEX idx_feedback (feedback_id),
+  INDEX idx_task (task_id),
+  INDEX idx_verdict_time (ops_verdict, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT '误判候选样本池（评测用）';
 
 -- ==================== 句级结果 ====================
 CREATE TABLE IF NOT EXISTS detect_sentence_result (

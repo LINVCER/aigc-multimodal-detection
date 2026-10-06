@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 反馈响应
@@ -25,6 +26,8 @@ public class FeedbackVO {
     private Long userId;
     private String category;
     private Long taskId;
+    private List<Integer> paragraphIdxs;
+    private Boolean consentImprove;
     private String content;
     private String contact;
     private String status;
@@ -45,6 +48,8 @@ public class FeedbackVO {
                 .userId(f.getUserId())
                 .category(f.getCategory())
                 .taskId(f.getTaskId())
+                .paragraphIdxs(f.getParagraphIdxs())
+                .consentImprove(f.getConsentImprove())
                 .content(f.getContent())
                 .contact(f.getContact())
                 .status(f.getStatus())

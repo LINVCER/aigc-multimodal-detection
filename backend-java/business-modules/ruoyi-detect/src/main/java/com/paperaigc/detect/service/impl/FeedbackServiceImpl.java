@@ -12,6 +12,7 @@ import com.paperaigc.detect.domain.vo.FeedbackVO;
 import com.paperaigc.detect.domain.vo.PageVO;
 import com.paperaigc.detect.repository.IFeedbackRepository;
 import com.paperaigc.detect.service.IFeedbackService;
+import com.paperaigc.detect.service.IHardSampleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,7 @@ import java.util.List;
 public class FeedbackServiceImpl implements IFeedbackService {
 
     private final IFeedbackRepository feedbackRepository;
+    private final IHardSampleService hardSampleService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -51,11 +53,22 @@ public class FeedbackServiceImpl implements IFeedbackService {
                 .userId(dto.getUserId())
                 .category(dto.getCategory())
                 .taskId(dto.getTaskId())
+                .paragraphIdxs(dto.getParagraphIdxs() == null || dto.getParagraphIdxs().isEmpty() ? null : dto.getParagraphIdxs())
+                .consentImprove(Boolean.TRUE.equals(dto.getConsentImprove()))
                 .content(dto.getContent().trim())
                 .contact(dto.getContact())
                 .status(FeedbackConstants.STATUS_PENDING)
                 .build();
         Feedback saved = feedbackRepository.save(fb);
+
+        // 段级申诉进误判样本池（只进评测集；未授权只存哈希）。采样失败不影响申诉本身
+        if (FeedbackConstants.CATEGORY_APPEAL.equals(saved.getCategory()) && saved.getParagraphIdxs() != null) {
+            try {
+                hardSampleService.collectFromAppeal(saved);
+            } catch (Exception e) {
+                log.warn("hard sample collect failed feedback={}: {}", saved.getId(), e.toString());
+            }
+        }
 
         log.info("feedback submitted id={} category={} taskId={}", saved.getId(), saved.getCategory(), saved.getTaskId());
         return saved.getId();
