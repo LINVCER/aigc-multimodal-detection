@@ -65,6 +65,15 @@ uniapp 与 web 各有一个对话入口。零新服务、零新部署单元，LL
 - compose：inference 注入 `ASSISTANT_KB_DB_*` 指向 mysql，知识库从 `knowledge_chunk` 读，reload 才真正生效
 - web 管理端：新页 `/admin/assistant`（菜单「助手运营」）三个 tab：概览 KPI / 知识缺口（转成知识）/ 知识库（新增、编辑、上下线、热加载）
 
+### 增长闭环 P1 · 申诉到段级 + 误判样本池（方案 §2.2）
+
+- SQL `V0.3.0.006`：`user_feedback` 加 `paragraph_idxs JSON / consent_improve`；新表 `detect_hard_sample`（hash+版本唯一，原文仅授权时存）；`patch-schema.sql` 同步
+- Java：`Feedback.paragraphIdxs/consentImprove`（JSON 列）、`HardSample` + Mapper、`IHardSampleService`（申诉落库后自动采样、复核、列表、导出）；`FeedbackController` 加 `GET /admin/feedback/{id}/samples`、`POST /admin/hard-samples/{id}/verdict`、`GET /admin/hard-samples`、`GET /admin/hard-samples/export`（JSONL 下载）
+- Python：`create_appeal` 工具加 `paragraph_idxs / consent_improve`，prompts 要求提交前问一句授权
+- web / uniapp 申诉表单：列出 ≥ 50% 的正文段供勾选「哪几段判错了」+「同意用于改进模型」勾选（默认不勾）；报告页把段落传给表单
+- 管理端反馈处理弹窗：申诉显示勾选段与样本，三键复核（确认误判 / 确认是 AI / 拿不准），结论只进样本池不改报告
+- `ml/datasets/text/build_appeal_evalset.py`：导出 JSONL → `eval_appeal.jsonl`（confirm_fp→0，confirm_tp→1，unsure 丢弃），`eval.py --evalset-dir` 自动纳入为第七套；只进评测不进训练
+
 ## 验证状态
 
 - Python：`compileall` 通过；知识库 32 块可加载。未在本机起服务（无 torch / 无 LLM key）
