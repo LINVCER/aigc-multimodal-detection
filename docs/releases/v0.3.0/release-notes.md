@@ -74,6 +74,16 @@ uniapp 与 web 各有一个对话入口。零新服务、零新部署单元，LL
 - 管理端反馈处理弹窗：申诉显示勾选段与样本，三键复核（确认误判 / 确认是 AI / 拿不准），结论只进样本池不改报告
 - `ml/datasets/text/build_appeal_evalset.py`：导出 JSONL → `eval_appeal.jsonl`（confirm_fp→0，confirm_tp→1，unsure 丢弃），`eval.py --evalset-dir` 自动纳入为第七套；只进评测不进训练
 
+### 增长闭环 P1 · 对话质检 / 复测关联 / 通知占位（方案 §3 / §5）
+
+- SQL `V0.3.0.007`：`assistant_quality_note` 表；`detect_task.parent_task_id` + 索引；`patch-schema.sql` 同步
+- Java：`AssistantQualityNote` / `AssistantConversation`（只读）实体 + Mapper；`AdminAssistantController` 加 `GET /admin/assistant/conversations`（含越界过滤）、`GET /conversations/{cid}`、`POST /quality-notes`、`GET /quality-notes/stats`
+- 复测：`submit` 多一个 `parentTaskId`（父任务须 DONE 且同用户，否则忽略）；`detail` 返回 `parentAiRate / parentModelVersion / parentPaperTitle / parentCreatedAt`；`DetectTaskVO` 带 `parentTaskId`
+- 通知：`INotifyService` + `LogNotifyServiceImpl`（只记日志；模板 id 走 `platform.notify.wechat.*`，真实发送等 W3.c 有 openid 后替换）；钩子在任务 DONE 与申诉 REPLIED
+- Python：`get_task_detail / list_my_tasks` 透传 parent 字段，助手能讲「比上次」
+- web / uniapp：上传页「这是修改稿？对比上一次」选择器；报告页 hero 显示「比上次 −X%」，模型版本不同时明示不可直接比较
+- web 管理端「助手运营」加「对话质检」tab：会话列表（越界过滤）+ 抽屉看完整对话与每轮审计 + 五类标注与评分 + 30 天标签统计。会话落库依赖 Python 配了 `ASSISTANT_KB_DB_*` 且**未配** `ASSISTANT_REDIS_URL`（`session.py` Redis 优先、不落库），compose 已改为不给 inference 注入 Redis
+
 ## 验证状态
 
 - Python：`compileall` 通过；知识库 32 块可加载。未在本机起服务（无 torch / 无 LLM key）
