@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS assistant_log (
   finish_reason      VARCHAR(32) NULL COMMENT 'stop / tool_calls / safety / error / tool_rounds_exceeded',
   safety             VARCHAR(16) NULL COMMENT 'pass / blocked / degraded',
   boundary_flag      TINYINT(1) NOT NULL DEFAULT 0 COMMENT '回答疑似越界（针对原文给成品改写），人工抽查',
+  boundary_type      VARCHAR(32) NULL COMMENT '越界类型：rewrite / bypass / ghostwrite / appeal_fabricate',
   error_code         VARCHAR(64) NULL,
   client_context     VARCHAR(500) NULL COMMENT '端 / 页面 / 版本 JSON',
   created_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

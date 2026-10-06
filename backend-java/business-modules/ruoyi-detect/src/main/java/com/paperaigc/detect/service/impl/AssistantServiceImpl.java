@@ -190,7 +190,8 @@ public class AssistantServiceImpl implements IAssistantService {
                         .completionTokens(toInt(usage.get("completion_tokens")))
                         .finishReason(str(m.get("finishReason")))
                         .safety(str(m.get("safety")))
-                        .boundaryFlag(Boolean.TRUE.equals(m.get("boundaryFlag")));
+                        .boundaryFlag(Boolean.TRUE.equals(m.get("boundaryFlag")))
+                        .boundaryType(str(m.get("boundaryType")));
                 if (m.get("intent") != null) audit.intent(str(m.get("intent")));
                 Object tools = m.get("tools");
                 if (tools instanceof List<?> l && !l.isEmpty()) audit.tools(String.join(",", l.stream().map(String::valueOf).toList()));

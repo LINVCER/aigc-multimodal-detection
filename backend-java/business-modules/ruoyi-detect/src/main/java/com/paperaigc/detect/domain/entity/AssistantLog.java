@@ -51,6 +51,8 @@ public class AssistantLog {
     private String safety;
     /** 回答疑似越界（针对原文给出成品改写）：人工抽查用 */
     private Boolean boundaryFlag;
+    /** 越界类型：rewrite / bypass / ghostwrite / appeal_fabricate（boundaryFlag=true 时非空） */
+    private String boundaryType;
     /** 错误码（有则本轮失败） */
     private String errorCode;
 

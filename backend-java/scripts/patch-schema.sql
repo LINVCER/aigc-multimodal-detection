@@ -151,6 +151,7 @@ CREATE TABLE IF NOT EXISTS assistant_log (
   finish_reason      VARCHAR(32) NULL COMMENT 'stop / tool_calls / safety / error / tool_rounds_exceeded',
   safety             VARCHAR(16) NULL COMMENT 'pass / blocked / degraded',
   boundary_flag      TINYINT(1) NOT NULL DEFAULT 0 COMMENT '回答疑似越界（针对原文给成品改写），人工抽查',
+  boundary_type      VARCHAR(32) NULL COMMENT '越界类型：rewrite / bypass / ghostwrite / appeal_fabricate',
   error_code         VARCHAR(64) NULL,
   client_context     VARCHAR(500) NULL COMMENT '端 / 页面 / 版本 JSON',
   created_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -189,4 +190,20 @@ CREATE TABLE IF NOT EXISTS knowledge_chunk (
   INDEX idx_doc (doc),
   INDEX idx_enabled (enabled)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT '助手知识库分块（运营可编辑，推理服务启动时全量加载进内存 BM25）';
+
+-- ==================== 论文检测助手 · 会话（聊天记录持久化） ====================
+-- 对齐 deploy/inference-python/assistant/session.py；保留 session_ttl_days（默认 7 天）
+CREATE TABLE IF NOT EXISTS assistant_conversation (
+  id               BIGINT PRIMARY KEY AUTO_INCREMENT,
+  conversation_id  VARCHAR(32) NOT NULL,
+  user_id          BIGINT NULL,
+  task_id          BIGINT NULL,
+  title            VARCHAR(128) DEFAULT '' COMMENT '首条用户消息前 30 字',
+  messages_json    JSON NOT NULL COMMENT '会话消息数组 [{role,content,ts,...}]',
+  created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_conv (conversation_id),
+  INDEX idx_user_updated (user_id, updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT '助手会话（保留 session_ttl_days 天）';
+
 
