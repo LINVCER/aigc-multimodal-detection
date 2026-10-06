@@ -68,7 +68,41 @@ function pct(prob: number | null | undefined): string {
   return `${((prob ?? 0) * 100).toFixed(0)}%`
 }
 
-onBeforeUnmount(() => handle?.abort())
+// ---- 本地持久化：切换窗口/刷新不丢（后端 MySQL 仍作 7 天跨设备备份）----
+const LS_KEY = 'paperaigc_chat_state'
+
+interface LocalChatState {
+  conversationId: string
+  activeTaskId?: number
+  messages: Msg[]
+}
+
+function persist() {
+  try {
+    const state: LocalChatState = {
+      conversationId: conversationId.value,
+      activeTaskId: activeTaskId.value,
+      messages: messages.value,
+    }
+    localStorage.setItem(LS_KEY, JSON.stringify(state))
+  } catch { /* 存储满 / 隐私模式，忽略 */ }
+}
+
+function restore() {
+  try {
+    const raw = localStorage.getItem(LS_KEY)
+    if (!raw) return
+    const state = JSON.parse(raw) as LocalChatState
+    conversationId.value = state.conversationId || ''
+    activeTaskId.value = state.activeTaskId
+    messages.value = state.messages || []
+  } catch { /* 解析失败忽略 */ }
+}
+
+onBeforeUnmount(() => {
+  handle?.abort()
+  persist()
+})
 
 async function loadTasks() {
   if (loadingTasks.value) return
@@ -101,6 +135,7 @@ async function selectTask(id?: number) {
   messages.value = []
   taskDetail.value = null
   pendingParagraph = null
+  persist()
   await refreshPrompts(id)
   if (id != null) {
     try {
@@ -118,7 +153,15 @@ function onTaskChange(v: number | undefined) {
 
 watch(() => props.modelValue, async (open) => {
   if (!open) return
+  // 打开：若当前无会话，先恢复本地暂存的会话（切换窗口/刷新不丢）
+  if (messages.value.length === 0 && !conversationId.value) {
+    restore()
+  }
   if (taskOptions.value.length === 0) await loadTasks()
+  // 恢复的会话绑定了报告 → 重新加载段落快捷条
+  if (activeTaskId.value != null && taskDetail.value == null) {
+    try { taskDetail.value = await getTaskDetail(activeTaskId.value) } catch { taskDetail.value = null }
+  }
   // 从 TaskDetail 打开：同步其 taskId
   if (props.taskId != null && props.taskId !== activeTaskId.value) {
     await selectTask(props.taskId)
@@ -190,6 +233,7 @@ function send(text: string) {
     reply.streaming = false
     streaming.value = false
     if (!reply.text && !reply.error) reply.error = '助手没有返回内容，再试一次'
+    persist()
     scrollBottom()
   })
 }
@@ -227,6 +271,7 @@ function onNewChat() {
   messages.value = []
   streaming.value = false
   pendingParagraph = null
+  persist()
 }
 
 // ---- 历史会话（聊天记录，后端保留 7 天）----
@@ -266,6 +311,7 @@ async function resumeConversation(c: { conversationId: string; taskId?: number }
       .filter((m) => m.role === 'user' || m.role === 'assistant')
       .map((m) => ({ role: m.role as 'user' | 'assistant', text: m.content, tools: [], error: null, streaming: false }))
     showHistory.value = false
+    persist()
     scrollBottom()
   } catch { /* toast 由拦截器给 */ }
 }
