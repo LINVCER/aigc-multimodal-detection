@@ -117,6 +117,12 @@ services:
       ASSISTANT_JAVA_BASE_URL: http://backend:8080
       ASSISTANT_REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
       ASSISTANT_SAFETY_PROVIDER: ${ASSISTANT_SAFETY_PROVIDER:-none}
+      # 知识库改读 knowledge_chunk 表（运营后台可编辑 + 热加载）；不配则读内置 markdown
+      ASSISTANT_KB_DB_HOST: mysql
+      ASSISTANT_KB_DB_PORT: "3306"
+      ASSISTANT_KB_DB_USER: root
+      ASSISTANT_KB_DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      ASSISTANT_KB_DB_NAME: ${MYSQL_DATABASE:-ry-vue}
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
       interval: 10s

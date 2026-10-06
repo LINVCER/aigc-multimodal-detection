@@ -275,6 +275,24 @@ public class AssistantServiceImpl implements IAssistantService {
         return out;
     }
 
+    @Override
+    public Map<String, Object> reloadKnowledge() {
+        try {
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(pyBaseUrl + "/api/v1/assistant/knowledge/reload"))
+                    .timeout(Duration.ofSeconds(30))
+                    .POST(HttpRequest.BodyPublishers.noBody()).build();
+            HttpResponse<String> resp = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+            if (resp.statusCode() >= 400) throw new BizException(ErrorCode.ASSISTANT_UPSTREAM_ERROR);
+            return objectMapper.readValue(resp.body(), new TypeReference<Map<String, Object>>() {});
+        } catch (BizException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("assistant knowledge/reload 失败: {}", e.toString());
+            throw new BizException(ErrorCode.ASSISTANT_UPSTREAM_ERROR);
+        }
+    }
+
     private <T> T getJson(String path, TypeReference<T> type) {
         try {
             HttpRequest req = HttpRequest.newBuilder()

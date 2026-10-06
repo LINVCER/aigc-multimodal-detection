@@ -53,4 +53,10 @@ public interface IAssistantService {
      * @return 健康信息
      */
     Map<String, Object> health();
+
+    /**
+     * 通知 Python 重新加载知识库（运营改完 knowledge_chunk 后调用）
+     * @return Python 返回的 {ok, chunks}
+     */
+    Map<String, Object> reloadKnowledge();
 }
