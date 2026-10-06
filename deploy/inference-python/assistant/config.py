@@ -80,9 +80,9 @@ class AssistantConfig:
     java_base_url: str = _env("ASSISTANT_JAVA_BASE_URL", "http://localhost:8080")
     java_timeout_s: float = float(_env("ASSISTANT_JAVA_TIMEOUT", "8"))
 
-    # 会话存储：Redis 不可用时自动退化为进程内内存（重启即丢，只适合联调）
+    # 会话存储：Redis 优先，MySQL 次之（复用 KB DB 配置），都不可用退化为进程内内存（重启即丢）
     redis_url: str = _env("ASSISTANT_REDIS_URL") or _env("REDIS_URL")
-    session_ttl_days: int = _env_int("ASSISTANT_SESSION_TTL_DAYS", 30)
+    session_ttl_days: int = _env_int("ASSISTANT_SESSION_TTL_DAYS", 7)
     session_max_turns: int = _env_int("ASSISTANT_SESSION_MAX_TURNS", 30)
 
     # 知识库目录（markdown，按 ## 切块）。这是 DB 不可用时的回退来源

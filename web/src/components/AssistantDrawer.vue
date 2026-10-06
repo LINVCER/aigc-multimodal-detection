@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, watch, onBeforeUnmount } from 'vue'
-import { chatStream, getQuickPrompts, type ChatHandle } from '@/api/assistant'
+import { chatStream, getQuickPrompts, listConversations, getConversation, deleteConversation, type ChatHandle } from '@/api/assistant'
 import { listTasks, getTaskDetail } from '@/api/detect'
 import type { DetectTask, TaskDetail } from '@/api/types'
 
@@ -228,6 +228,68 @@ function onNewChat() {
   streaming.value = false
   pendingParagraph = null
 }
+
+// ---- 历史会话（聊天记录，后端保留 7 天）----
+const showHistory = ref(false)
+const historyList = ref<Array<{ conversationId: string; title: string; taskId?: number; updatedAt: number | string; turns: number }>>([])
+const loadingHistory = ref(false)
+
+async function openHistory() {
+  showHistory.value = true
+  await loadHistory()
+}
+
+async function loadHistory() {
+  loadingHistory.value = true
+  try {
+    const userIdRaw = localStorage.getItem('user_id')
+    historyList.value = await listConversations(userIdRaw ? Number(userIdRaw) : undefined, 30)
+  } catch {
+    historyList.value = []
+  } finally {
+    loadingHistory.value = false
+  }
+}
+
+/** 恢复历史会话：加载消息 + 同步报告上下文（不重置当前消息） */
+async function resumeConversation(c: { conversationId: string; taskId?: number }) {
+  try {
+    const detail = await getConversation(c.conversationId)
+    conversationId.value = c.conversationId
+    if (c.taskId != null && c.taskId !== activeTaskId.value) {
+      activeTaskId.value = c.taskId
+      taskDetail.value = null
+      try { taskDetail.value = await getTaskDetail(c.taskId) } catch { taskDetail.value = null }
+      await refreshPrompts(c.taskId)
+    }
+    messages.value = (detail.messages || [])
+      .filter((m) => m.role === 'user' || m.role === 'assistant')
+      .map((m) => ({ role: m.role as 'user' | 'assistant', text: m.content, tools: [], error: null, streaming: false }))
+    showHistory.value = false
+    scrollBottom()
+  } catch { /* toast 由拦截器给 */ }
+}
+
+async function removeConversation(c: { conversationId: string }) {
+  try {
+    await deleteConversation(c.conversationId)
+    historyList.value = historyList.value.filter((x) => x.conversationId !== c.conversationId)
+    if (conversationId.value === c.conversationId) {
+      conversationId.value = ''
+      messages.value = []
+    }
+  } catch { /* 忽略 */ }
+}
+
+function formatTime(t: number | string): string {
+  const ts = typeof t === 'number' ? t * 1000 : Date.parse(t)
+  if (!ts || isNaN(ts)) return ''
+  const diff = Date.now() - ts
+  if (diff < 60_000) return '刚刚'
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} 分钟前`
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)} 小时前`
+  return `${Math.floor(diff / 86_400_000)} 天前`
+}
 </script>
 
 <template>
@@ -244,6 +306,7 @@ function onNewChat() {
             </div>
           </div>
           <div class="ad-head-actions">
+            <el-button link size="small" @click="openHistory">历史</el-button>
             <el-button link size="small" @click="onNewChat">新对话</el-button>
             <el-button link size="small" @click="visible = false">关闭</el-button>
           </div>
@@ -274,7 +337,7 @@ function onNewChat() {
       </div>
 
       <!-- 报告上下文快捷条：整体分析 + 高风险段落（「分析原因」） -->
-      <div v-if="activeTask && taskDetail && riskParagraphs.length" class="ad-context">
+      <div v-if="!showHistory && activeTask && taskDetail && riskParagraphs.length" class="ad-context">
         <el-tag round effect="plain" type="primary" class="ad-chip" @click="analyzeOverall">
           📊 整体怎么看
         </el-tag>
@@ -290,7 +353,25 @@ function onNewChat() {
         </el-tag>
       </div>
 
-      <div ref="listEl" class="ad-list">
+      <!-- 历史会话列表 -->
+      <div v-if="showHistory" class="ad-list">
+        <div class="ad-history-head">
+          <el-button link size="small" @click="showHistory = false">← 返回</el-button>
+          <span class="ad-history-title">历史对话 · 保留 7 天</span>
+        </div>
+        <div v-if="loadingHistory" class="ad-history-empty">加载中…</div>
+        <div v-else-if="historyList.length === 0" class="ad-history-empty">暂无历史对话</div>
+        <div v-for="c in historyList" :key="c.conversationId" class="ad-history-item" @click="resumeConversation(c)">
+          <div class="ad-history-item-main">
+            <div class="ad-history-item-title">{{ c.title || '（无标题）' }}</div>
+            <div class="ad-history-item-meta">{{ formatTime(c.updatedAt) }} · {{ c.turns }} 轮</div>
+          </div>
+          <el-button link size="small" @click.stop="removeConversation(c)">删除</el-button>
+        </div>
+      </div>
+
+      <!-- 对话消息列表 -->
+      <div v-else ref="listEl" class="ad-list">
         <div class="ad-welcome">{{ welcome }}</div>
 
         <div v-if="showQuick" class="ad-quick">
@@ -314,7 +395,7 @@ function onNewChat() {
         </div>
       </div>
 
-      <div class="ad-composer">
+      <div v-if="!showHistory" class="ad-composer">
         <div class="ad-disclaimer">AI 生成内容仅供参考，不替代导师意见；助手不代写、不改写原文。</div>
         <div class="ad-input-row">
           <el-input
@@ -363,6 +444,26 @@ function onNewChat() {
 }
 
 .ad-list { flex: 1; overflow-y: auto; padding: 16px; background: var(--el-fill-color-lighter); }
+
+.ad-history-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.ad-history-title { font-size: 13px; color: var(--el-text-color-secondary); }
+.ad-history-empty {
+  text-align: center; color: var(--el-text-color-placeholder);
+  padding: 40px 0; font-size: 13px;
+}
+.ad-history-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  background: #fff; border-radius: 10px; padding: 12px 14px;
+  margin-bottom: 8px; cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  &:hover { background: var(--el-fill-color); }
+}
+.ad-history-item-main { flex: 1; min-width: 0; }
+.ad-history-item-title {
+  font-size: 14px; font-weight: 500; color: var(--el-text-color-primary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ad-history-item-meta { font-size: 12px; color: var(--el-text-color-secondary); margin-top: 2px; }
 .ad-welcome {
   background: #fff; border-radius: 14px; border-top-left-radius: 4px;
   padding: 12px 14px; font-size: 14px; line-height: 1.55;

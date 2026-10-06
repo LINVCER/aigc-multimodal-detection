@@ -21,11 +21,36 @@ from .tools import TOOL_LABELS, TOOL_SCHEMAS, DetectorGetter, ToolRunner
 
 log = logging.getLogger("assistant.agent")
 
-# 越界兜底：模型偶尔不听话，输出里出现「改写后：」这类成品改写的标志词就在 done 里打标，供审计统计与人工复核
-_REWRITE_MARKERS = re.compile(r"(改写后|润色后|修改后的版本|可以改为|改成[:：]|替换为[:：])")
+# ---------------------------------------------------------------------------
+# 边界体系：意图分类（硬拦截）+ 输出后多类型标记（软标记）
+#
+# 硬拦截：ghostwrite / bypass / appeal_fabricate 命中即拒答，不进 LLM（省 token、保证不越界）。
+# 软标记：输出后扫描 BOUNDARY_RULES，把类型写进 done.boundaryType 供审计与人工抽检（流已发出，只能事后标）。
+# ---------------------------------------------------------------------------
+
+HARD_BLOCK_INTENTS = {"ghostwrite", "bypass", "appeal_fabricate"}
+
+# 拒答模板：语气对齐「学长学姐」人设——先讲清为什么，再给正确方向
+REFUSALS = {
+    "ghostwrite": "这个我帮不了。整段或整篇代写既不符合学术规范，写出来也会留下新的痕迹，反而更容易被识破。不过我可以告诉你这类内容一般该怎么组织、用什么结构，你拿自己课题里的具体材料去写。",
+    "bypass": "「降 AI 率、让检测查不出来」这个方向我不能帮，绕过检测本身也违反学术诚信。如果你确定是误判——风险最高的几段确实是自己写的——正确的路是申诉加人工复核；如果确实参考了 AI 输出，建议自己重写相关部分。需要的话我可以帮你看看报告里哪几段最该优先处理。",
+    "appeal_fabricate": "申诉理由得是真实情况，我不能帮你编，编造材料在复核时会被识破、性质也更严重。你先想清楚哪几段确实是自己写的、有哪些过程证据（草稿、笔记、和导师的沟通记录），把真实理由写出来，我可以帮你确认后再提交。",
+}
+
+# 输出后越界标记（软标记）：命中即把类型写进 done.boundaryType
+BOUNDARY_RULES = [
+    ("rewrite", re.compile(r"(改写后|润色后|修改后的版本|可以改为|改成[:：]|替换为[:：])")),
+    ("bypass", re.compile(r"(降 ?AI|洗稿|绕过|躲过检测|查不出|不被检测)")),
+    ("ghostwrite", re.compile(r"(下面是我?帮你写的|以下为代写|这是写好的)")),
+]
+
+# 意图分类：硬边界放最前（否则「编申诉理由」会被 appeal 先命中）
 _INTENT_RULES = [
+    ("ghostwrite", re.compile(r"帮我写|替我写|写一段|写一篇|续写|代写|生成.{0,6}(引言|摘要|正文|结论|致谢|文献综述)")),
+    ("bypass", re.compile(r"降.{0,3}AI|去 ?AI ?味|洗稿|绕过检测|躲过检测|不被查|查不出|降低.{0,4}(检测|风险).{0,6}(率|概率)")),
+    ("appeal_fabricate", re.compile(r"编.{0,4}(申诉|理由)|伪造.{0,4}(理由|过程|材料)|(申诉理由|理由).{0,6}(帮我|替我)")),
     ("appeal", re.compile(r"申诉|复核|误判|不服")),
-    ("rewrite_request", re.compile(r"帮我改|改写|润色|换个说法|怎么改|降.{0,3}AI|像人一点")),
+    ("rewrite_request", re.compile(r"帮我改|改写|润色|换个说法|怎么改|像人一点")),
     ("explain", re.compile(r"为什么|为何|怎么判|依据|像 ?AI")),
     ("policy", re.compile(r"红线|阈值|能过|过不过|多少算|规定|学校")),
     ("guide", re.compile(r"答辩|材料|怎么准备|规范|引用|格式")),
@@ -39,6 +64,14 @@ def classify_intent(text: str) -> str:
         if rx.search(text):
             return name
     return "other"
+
+
+def detect_boundary(text: str) -> Optional[str]:
+    """输出后扫描，返回第一个命中的越界类型（None = 无）。"""
+    for btype, rx in BOUNDARY_RULES:
+        if rx.search(text):
+            return btype
+    return None
 
 
 async def run_chat(req: ChatRequest, detector_getter: DetectorGetter) -> AsyncIterator[str]:
@@ -59,6 +92,18 @@ async def run_chat(req: ChatRequest, detector_getter: DetectorGetter) -> AsyncIt
         yield sse("token", {"delta": BLOCKED_REPLY})
         yield sse("done", {"usage": {}, "model": CONFIG.resolved_model, "finishReason": "safety",
                            "elapsedMs": int((time.monotonic() - t0) * 1000), "intent": intent, "safety": "blocked"})
+        return
+
+    # 2.5) 学术边界硬拦截：代写 / 绕过检测 / 编申诉理由 —— 不进 LLM，直接拒答
+    if intent in HARD_BLOCK_INTENTS:
+        reply = REFUSALS[intent]
+        await SESSIONS.append(conv, "user", req.message)
+        await SESSIONS.append(conv, "assistant", reply)
+        await SESSIONS.save(conv)
+        yield sse("token", {"delta": reply})
+        yield sse("done", {"usage": {}, "model": CONFIG.resolved_model, "finishReason": "boundary",
+                           "elapsedMs": int((time.monotonic() - t0) * 1000), "intent": intent,
+                           "boundaryType": intent, "boundaryFlag": True, "safety": "pass"})
         return
 
     # 3) 上下文：任务预加载 + 知识库预检索
@@ -149,7 +194,7 @@ async def run_chat(req: ChatRequest, detector_getter: DetectorGetter) -> AsyncIt
 
     # 5) 出口内容安全 + 越界标记（流式已发出，只做事后标记供审计）
     out_guard = await SAFETY.check(answer, scene="output", user_id=req.userId)
-    boundary_flag = bool(_REWRITE_MARKERS.search(answer)) and intent == "rewrite_request"
+    boundary_type = detect_boundary(answer)
 
     await SESSIONS.append(conv, "assistant", answer, tools=tool_trace or None)
     await SESSIONS.save(conv)
@@ -158,7 +203,9 @@ async def run_chat(req: ChatRequest, detector_getter: DetectorGetter) -> AsyncIt
         "model": CONFIG.resolved_model, "finishReason": finish_reason,
         "elapsedMs": int((time.monotonic() - t0) * 1000),
         "intent": intent, "tools": [t["name"] for t in tool_trace],
-        "safety": out_guard.label, "boundaryFlag": boundary_flag,
+        "safety": out_guard.label,
+        "boundaryFlag": boundary_type is not None,   # bool，兼容 Java 侧 assistant_log.boundary_flag
+        "boundaryType": boundary_type,               # 类型：rewrite / bypass / ghostwrite / null
     })
 
 

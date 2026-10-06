@@ -10,6 +10,7 @@ messages 只存 role=user/assistant 的可见消息 + 工具调用摘要（不�
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import time
@@ -93,6 +94,87 @@ class _RedisStore:
         await pipe.execute()
 
 
+class _MysqlStore:
+    """MySQL 后端：会话持久化（保留 session_ttl_days 天）。pymysql 同步，用 asyncio.to_thread 丢线程池避免阻塞事件循环。"""
+
+    def __init__(self, host: str, port: int, user: str, password: str, db: str) -> None:
+        self._cfg = dict(host=host, port=port, user=user, password=password,
+                         database=db, charset="utf8mb4", autocommit=True)
+
+    def _conn(self):
+        import pymysql
+        return pymysql.connect(**self._cfg)
+
+    async def ping(self) -> None:
+        def _p() -> None:
+            conn = self._conn()
+            try:
+                conn.ping()
+            finally:
+                conn.close()
+        await asyncio.to_thread(_p)
+
+    async def get(self, cid: str) -> Optional[dict[str, Any]]:
+        return await asyncio.to_thread(self._get_sync, cid)
+
+    def _get_sync(self, cid: str) -> Optional[dict[str, Any]]:
+        conn = self._conn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT messages_json FROM assistant_conversation WHERE conversation_id=%s", (cid,))
+                row = cur.fetchone()
+            return json.loads(row[0]) if row else None
+        finally:
+            conn.close()
+
+    async def put(self, conv: dict[str, Any]) -> None:
+        await asyncio.to_thread(self._put_sync, conv)
+
+    def _put_sync(self, conv: dict[str, Any]) -> None:
+        conn = self._conn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO assistant_conversation (conversation_id, user_id, task_id, title, messages_json) "
+                    "VALUES (%s, %s, %s, %s, %s) "
+                    "ON DUPLICATE KEY UPDATE user_id=VALUES(user_id), task_id=VALUES(task_id), "
+                    "title=VALUES(title), messages_json=VALUES(messages_json)",
+                    (conv["conversationId"], conv.get("userId"), conv.get("taskId"),
+                     conv.get("title") or "", json.dumps(conv, ensure_ascii=False)),
+                )
+        finally:
+            conn.close()
+
+    async def list_for_user(self, uid: str, limit: int) -> list[dict[str, Any]]:
+        return await asyncio.to_thread(self._list_sync, uid, limit)
+
+    def _list_sync(self, uid: str, limit: int) -> list[dict[str, Any]]:
+        conn = self._conn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT messages_json FROM assistant_conversation "
+                    "WHERE user_id=%s AND updated_at >= NOW() - INTERVAL %s DAY "
+                    "ORDER BY updated_at DESC LIMIT %s",
+                    (uid, CONFIG.session_ttl_days, limit),
+                )
+                rows = cur.fetchall()
+            return [json.loads(r[0]) for r in rows]
+        finally:
+            conn.close()
+
+    async def delete(self, cid: str) -> None:
+        await asyncio.to_thread(self._delete_sync, cid)
+
+    def _delete_sync(self, cid: str) -> None:
+        conn = self._conn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM assistant_conversation WHERE conversation_id=%s", (cid,))
+        finally:
+            conn.close()
+
+
 class SessionStore:
     def __init__(self) -> None:
         self.backend: Any = None
@@ -101,6 +183,7 @@ class SessionStore:
     async def _ensure(self):
         if self.backend is not None:
             return self.backend
+        # 1) Redis 优先
         if CONFIG.redis_url:
             try:
                 store = _RedisStore(CONFIG.redis_url)
@@ -109,7 +192,20 @@ class SessionStore:
                 log.info("会话存储：redis %s", CONFIG.redis_url.split("@")[-1])
                 return self.backend
             except Exception as e:
-                log.warning("Redis 不可用（%s），会话退化为进程内内存", e)
+                log.warning("Redis 不可用（%s）", e)
+        # 2) MySQL 次之（复用知识库 DB 配置，会话持久化保留 N 天）
+        if CONFIG.kb_db_enabled:
+            try:
+                store = _MysqlStore(CONFIG.kb_db_host, CONFIG.kb_db_port,
+                                    CONFIG.kb_db_user, CONFIG.kb_db_password, CONFIG.kb_db_name)
+                await store.ping()
+                self.backend, self.kind = store, "mysql"
+                log.info("会话存储：mysql %s/%s（保留 %d 天）",
+                         CONFIG.kb_db_host, CONFIG.kb_db_name, CONFIG.session_ttl_days)
+                return self.backend
+            except Exception as e:
+                log.warning("MySQL 不可用（%s），会话退化为进程内内存", e)
+        # 3) 内存兜底（重启即丢）
         self.backend, self.kind = _MemoryStore(), "memory"
         return self.backend
 

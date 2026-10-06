@@ -24,7 +24,7 @@ class ChatRequest(BaseModel):
     paragraphIdx: Optional[int] = None         # 「为什么这段像 AI」直达
     userId: Optional[int] = None               # Java 透传（W3.c 前）；Sa-Token 接入后由 Java 从上下文填
     locale: str = "zh-CN"
-    clientContext: dict[str, Any] = Field(default_factory=dict)   # 端 / 页面 / 版本等，仅审计
+    clientContext: Optional[dict[str, Any]] = None   # 端 / 页面 / 版本等，仅审计（Java 透传可能为 null）
 
 
 class ConversationSummary(BaseModel):

@@ -100,6 +100,16 @@ export async function listConversations(userId?: number, limit = 20) {
   return data.data as Array<{ conversationId: string; title: string; taskId?: number; updatedAt: string; turns: number }>
 }
 
+/** 会话详情（历史消息，用于恢复对话） */
+export async function getConversation(conversationId: string) {
+  const { data } = await http.get(`/api/v1/assistant/conversations/${conversationId}`)
+  return data.data as {
+    conversationId: string
+    taskId?: number | null
+    messages: Array<{ role: string; content: string; ts?: number }>
+  }
+}
+
 /** 删除会话 */
 export async function deleteConversation(conversationId: string): Promise<void> {
   await http.delete(`/api/v1/assistant/conversations/${conversationId}`)
