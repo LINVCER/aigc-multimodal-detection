@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -53,6 +54,10 @@ public class AssistantLog {
     private Boolean boundaryFlag;
     /** 越界类型：rewrite / bypass / ghostwrite / appeal_fabricate（boundaryFlag=true 时非空） */
     private String boundaryType;
+    /** 知识库 top-1 BM25 分数；低于阈值视为知识缺口（增长闭环 §1.1）。null = 本轮未检索（安全拦截 / 硬边界） */
+    private BigDecimal kbTopScore;
+    /** 知识库 top-1 块引用「doc › title」 */
+    private String kbTopRef;
     /** 错误码（有则本轮失败） */
     private String errorCode;
 

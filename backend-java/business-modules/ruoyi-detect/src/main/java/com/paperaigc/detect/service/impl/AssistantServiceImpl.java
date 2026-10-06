@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.BufferedReader;
+import java.math.BigDecimal;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
@@ -191,7 +192,9 @@ public class AssistantServiceImpl implements IAssistantService {
                         .finishReason(str(m.get("finishReason")))
                         .safety(str(m.get("safety")))
                         .boundaryFlag(Boolean.TRUE.equals(m.get("boundaryFlag")))
-                        .boundaryType(str(m.get("boundaryType")));
+                        .boundaryType(str(m.get("boundaryType")))
+                        .kbTopScore(toDecimal(m.get("kbTopScore")))
+                        .kbTopRef(truncate(str(m.get("kbTopRef")), 160));
                 if (m.get("intent") != null) audit.intent(str(m.get("intent")));
                 Object tools = m.get("tools");
                 if (tools instanceof List<?> l && !l.isEmpty()) audit.tools(String.join(",", l.stream().map(String::valueOf).toList()));
@@ -302,6 +305,10 @@ public class AssistantServiceImpl implements IAssistantService {
 
     private static Integer toInt(Object o) {
         return o instanceof Number n ? n.intValue() : null;
+    }
+
+    private static BigDecimal toDecimal(Object o) {
+        return o instanceof Number n ? BigDecimal.valueOf(n.doubleValue()) : null;
     }
 
     private String toJsonSafe(Object o) {

@@ -152,6 +152,8 @@ CREATE TABLE IF NOT EXISTS assistant_log (
   safety             VARCHAR(16) NULL COMMENT 'pass / blocked / degraded',
   boundary_flag      TINYINT(1) NOT NULL DEFAULT 0 COMMENT '回答疑似越界（针对原文给成品改写），人工抽查',
   boundary_type      VARCHAR(32) NULL COMMENT '越界类型：rewrite / bypass / ghostwrite / appeal_fabricate',
+  kb_top_score       DECIMAL(6,3) NULL COMMENT '知识库 top-1 BM25 分数，低于阈值视为知识缺口；NULL=本轮未检索',
+  kb_top_ref         VARCHAR(160) NULL COMMENT '知识库 top-1 块引用 doc › title',
   error_code         VARCHAR(64) NULL,
   client_context     VARCHAR(500) NULL COMMENT '端 / 页面 / 版本 JSON',
   created_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
