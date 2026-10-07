@@ -80,11 +80,6 @@ function goBack() {
       <text class="back-text">检测方式</text>
     </view>
 
-    <view class="hero-header">
-      <text class="large-title">音频检测</text>
-      <text class="hero-sub">段级 AI 语音判定 · TTS / 克隆音色识别</text>
-    </view>
-
     <!-- 文件区 -->
     <text class="group-label">音频文件</text>
     <view class="group-card">
@@ -151,22 +146,6 @@ function goBack() {
   font-size: $fs-callout;
   color: $brand-primary;
   font-weight: $fw-medium;
-}
-
-.hero-header { padding: $sp-1 $sp-1 $sp-3; }
-.large-title {
-  display: block;
-  font-size: $fs-large-title;
-  font-weight: $fw-bold;
-  line-height: $lh-tight;
-  letter-spacing: $tracking-tight;
-  color: $label-primary;
-}
-.hero-sub {
-  display: block;
-  font-size: $fs-subhead;
-  color: $label-secondary;
-  margin-top: $sp-1;
 }
 
 .group-label {

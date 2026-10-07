@@ -57,12 +57,6 @@ function pick(m) {
 
 <template>
   <view class="page">
-    <!-- Large Title -->
-    <view class="hero-header">
-      <text class="large-title">选择检测方式</text>
-      <text class="hero-sub">按你要检测的内容类型进入对应流程</text>
-    </view>
-
     <!-- 三模态 tile -->
     <view class="modality-list">
       <view
@@ -108,23 +102,6 @@ function pick(m) {
   min-height: 100vh;
   padding: $sp-3 $sp-4 100rpx;
   background: $bg-grouped-primary;
-}
-
-/* ---------- Large Title Hero ---------- */
-.hero-header { padding: $sp-3 $sp-1 $sp-5; }
-.large-title {
-  display: block;
-  font-size: $fs-large-title;
-  font-weight: $fw-bold;
-  line-height: $lh-tight;
-  letter-spacing: $tracking-tight;
-  color: $label-primary;
-}
-.hero-sub {
-  display: block;
-  font-size: $fs-subhead;
-  color: $label-secondary;
-  margin-top: $sp-1;
 }
 
 /* ---------- 模态 tile ---------- */

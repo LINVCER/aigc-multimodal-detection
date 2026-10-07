@@ -52,11 +52,6 @@ function goMyFeedback() { uni.navigateTo({ url: '/pages/feedback/mine' }) }
 
 <template>
   <view class="page">
-    <!-- Large Title -->
-    <view class="hero-header">
-      <text class="large-title">我的</text>
-    </view>
-
     <!-- 用户卡 -->
     <view class="user-card">
       <view class="avatar">
@@ -144,17 +139,6 @@ function goMyFeedback() { uni.navigateTo({ url: '/pages/feedback/mine' }) }
   min-height: 100vh;
   padding: $sp-3 $sp-4 100rpx;
   background: $bg-grouped-primary;
-}
-
-/* Large Title */
-.hero-header { padding: $sp-3 $sp-1 $sp-3; }
-.large-title {
-  display: block;
-  font-size: $fs-large-title;
-  font-weight: $fw-bold;
-  line-height: $lh-tight;
-  letter-spacing: $tracking-tight;
-  color: $label-primary;
 }
 
 /* 用户卡 · gradient avatar + 姓名 */

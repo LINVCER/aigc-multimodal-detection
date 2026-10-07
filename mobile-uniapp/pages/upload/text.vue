@@ -148,11 +148,6 @@ function goBack() {
       <text class="back-arrow">‹</text>
       <text class="back-text">检测方式</text>
     </view>
-    <view class="hero-header">
-      <text class="large-title">论文检测</text>
-      <text class="hero-sub">上传或粘贴文档 · 段落级 AI 率分析</text>
-    </view>
-
     <!-- Mode Segmented：文件 / 粘贴 -->
     <view class="mode-tabs">
       <view class="mode-seg" :class="{ active: mode === 'file' }" @click="mode = 'file'">
@@ -329,23 +324,6 @@ function goBack() {
   font-size: $fs-callout;
   color: $brand-primary;
   font-weight: $fw-medium;
-}
-
-/* ---------- Large Title Hero ---------- */
-.hero-header { padding: $sp-1 $sp-1 $sp-3; }
-.large-title {
-  display: block;
-  font-size: $fs-large-title;
-  font-weight: $fw-bold;
-  line-height: $lh-tight;
-  letter-spacing: $tracking-tight;
-  color: $label-primary;
-}
-.hero-sub {
-  display: block;
-  font-size: $fs-subhead;
-  color: $label-secondary;
-  margin-top: $sp-1;
 }
 
 /* ---------- Mode Segmented ---------- */

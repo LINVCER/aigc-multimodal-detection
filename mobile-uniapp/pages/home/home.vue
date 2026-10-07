@@ -3,10 +3,7 @@ import { ref, computed } from 'vue'
 import { onShow, onPullDownRefresh, onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
 import { listTasks, getStatistics } from '@/api/detect'
 import { SCENARIO_MAP, aiRateColor } from '@/utils/constants'
-import { useAuth } from '@/store/auth'
 import AssistantFab from '@/components/AssistantFab.vue'
-
-const auth = useAuth()
 
 const tasks = ref([])
 const stats = ref(null)     // 后端 /detect/statistics · null 时走本地聚合兜底
@@ -102,14 +99,6 @@ function comingSoon(name) {
 }
 
 /* ---------- 语义 ---------- */
-const greeting = computed(() => {
-  const h = new Date().getHours()
-  if (h < 6)  return '夜深了'
-  if (h < 12) return '上午好'
-  if (h < 14) return '中午好'
-  if (h < 18) return '下午好'
-  return '晚上好'
-})
 const passColor = computed(() =>
   weekStats.value.doneCount === 0 ? '' : (weekStats.value.passRate >= 60 ? 'good' : 'warn')
 )
@@ -118,13 +107,6 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
 
 <template>
   <view class="page">
-    <!-- Hero 头部 -->
-    <view class="hero-header">
-      <text class="greeting">{{ greeting }}{{ auth.username ? '，' + auth.username : '' }}</text>
-      <text class="large-title">开始一次检测</text>
-      <text class="hero-sub">AI 率 · 段落热力 · 疑似来源分布</text>
-    </view>
-
     <!-- 主 CTA · 品牌渐变卡 · 跳二级模态选择 -->
     <view class="hero-cta" hover-class="hero-cta-hover" @click="goModalityPicker">
       <view class="hero-cta-body">
@@ -244,29 +226,6 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
   min-height: 100vh;
   padding: $sp-3 $sp-4 100rpx;
   background: $bg-grouped-primary;
-}
-
-/* ---------- Hero ---------- */
-.hero-header { padding: $sp-3 $sp-1 $sp-4; }
-.greeting {
-  display: block;
-  font-size: $fs-subhead;
-  color: $label-secondary;
-  margin-bottom: $sp-1;
-}
-.large-title {
-  display: block;
-  font-size: $fs-large-title;
-  font-weight: $fw-bold;
-  line-height: $lh-tight;
-  letter-spacing: $tracking-tight;
-  color: $label-primary;
-}
-.hero-sub {
-  display: block;
-  font-size: $fs-subhead;
-  color: $label-secondary;
-  margin-top: $sp-1;
 }
 
 /* ---------- 主 CTA · 品牌渐变卡 ---------- */

@@ -17,11 +17,6 @@ function subscribe() {
       <text class="back-text">检测方式</text>
     </view>
 
-    <view class="hero-header">
-      <text class="large-title">图像检测</text>
-      <text class="hero-sub">AI 生成图识别 · SD / Midjourney / DALL·E</text>
-    </view>
-
     <view class="empty-card">
       <view class="empty-icon">
         <view class="empty-icon-inner" />
@@ -65,22 +60,6 @@ function subscribe() {
   font-size: $fs-callout;
   color: $brand-primary;
   font-weight: $fw-medium;
-}
-
-.hero-header { padding: $sp-1 $sp-1 $sp-3; }
-.large-title {
-  display: block;
-  font-size: $fs-large-title;
-  font-weight: $fw-bold;
-  line-height: $lh-tight;
-  letter-spacing: $tracking-tight;
-  color: $label-primary;
-}
-.hero-sub {
-  display: block;
-  font-size: $fs-subhead;
-  color: $label-secondary;
-  margin-top: $sp-1;
 }
 
 .empty-card {

@@ -136,13 +136,7 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
 
 <template>
   <view class="page">
-    <!-- 1. Large Title Hero -->
-    <view class="hero-header">
-      <text class="large-title">检测记录</text>
-      <text class="hero-sub">AI 率保持在场景红线以内即为达标</text>
-    </view>
-
-    <!-- 2. 本周概览 KPI 卡（DONE 前显示 dash 占位）-->
+    <!-- 1. 本周概览 KPI 卡（DONE 前显示 dash 占位）-->
     <view class="stats-card">
       <view class="stat">
         <text class="stat-value">{{ weekStats.total }}</text>
@@ -275,26 +269,7 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
   background: $bg-grouped-primary;
 }
 
-/* ---------- 1. Hero Header ---------- */
-.hero-header {
-  padding: $sp-6 $sp-5 $sp-3;
-}
-.large-title {
-  display: block;
-  font-size: $fs-large-title;
-  font-weight: $fw-bold;
-  line-height: $lh-tight;
-  letter-spacing: $tracking-tight;
-  color: $label-primary;
-}
-.hero-sub {
-  display: block;
-  font-size: $fs-subhead;
-  color: $label-secondary;
-  margin-top: $sp-1;
-}
-
-/* ---------- 2. 本周概览 KPI 卡 ---------- */
+/* ---------- 1. 本周概览 KPI 卡 ---------- */
 .stats-card {
   margin: 0 $sp-4;
   padding: $sp-5 $sp-3;

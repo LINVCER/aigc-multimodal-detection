@@ -74,11 +74,6 @@ const groupedByStatus = computed(() => {
       <text class="back-text">我的</text>
     </view>
 
-    <view class="hero-header">
-      <text class="large-title">我的反馈</text>
-      <text class="hero-sub">已提交 {{ list.length }} 条 · 下拉刷新看回复</text>
-    </view>
-
     <view v-if="!auth.userId" class="empty-card">
       <text class="empty-text">未登录 · 请先登录后查看反馈历史</text>
     </view>
@@ -175,22 +170,6 @@ const groupedByStatus = computed(() => {
   font-size: $fs-callout;
   color: $brand-primary;
   font-weight: $fw-medium;
-}
-
-.hero-header { padding: $sp-1 $sp-1 $sp-3; }
-.large-title {
-  display: block;
-  font-size: $fs-large-title;
-  font-weight: $fw-bold;
-  line-height: $lh-tight;
-  letter-spacing: $tracking-tight;
-  color: $label-primary;
-}
-.hero-sub {
-  display: block;
-  font-size: $fs-subhead;
-  color: $label-secondary;
-  margin-top: $sp-1;
 }
 
 .section-label {
