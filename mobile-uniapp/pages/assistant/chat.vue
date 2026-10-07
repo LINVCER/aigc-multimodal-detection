@@ -3,31 +3,35 @@ import { ref, computed, nextTick } from 'vue'
 import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { chatStream, getQuickPrompts, listConversations, getConversation, deleteConversation } from '@/api/assistant'
 import { listTasks, getTaskDetail } from '@/api/detect'
+import { submitFeedback } from '@/api/feedback'
 import { useAuth } from '@/store/auth'
 import AssistantAnalysisCard from '@/components/AssistantAnalysisCard.vue'
 import { renderMarkdown } from '@/utils/markdown'
 
 /*
  * 论文检测助手 · 对话页
- * 入口：task/detail「问助手」（带 taskId / paragraphIdx）· 四个 tab 页右下角 FAB（不带任务）
+ * 布局按 docs/design/202610-assistant-chat-ui-redesign.md §2.2 分四区：
+ *   导航（身份 + 历史/新对话）→ 报告选择（picker 一行）→ 上下文卡（绑定报告时）→ 消息流 + 输入
+ * 入口：task/detail「问助手」（带 taskId / paragraphIdx）· 四个 tab 页 FAB（不带任务）
  * 协议：SSE meta / token / tool_call / tool_result / done / error，见 api/assistant.js
- *
- * 报告选择条：复用 listTasks 列出最近 DONE 报告，点选绑定对话上下文；
- * 绑定后复用 getTaskDetail 出「整体分析 + 高风险段落」快捷条，一键「分析原因」。
  */
 
 const auth = useAuth()
 
-/* 工具调用图标（chat-ui-redesign §3 ③） */
+/* 工具调用图标与完成态短标签（方案 §3.2） */
 const TOOL_ICON = {
-  get_task_detail: '📄', list_my_tasks: '🗂', explain_paragraph: '🔍', detect_text: '⚡',
-  get_threshold_policy: '📏', search_knowledge: '📚', create_appeal: '🚩',
+  get_task_detail: '📊', list_my_tasks: '🗂', explain_paragraph: '🔍', detect_text: '🧪',
+  get_threshold_policy: '📏', search_knowledge: '📚', create_appeal: '✍️',
+}
+const TOOL_DONE = {
+  get_task_detail: '已读取报告', list_my_tasks: '已查看记录', explain_paragraph: '已分析段落', detect_text: '已检测',
+  get_threshold_policy: '已查阈值', search_knowledge: '已查资料', create_appeal: '已提交申诉',
 }
 
 const taskId = ref(null)             // null = 通用咨询
 const paragraphIdx = ref(null)
 const conversationId = ref('')
-const messages = ref([])             // { role, text, tools:[], error, streaming }
+const messages = ref([])             // { role, text, tools:[], cards:[], error, streaming, rating }
 const input = ref('')
 const streaming = ref(false)
 const welcome = ref('')
@@ -46,11 +50,7 @@ const LS_KEY = 'paperaigc_chat_state'
 
 function persist() {
   try {
-    uni.setStorageSync(LS_KEY, JSON.stringify({
-      conversationId: conversationId.value,
-      taskId: taskId.value,
-      messages: messages.value,
-    }))
+    uni.setStorageSync(LS_KEY, JSON.stringify({ conversationId: conversationId.value, taskId: taskId.value, messages: messages.value }))
   } catch (e) { /* 存储异常忽略 */ }
 }
 
@@ -65,7 +65,7 @@ function restore() {
   } catch (e) { /* 解析失败忽略 */ }
 }
 
-// ---- 历史会话（聊天记录，后端保留 7 天）----
+// ---- 历史会话 ----
 const showHistory = ref(false)
 const historyList = ref([])
 const loadingHistory = ref(false)
@@ -80,15 +80,34 @@ const riskParagraphs = computed(() => {
     .sort((a, b) => (b.calibratedProb ?? 0) - (a.calibratedProb ?? 0))
     .slice(0, 6)
 })
+const bodyCount = computed(() => (taskDetail.value?.paragraphs || []).filter((p) => !p.excluded).length)
+
+/* 报告选择 picker：第 0 项是通用咨询 */
+const pickerLabels = computed(() => ['通用咨询', ...tasks.value.map((t) => `${t.paperTitle} · AI ${t.aiRate == null ? '—' : t.aiRate.toFixed(0) + '%'}`)])
+const pickerIndex = computed(() => {
+  const i = tasks.value.findIndex((t) => t.id === taskId.value)
+  return i < 0 ? 0 : i + 1
+})
+function onPickTask(e) {
+  const i = Number(e.detail.value)
+  selectTask(i <= 0 ? undefined : tasks.value[i - 1]?.id)
+}
+
+/* 上下文卡达标徽章：沿用报告页颜色逻辑 */
+const taskBadge = computed(() => {
+  const t = activeTask.value
+  if (!t || t.aiRate == null) return null
+  const diff = t.aiRate - t.threshold
+  if (diff <= 0) return { text: '✓ 达标', cls: 'ok' }
+  return { text: `超标 ${diff.toFixed(1)}pp`, cls: diff <= t.threshold * 0.5 ? 'warn' : 'bad' }
+})
 
 onLoad(async (query) => {
   const sys = uni.getSystemInfoSync()
   statusBarHeight.value = sys.statusBarHeight || 20
-  // 1) 每次进入页面都是新实例，先恢复本地暂存会话
   restore()
   const restored = messages.value.length > 0
   loadTasks()
-  // 2) 无历史会话时才用 query 初始化；有历史则尊重恢复的上下文，不清空
   if (!restored) {
     if (query?.taskId) taskId.value = Number(query.taskId)
     if (query?.paragraphIdx !== undefined && query.paragraphIdx !== '') paragraphIdx.value = Number(query.paragraphIdx)
@@ -98,7 +117,6 @@ onLoad(async (query) => {
   if (taskId.value != null && taskDetail.value == null) {
     try { taskDetail.value = await getTaskDetail(taskId.value) } catch (e) { taskDetail.value = null }
   }
-  // 3) 「为什么这段像 AI」直达：仅无历史会话时（避免把新段落追问绑到旧会话）
   if (!restored && taskId.value != null && paragraphIdx.value != null) {
     send(`第 ${paragraphIdx.value + 1} 段为什么会被判成像 AI？`)
   }
@@ -127,7 +145,7 @@ async function refreshPrompts(id) {
 
 async function selectTask(id) {
   if (streaming.value) stream?.abort()
-  taskId.value = id
+  taskId.value = id ?? null
   conversationId.value = ''
   messages.value = []
   taskDetail.value = null
@@ -189,7 +207,6 @@ function send(text) {
     userId: auth.userId ? Number(auth.userId) : undefined,
     clientContext: { platform: 'uniapp', page: 'assistant/chat' },
   }
-  // 段落直达只在首问带，后续按对话上下文走
   paragraphIdx.value = null
 
   stream = chatStream(payload, {
@@ -215,15 +232,11 @@ function send(text) {
           reply.error = data?.message || '助手出了点问题，稍后再试'
           reply.errorCode = data?.code
           break
-        case 'done':
-          break
         default:
           break
       }
     },
-    onError: (err) => {
-      reply.error = err?.message || '网络异常'
-    },
+    onError: (err) => { reply.error = err?.message || '网络异常' },
   })
 
   stream.done.finally(() => {
@@ -235,12 +248,9 @@ function send(text) {
   })
 }
 
-function onStop() {
-  stream?.abort()
-}
+function onStop() { stream?.abort() }
 
 function onRetry(idx) {
-  // 找到上一条用户消息重发
   for (let i = idx - 1; i >= 0; i--) {
     if (messages.value[i].role === 'user') {
       const text = messages.value[i].text
@@ -259,7 +269,29 @@ function onNewChat() {
   persist()
 }
 
-// ---- 历史会话（聊天记录）----
+// ---- 复制 + 点赞点踩（方案 §3.4）----
+function copyAnswer(m) {
+  uni.setClipboardData({ data: m.text, showToast: false, success: () => uni.showToast({ title: '已复制', icon: 'none' }) })
+}
+
+async function rateAnswer(idx, rating) {
+  const m = messages.value[idx]
+  if (!m || m.rating) return
+  const q = [...messages.value.slice(0, idx)].reverse().find((x) => x.role === 'user')?.text || ''
+  m.rating = rating
+  persist()
+  try {
+    await submitFeedback({
+      category: 'suggestion',
+      content: `[助手${rating === 'up' ? '点赞' : '点踩'}] 会话 ${conversationId.value || '-'}\n问：${q.slice(0, 300)}\n答：${m.text.slice(0, 600)}`,
+      taskId: taskId.value || undefined,
+      userId: auth.userId ? Number(auth.userId) : undefined,
+    })
+    uni.showToast({ title: rating === 'up' ? '谢谢，已记录' : '已记录，我们会改进', icon: 'none' })
+  } catch (e) { /* 未登录等情况保留本地标记 */ }
+}
+
+// ---- 历史会话 ----
 async function openHistory() {
   showHistory.value = true
   await loadHistory()
@@ -288,7 +320,7 @@ async function resumeConversation(c) {
     }
     messages.value = (detail.messages || [])
       .filter((m) => m.role === 'user' || m.role === 'assistant')
-      .map((m) => ({ role: m.role, text: m.content, tools: [], error: null, streaming: false }))
+      .map((m) => ({ role: m.role, text: m.content, tools: [], cards: [], error: null, streaming: false }))
     showHistory.value = false
     persist()
     scrollBottom()
@@ -316,21 +348,23 @@ function formatTime(t) {
   if (diff < 86400000) return `${Math.floor(diff / 3600000)} 小时前`
   return `${Math.floor(diff / 86400000)} 天前`
 }
+
+const pct = (p) => `${((p ?? 0) * 100).toFixed(0)}%`
 </script>
 
 <template>
   <view class="page">
-    <!-- 自定义导航 -->
+    <!-- ① 导航：身份 + 全局操作 -->
     <view class="nav" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="nav-inner">
-        <text class="nav-btn" @click="goBack">‹ 返回</text>
+        <text class="nav-btn" @click="goBack">‹</text>
         <view class="nav-center">
+          <view class="nav-avatar">AI</view>
           <text class="nav-title">论文检测助手</text>
-          <text v-if="activeTask" class="nav-sub">{{ activeTask.paperTitle }}</text>
         </view>
         <view class="nav-right">
-          <text class="nav-btn" @click="openHistory">历史</text>
-          <text class="nav-btn" @click="onNewChat">新对话</text>
+          <text class="nav-icon" @click="openHistory">🕘</text>
+          <text class="nav-icon" @click="onNewChat">✚</text>
         </view>
       </view>
     </view>
@@ -347,261 +381,200 @@ function formatTime(t) {
         <view v-for="c in historyList" :key="c.conversationId" class="history-item" @click="resumeConversation(c)">
           <view class="history-item-main">
             <text class="history-item-title">{{ c.title || '（无标题）' }}</text>
-            <text class="history-item-meta">{{ formatTime(c.updatedAt) }} · {{ c.turns }} 轮</text>
+            <text class="history-item-meta">{{ formatTime(c.updatedAt) }} · {{ c.turns }} 轮<template v-if="c.taskId"> · 报告 #{{ c.taskId }}</template></text>
           </view>
           <text class="history-del" @click.stop="removeConversation(c)">删除</text>
         </view>
       </scroll-view>
     </view>
 
-    <!-- 对话内容 -->
     <template v-else>
-    <!-- 报告选择条 -->
-    <scroll-view v-if="tasks.length" class="task-strip" scroll-x :show-scrollbar="false">
-      <view class="task-strip-inner">
-        <view class="task-chip" :class="{ active: taskId == null }" @click="selectTask(undefined)">
-          <text class="task-chip-title">通用咨询</text>
-        </view>
-        <view
-          v-for="t in tasks" :key="t.id"
-          class="task-chip" :class="{ active: taskId === t.id }" @click="selectTask(t.id)"
-        >
-          <text class="task-chip-title">{{ t.paperTitle }}</text>
-          <text v-if="t.aiRate != null" class="task-chip-rate">AI {{ t.aiRate.toFixed(0) }}%</text>
-        </view>
-      </view>
-    </scroll-view>
-
-    <!-- 段落分析条（绑定报告后，一键「分析原因」） -->
-    <view v-if="taskId != null && riskParagraphs.length" class="para-strip">
-      <view class="para-chip primary" hover-class="para-chip--hover" @click="analyzeOverall">
-        <text>📊 整体怎么看</text>
-      </view>
-      <view
-        v-for="p in riskParagraphs" :key="p.paragraphIdx"
-        class="para-chip" hover-class="para-chip--hover" @click="analyzeParagraph(p.paragraphIdx)"
-      >
-        <text>段 {{ p.paragraphIdx + 1 }} · {{ ((p.calibratedProb || 0) * 100).toFixed(0) }}%</text>
-      </view>
-    </view>
-
-    <!-- 消息流 -->
-    <scroll-view class="msgs" scroll-y :scroll-into-view="scrollInto" scroll-with-animation>
-      <view class="msgs-inner">
-        <!-- 欢迎卡 -->
-        <view class="welcome">
-          <view class="welcome-avatar">AI</view>
-          <text class="welcome-text">{{ welcome }}</text>
-        </view>
-
-        <!-- 快捷问题 -->
-        <view v-if="showQuick" class="quick">
-          <view v-for="q in prompts" :key="q" class="quick-chip" hover-class="quick-chip--hover" @click="onQuick(q)">
-            <text>{{ q }}</text>
+      <!-- ② 报告选择：一行 picker -->
+      <view v-if="tasks.length" class="select-row">
+        <picker mode="selector" :range="pickerLabels" :value="pickerIndex" @change="onPickTask">
+          <view class="select-box">
+            <text class="select-icon">📄</text>
+            <text class="select-text">{{ pickerLabels[pickerIndex] }}</text>
+            <text class="select-chevron">⌄</text>
           </view>
-        </view>
+        </picker>
+      </view>
 
-        <!-- 对话气泡 -->
-        <view v-for="(m, i) in messages" :key="i" class="row" :class="m.role">
-          <view class="bubble" :class="m.role">
-            <!-- 工具调用提示 -->
-            <view v-if="m.role === 'assistant' && m.tools?.length" class="tools">
-              <text v-for="(t, k) in m.tools" :key="k" class="tool-chip" :class="t.status">
-                {{ TOOL_ICON[t.name] || '🔧' }} {{ t.status === 'running' ? '正在' : '' }}{{ t.label }}{{ t.status === 'failed' ? '（失败）' : '' }}
-              </text>
-            </view>
-            <!-- 结构化分析卡：工具返回的数据直接渲染，正文是助手的「翻译」 -->
-            <AssistantAnalysisCard v-for="(c, k) in (m.cards || [])" :key="'c' + k" :name="c.name" :data="c.data" />
-            <!-- 助手回复按 Markdown 子集渲染；用户消息原样 -->
-            <rich-text v-if="m.text && m.role === 'assistant'" class="bubble-md" :nodes="renderMarkdown(m.text)" user-select />
-            <text v-else-if="m.text" class="bubble-text" user-select>{{ m.text }}</text>
-            <view v-else-if="m.streaming && !m.error" class="typing">
-              <view class="dot" /><view class="dot" /><view class="dot" />
-            </view>
-            <view v-if="m.error" class="err">
-              <text class="err-text">{{ m.error }}</text>
-              <text class="err-retry" @click="onRetry(i)">重试</text>
+      <!-- ③ 上下文卡：绑定报告时 -->
+      <view v-if="activeTask" class="ctx">
+        <view class="ctx-head">
+          <text class="ctx-title">《{{ activeTask.paperTitle }}》</text>
+          <text v-if="taskBadge" class="ctx-badge" :class="taskBadge.cls">{{ taskBadge.text }}</text>
+        </view>
+        <text class="ctx-meta">整体 AI {{ activeTask.aiRate == null ? '—' : activeTask.aiRate.toFixed(1) + '%' }} · 红线 {{ activeTask.threshold }}%<template v-if="taskDetail"> · 正文 {{ bodyCount }} 段</template></text>
+        <scroll-view v-if="taskDetail" class="ctx-chips" scroll-x :show-scrollbar="false">
+          <view class="ctx-chips-inner">
+            <view class="chip primary" hover-class="chip--hover" @click="analyzeOverall"><text>整体怎么看</text></view>
+            <view
+              v-for="p in riskParagraphs" :key="p.paragraphIdx"
+              class="chip" :class="(p.calibratedProb ?? 0) >= 0.7 ? 'red' : 'yellow'"
+              hover-class="chip--hover" @click="analyzeParagraph(p.paragraphIdx)"
+            ><text>段 {{ p.paragraphIdx + 1 }} · {{ pct(p.calibratedProb) }}</text></view>
+          </view>
+        </scroll-view>
+      </view>
+
+      <!-- ④ 消息流 -->
+      <scroll-view class="msgs" scroll-y :scroll-into-view="scrollInto" scroll-with-animation>
+        <view class="msgs-inner">
+          <view class="welcome">
+            <view class="welcome-avatar">AI</view>
+            <text class="welcome-text">{{ welcome }}</text>
+          </view>
+
+          <view v-if="showQuick" class="quick">
+            <view v-for="q in prompts" :key="q" class="chip" hover-class="chip--hover" @click="onQuick(q)"><text>{{ q }}</text></view>
+          </view>
+
+          <view v-for="(m, i) in messages" :key="i" class="row" :class="m.role">
+            <view class="bubble" :class="m.role">
+              <!-- 工具调用：图标 + 状态 -->
+              <view v-if="m.role === 'assistant' && m.tools?.length" class="tools">
+                <view v-for="(t, k) in m.tools" :key="k" class="tool" :class="t.status">
+                  <text class="tool-icon">{{ TOOL_ICON[t.name] || '🔧' }}</text>
+                  <text class="tool-text">{{ t.status === 'done' ? (TOOL_DONE[t.name] || t.label) : t.status === 'failed' ? t.label + '失败' : t.label }}</text>
+                  <view v-if="t.status === 'running'" class="spin" />
+                  <text v-else class="tool-mark">{{ t.status === 'done' ? '✓' : '✕' }}</text>
+                </view>
+              </view>
+              <AssistantAnalysisCard v-for="(c, k) in (m.cards || [])" :key="'c' + k" :name="c.name" :data="c.data" />
+              <rich-text v-if="m.text && m.role === 'assistant'" class="bubble-md" :nodes="renderMarkdown(m.text)" user-select />
+              <text v-else-if="m.text" class="bubble-text" user-select>{{ m.text }}</text>
+              <view v-else-if="m.streaming && !m.error" class="typing">
+                <view class="dot" /><view class="dot" /><view class="dot" />
+              </view>
+              <view v-if="m.error" class="err">
+                <text class="err-text">{{ m.error }}</text>
+                <text class="err-retry" @click="onRetry(i)">重试</text>
+              </view>
+              <!-- 复制 + 点赞点踩 -->
+              <view v-if="m.role === 'assistant' && m.text && !m.streaming" class="actions">
+                <text class="act" @click="copyAnswer(m)">⧉ 复制</text>
+                <text class="act" :class="{ on: m.rating === 'up', off: m.rating && m.rating !== 'up' }" @click="rateAnswer(i, 'up')">👍</text>
+                <text class="act" :class="{ on: m.rating === 'down', off: m.rating && m.rating !== 'down' }" @click="rateAnswer(i, 'down')">👎</text>
+              </view>
             </view>
           </view>
+          <view id="msg-bottom" class="bottom-anchor" />
         </view>
-        <view id="msg-bottom" class="bottom-anchor" />
-      </view>
-    </scroll-view>
+      </scroll-view>
 
-    <!-- 输入区 -->
-    <view class="composer">
-      <text class="disclaimer">AI 生成内容仅供参考，不替代导师意见；助手不代写、不改写原文。</text>
-      <view class="composer-row">
-        <input
-          v-model="input"
-          class="composer-input"
-          :placeholder="taskId ? '问问这份报告…' : '想问点什么？'"
-          confirm-type="send"
-          :disabled="streaming"
-          @confirm="onSend"
-        />
-        <button v-if="streaming" class="send-btn stop" @click="onStop">停止</button>
-        <button v-else class="send-btn" :disabled="!canSend" @click="onSend">发送</button>
+      <!-- 输入区 -->
+      <view class="composer">
+        <view class="composer-row">
+          <input
+            v-model="input" class="composer-input"
+            :placeholder="taskId ? '问问这份报告…' : '想问点什么？'"
+            confirm-type="send" :disabled="streaming" @confirm="onSend"
+          />
+          <button v-if="streaming" class="send-btn stop" @click="onStop">停止</button>
+          <button v-else class="send-btn" :disabled="!canSend" @click="onSend">发送</button>
+        </view>
+        <text class="disclaimer">AI 生成内容仅供参考，不替代导师意见；助手不代写、不改写原文。</text>
       </view>
-    </view>
     </template>
   </view>
 </template>
 
 <style lang="scss" scoped>
-.page {
-  height: 100vh;
-  display: flex; flex-direction: column;
-  background: $bg-grouped-primary;
-}
+.page { height: 100vh; display: flex; flex-direction: column; background: $bg-grouped-primary; }
 
-/* ===== 导航 ===== */
-.nav {
-  background: $bg-primary;
-  border-bottom: $stroke-hairline solid $separator;
+/* ① 导航 */
+.nav { background: $bg-primary; border-bottom: $stroke-hairline solid $separator; }
+.nav-inner { height: 88rpx; padding: 0 $sp-4; display: flex; align-items: center; justify-content: space-between; }
+.nav-btn { color: $brand-primary; font-size: $fs-title-2; width: 60rpx; }
+.nav-center { display: flex; align-items: center; gap: $sp-2; }
+.nav-avatar {
+  width: 52rpx; height: 52rpx; border-radius: $radius-pill;
+  background: $brand-gradient-vivid; color: #fff; font-size: $fs-caption-2; font-weight: $fw-bold;
+  display: flex; align-items: center; justify-content: center;
 }
-.nav-inner {
-  height: 88rpx; padding: 0 $sp-4;
-  display: flex; align-items: center; justify-content: space-between;
-}
-.nav-btn { color: $brand-primary; font-size: $fs-body; }
-.nav-center { display: flex; flex-direction: column; align-items: center; max-width: 55%; }
 .nav-title { font-size: $fs-headline; font-weight: $fw-semibold; color: $label-primary; }
-.nav-sub {
-  font-size: $fs-caption-2; color: $label-secondary; margin-top: 2rpx;
-  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
 .nav-right { display: flex; align-items: center; gap: $sp-3; }
+.nav-icon { font-size: $fs-title-3; color: $label-secondary; padding: 0 $sp-1; }
 
-/* ===== 历史会话 ===== */
+/* 历史 */
 .history { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.history-head {
-  display: flex; align-items: center; gap: $sp-3;
-  padding: $sp-3 $sp-4;
-  background: $bg-primary;
-  border-bottom: $stroke-hairline solid $separator;
-}
+.history-head { display: flex; align-items: center; gap: $sp-3; padding: $sp-3 $sp-4; background: $bg-primary; border-bottom: $stroke-hairline solid $separator; }
 .history-back { color: $brand-primary; font-size: $fs-body; }
 .history-title { font-size: $fs-footnote; color: $label-secondary; }
 .history-list { flex: 1; min-height: 0; padding: $sp-3 $sp-4; }
 .history-empty { text-align: center; color: $label-tertiary; font-size: $fs-footnote; padding: 80rpx 0; }
-.history-item {
-  display: flex; align-items: center; justify-content: space-between; gap: $sp-3;
-  background: $bg-primary; border-radius: $radius-card; padding: $sp-3 $sp-4;
-  margin-bottom: $sp-2; box-shadow: $shadow-card;
-}
+.history-item { display: flex; align-items: center; justify-content: space-between; gap: $sp-3; background: $bg-primary; border-radius: $radius-card; padding: $sp-3 $sp-4; margin-bottom: $sp-2; box-shadow: $shadow-card; }
 .history-item-main { flex: 1; min-width: 0; }
-.history-item-title {
-  font-size: $fs-subhead; font-weight: $fw-medium; color: $label-primary;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
+.history-item-title { font-size: $fs-subhead; font-weight: $fw-medium; color: $label-primary; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .history-item-meta { font-size: $fs-caption-2; color: $label-secondary; margin-top: 4rpx; }
 .history-del { flex: none; font-size: $fs-footnote; color: $danger-fg; }
 
-/* ===== 报告选择条 ===== */
-.task-strip {
-  flex: none;
-  background: $bg-primary;
-  border-bottom: $stroke-hairline solid $separator;
-  white-space: nowrap;
+/* ② 报告选择 */
+.select-row { flex: none; padding: $sp-2 $sp-4 0; background: $bg-grouped-primary; }
+.select-box {
+  display: flex; align-items: center; gap: $sp-2;
+  height: 72rpx; padding: 0 $sp-3;
+  border-radius: $radius-md; background: $bg-primary; border: $stroke-hairline solid $separator;
 }
-.task-strip-inner { display: inline-flex; gap: $sp-2; padding: $sp-2 $sp-4; }
-.task-chip {
-  display: inline-flex; flex-direction: column; gap: 2rpx;
-  max-width: 320rpx;
-  padding: $sp-1 $sp-3;
-  border-radius: $radius-pill;
-  background: $fill-tertiary;
-  border: $stroke-hairline solid transparent;
-  &.active { background: $brand-primary-wash; border-color: $brand-primary; }
-}
-.task-chip-title {
-  font-size: $fs-footnote; color: $label-primary; font-weight: $fw-medium;
-  max-width: 300rpx; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.task-chip-rate { font-size: $fs-caption-2; color: $label-secondary; }
-.task-chip.active .task-chip-title { color: $brand-primary; }
+.select-icon { flex: none; font-size: $fs-footnote; }
+.select-text { flex: 1; font-size: $fs-footnote; color: $label-primary; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.select-chevron { flex: none; color: $label-tertiary; font-size: $fs-subhead; }
 
-/* ===== 段落分析条 ===== */
-.para-strip {
-  flex: none;
-  display: flex; gap: $sp-2; overflow-x: auto;
-  padding: $sp-2 $sp-4;
-  background: $brand-primary-wash;
-  white-space: nowrap;
-  &::-webkit-scrollbar { display: none; }
+/* ③ 上下文卡 */
+.ctx {
+  flex: none; margin: $sp-2 $sp-4 0; padding: $sp-3;
+  border-radius: $radius-md; background: $brand-primary-wash; border: $stroke-hairline solid rgba(0, 122, 255, 0.18);
 }
-.para-chip {
-  flex: none;
-  padding: $sp-1 $sp-3;
-  border-radius: $radius-pill;
-  background: $bg-primary; color: $label-primary;
+.ctx-head { display: flex; align-items: center; gap: $sp-2; }
+.ctx-title { flex: 1; min-width: 0; font-size: $fs-footnote; font-weight: $fw-semibold; color: $label-primary; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.ctx-badge {
+  flex: none; font-size: $fs-caption-2; font-weight: $fw-semibold; padding: 2rpx $sp-2; border-radius: $radius-pill;
+  &.ok { background: $success-bg; color: $success-fg; } &.warn { background: $warning-bg; color: $warning-fg; } &.bad { background: $danger-bg; color: $danger-fg; }
+}
+.ctx-meta { display: block; margin-top: 4rpx; font-size: $fs-caption-1; color: $label-secondary; }
+.ctx-chips { margin-top: $sp-2; white-space: nowrap; }
+.ctx-chips-inner { display: inline-flex; gap: $sp-2; }
+
+.chip {
+  display: inline-flex; align-items: center; flex: none;
+  padding: $sp-1 $sp-3; border-radius: $radius-pill;
+  background: $bg-primary; color: $label-primary; border: $stroke-hairline solid $separator;
   font-size: $fs-footnote;
   &--hover { opacity: 0.6; }
-  &.primary { background: $brand-primary; color: #fff; font-weight: $fw-medium; }
+  &.primary { background: $brand-primary; color: #fff; border-color: $brand-primary; font-weight: $fw-medium; }
+  &.red { color: $danger-fg; border-color: rgba(255, 59, 48, 0.35); }
+  &.yellow { color: $warning-fg; border-color: rgba(255, 149, 0, 0.35); }
 }
 
-/* ===== 消息流 ===== */
+/* ④ 消息流 */
 .msgs { flex: 1; min-height: 0; }
-.msgs-inner { padding: $sp-4 $sp-4 $sp-2; }
+.msgs-inner { padding: $sp-3 $sp-4 $sp-2; }
 .bottom-anchor { height: 2rpx; }
 
-.welcome {
-  display: flex; align-items: flex-start; gap: $sp-3;
-  margin-bottom: $sp-4;
-}
+.welcome { display: flex; align-items: flex-start; gap: $sp-2; margin-bottom: $sp-3; }
 .welcome-avatar {
-  flex: none;
-  width: 72rpx; height: 72rpx; border-radius: $radius-pill;
-  background: $brand-gradient-vivid; color: #fff;
-  font-size: $fs-footnote; font-weight: $fw-bold;
+  flex: none; width: 56rpx; height: 56rpx; border-radius: $radius-pill;
+  background: $brand-gradient-vivid; color: #fff; font-size: $fs-caption-2; font-weight: $fw-bold;
   display: flex; align-items: center; justify-content: center;
 }
 .welcome-text {
-  flex: 1;
-  background: $bg-primary;
-  padding: $sp-3 $sp-4;
-  border-radius: $radius-card;
-  border-top-left-radius: $radius-xs;
-  font-size: $fs-subhead; line-height: $lh-normal; color: $label-primary;
-  box-shadow: $shadow-card;
+  flex: 1; background: $bg-primary; padding: $sp-3 $sp-4;
+  border-radius: $radius-card; border-top-left-radius: $radius-xs;
+  font-size: $fs-subhead; line-height: $lh-normal; color: $label-primary; box-shadow: $shadow-card;
 }
+.quick { display: flex; flex-wrap: wrap; gap: $sp-2; margin: 0 0 $sp-4 (56rpx + $sp-2); }
 
-.quick {
-  display: flex; flex-wrap: wrap; gap: $sp-2;
-  margin: 0 0 $sp-4 (72rpx + $sp-3);
-}
-.quick-chip {
-  padding: $sp-2 $sp-3;
-  border-radius: $radius-pill;
-  background: $brand-primary-wash; color: $brand-primary;
-  font-size: $fs-footnote;
-  &--hover { opacity: 0.6; }
-}
-
-.row {
-  display: flex; margin-bottom: $sp-3;
-  &.user { justify-content: flex-end; }
-  &.assistant { justify-content: flex-start; }
-}
+.row { display: flex; margin-bottom: $sp-3; &.user { justify-content: flex-end; } &.assistant { justify-content: flex-start; } }
 .bubble {
-  max-width: 82%;
-  padding: $sp-3 $sp-4;
-  border-radius: $radius-card;
+  max-width: 86%; padding: $sp-3 $sp-4; border-radius: $radius-card;
   font-size: $fs-subhead; line-height: $lh-normal;
-  &.user {
-    background: $brand-primary; color: #fff;
-    border-bottom-right-radius: $radius-xs;
-  }
-  &.assistant {
-    background: $bg-primary; color: $label-primary;
-    border-bottom-left-radius: $radius-xs;
-    box-shadow: $shadow-card;
-  }
+  &.user { background: $brand-primary; color: #fff; border-bottom-right-radius: $radius-xs; }
+  &.assistant { background: $bg-primary; color: $label-primary; border-bottom-left-radius: $radius-xs; box-shadow: $shadow-card; }
 }
 .bubble-text { white-space: pre-wrap; word-break: break-word; }
 .bubble-md { display: block; word-break: break-word; line-height: $lh-normal; }
-/* rich-text 内部节点只能靠 class 命中（小程序不穿透标签选择器） */
 .bubble-md :deep(.md-p) { margin: 0 0 $sp-1; }
 .bubble-md :deep(.md-h) { display: block; margin: $sp-2 0 4rpx; font-weight: $fw-semibold; }
 .bubble-md :deep(.md-list) { margin: 4rpx 0 $sp-1; padding-left: 36rpx; }
@@ -611,56 +584,42 @@ function formatTime(t) {
 .bubble-md :deep(.md-quote) { display: block; margin: $sp-1 0; padding: 4rpx $sp-3; border-left: 4rpx solid $separator-opaque; color: $label-secondary; }
 
 .tools { display: flex; flex-wrap: wrap; gap: $sp-1; margin-bottom: $sp-2; }
-.tool-chip {
-  font-size: $fs-caption-2; padding: 2rpx $sp-2;
-  border-radius: $radius-xs;
+.tool {
+  display: inline-flex; align-items: center; gap: 6rpx;
+  font-size: $fs-caption-2; padding: 2rpx $sp-2; border-radius: $radius-pill;
   background: $fill-quaternary; color: $label-secondary;
   &.running { color: $brand-primary; background: $brand-primary-wash; }
-  &.failed  { color: $danger-fg; background: $danger-bg; }
+  &.done { color: $success-fg; background: $success-bg; }
+  &.failed { color: $danger-fg; background: $danger-bg; }
 }
+.spin { width: 18rpx; height: 18rpx; border-radius: 50%; border: 3rpx solid currentColor; border-right-color: transparent; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.tool-mark { font-weight: $fw-bold; }
 
 .typing { display: flex; gap: 8rpx; padding: 6rpx 0; }
-.dot {
-  width: 12rpx; height: 12rpx; border-radius: 50%;
-  background: $label-tertiary;
-  animation: blink 1.2s infinite ease-in-out;
-  &:nth-child(2) { animation-delay: 0.2s; }
-  &:nth-child(3) { animation-delay: 0.4s; }
-}
+.dot { width: 12rpx; height: 12rpx; border-radius: 50%; background: $label-tertiary; animation: blink 1.2s infinite ease-in-out; &:nth-child(2) { animation-delay: 0.2s; } &:nth-child(3) { animation-delay: 0.4s; } }
 @keyframes blink { 0%, 80%, 100% { opacity: 0.3; } 40% { opacity: 1; } }
 
 .err { display: flex; align-items: center; gap: $sp-3; margin-top: $sp-1; }
 .err-text { font-size: $fs-footnote; color: $danger-fg; }
 .err-retry { font-size: $fs-footnote; color: $brand-primary; font-weight: $fw-medium; }
 
-/* ===== 输入区 ===== */
+.actions { display: flex; justify-content: flex-end; gap: $sp-3; margin-top: $sp-2; padding-top: $sp-1; border-top: $stroke-hairline solid $separator; }
+.act { font-size: $fs-caption-1; color: $label-secondary; &.on { color: $brand-primary; } &.off { opacity: 0.35; } }
+
+/* 输入区 */
 .composer {
-  background: $bg-primary;
-  border-top: $stroke-hairline solid $separator;
-  padding: $sp-2 $sp-4;
-  padding-bottom: #{"calc(#{$sp-2} + env(safe-area-inset-bottom))"};
-}
-.disclaimer {
-  display: block;
-  font-size: $fs-caption-2; color: $label-tertiary;
-  text-align: center; margin-bottom: $sp-2;
+  background: $bg-primary; border-top: $stroke-hairline solid $separator;
+  padding: $sp-2 $sp-4; padding-bottom: #{"calc(#{$sp-2} + env(safe-area-inset-bottom))"};
 }
 .composer-row { display: flex; align-items: center; gap: $sp-2; }
-.composer-input {
-  flex: 1; height: 76rpx;
-  padding: 0 $sp-4;
-  border-radius: $radius-pill;
-  background: $fill-tertiary;
-  font-size: $fs-subhead; color: $label-primary;
-}
+.composer-input { flex: 1; height: 76rpx; padding: 0 $sp-4; border-radius: $radius-pill; background: $fill-tertiary; font-size: $fs-subhead; color: $label-primary; }
 .send-btn {
-  flex: none; margin: 0;
-  height: 76rpx; line-height: 76rpx; padding: 0 $sp-4;
-  border-radius: $radius-pill;
-  background: $brand-primary; color: #fff;
-  font-size: $fs-subhead; font-weight: $fw-semibold;
+  flex: none; margin: 0; height: 76rpx; line-height: 76rpx; padding: 0 $sp-4; border-radius: $radius-pill;
+  background: $brand-primary; color: #fff; font-size: $fs-subhead; font-weight: $fw-semibold;
   &::after { border: none; }
   &[disabled] { background: $fill-secondary; color: $label-tertiary; }
   &.stop { background: $fill-secondary; color: $label-primary; }
 }
+.disclaimer { display: block; font-size: $fs-caption-2; color: $label-tertiary; text-align: center; margin-top: $sp-2; }
 </style>
