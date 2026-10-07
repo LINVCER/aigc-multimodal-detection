@@ -89,6 +89,11 @@ export async function listAdminTasks(params: {
   keyword?: string
   minAiRate?: number
   maxAiRate?: number
+  rateBucket?: string
+  pass?: boolean
+  modelVersion?: string
+  dateFrom?: string
+  dateTo?: string
   pageNum?: number
   pageSize?: number
 } = {}): Promise<{ total: number; rows: AdminTask[] }> {
@@ -241,5 +246,30 @@ export async function addQualityNote(payload: { conversationId: string; logId?: 
 
 export async function getQualityStats(days = 30): Promise<{ days: number; total: number; tags: Record<string, number>; avgScore: number | null }> {
   const resp = await http.get('/admin/assistant/quality-notes/stats', { params: { days } })
+  return resp.data.data
+}
+
+/* =========== 检测分析（detect-analytics-plan） =========== */
+
+export interface DetectAnalytics {
+  from: string
+  to: string
+  scenario: string
+  status: string
+  kpi: { total: number; done: number; avgAiRate: number | null; passRate: number | null; overRate: number | null }
+  trend: Array<{ date: string; total: number; done: number; avgAiRate: number | null; pass: number; over: number }>
+  scenarioDist: Record<string, number>
+  statusDist: Record<string, number>
+  rateBuckets: Record<string, number>
+  sourceDist: Record<string, number>
+}
+
+export async function getDetectAnalytics(params: { dateFrom?: string; dateTo?: string; scenario?: string; status?: string }): Promise<DetectAnalytics> {
+  const resp = await http.get('/admin/detect/analytics', { params })
+  return resp.data.data
+}
+
+export async function rebuildDetectStatistics(days = 0): Promise<{ rows: number; days: number }> {
+  const resp = await http.post('/admin/detect/statistics/rebuild', null, { params: { days } })
   return resp.data.data
 }
