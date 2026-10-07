@@ -1,11 +1,14 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useAuth } from '@/store/auth'
+import { getStatistics } from '@/api/detect'
 import FeedbackSheet from '@/components/FeedbackSheet.vue'
 import AssistantFab from '@/components/AssistantFab.vue'
 
 const auth = useAuth()
 const feedbackOpen = ref(false)
+const stats = ref(null)   // { total, avgAiRate, passRate, done, thisMonth, today }
 
 const avatarLetter = computed(() => (auth.username || 'U')[0].toUpperCase())
 const roleText = computed(() =>
@@ -48,6 +51,16 @@ function comingSoon(name) {
   uni.showToast({ title: `${name} 即将上线`, icon: 'none' })
 }
 function goMyFeedback() { uni.navigateTo({ url: '/pages/feedback/mine' }) }
+
+function goPrivacy() { uni.navigateTo({ url: '/pages/about/privacy' }) }
+
+function goHistory() { uni.switchTab({ url: '/pages/index/index' }) }
+
+onShow(() => {
+  getStatistics()
+    .then((s) => { stats.value = s })
+    .catch(() => { stats.value = null })
+})
 </script>
 
 <template>
@@ -63,6 +76,22 @@ function goMyFeedback() { uni.navigateTo({ url: '/pages/feedback/mine' }) }
       </view>
     </view>
 
+    <!-- 检测统计 -->
+    <view class="stats-card">
+      <view class="stat">
+        <text class="stat-num">{{ stats ? stats.total : '—' }}</text>
+        <text class="stat-label">累计检测</text>
+      </view>
+      <view class="stat">
+        <text class="stat-num">{{ stats ? stats.avgAiRate.toFixed(1) + '%' : '—' }}</text>
+        <text class="stat-label">平均 AI 率</text>
+      </view>
+      <view class="stat">
+        <text class="stat-num">{{ stats ? stats.passRate + '%' : '—' }}</text>
+        <text class="stat-label">达标率</text>
+      </view>
+    </view>
+
     <!-- 账户 -->
     <text class="group-label">账户</text>
     <view class="group-card">
@@ -74,7 +103,7 @@ function goMyFeedback() { uni.navigateTo({ url: '/pages/feedback/mine' }) }
         </view>
       </view>
       <view class="separator" />
-      <view class="row" hover-class="row-hover" @click="comingSoon('历史报告')">
+      <view class="row" hover-class="row-hover" @click="goHistory">
         <text class="row-title">历史报告</text>
         <text class="chevron">›</text>
       </view>
@@ -111,7 +140,7 @@ function goMyFeedback() { uni.navigateTo({ url: '/pages/feedback/mine' }) }
       </button>
       <view class="separator" />
       <!-- #endif -->
-      <view class="row" hover-class="row-hover" @click="comingSoon('隐私政策')">
+      <view class="row" hover-class="row-hover" @click="goPrivacy">
         <text class="row-title">隐私政策</text>
         <text class="chevron">›</text>
       </view>
@@ -172,6 +201,30 @@ function goMyFeedback() { uni.navigateTo({ url: '/pages/feedback/mine' }) }
   font-size: $fs-subhead;
   color: $label-secondary;
   margin-top: 8rpx;
+}
+
+/* 检测统计条 */
+.stats-card {
+  @include card;
+  margin-top: $sp-3;
+  padding: $sp-4;
+  display: flex;
+  justify-content: space-around;
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.stat-num {
+  font-size: $fs-title-3;
+  font-weight: $fw-semibold;
+  color: $label-primary;
+}
+.stat-label {
+  font-size: $fs-caption-1;
+  color: $label-secondary;
+  margin-top: $sp-1;
 }
 
 /* Inset Grouped Section */

@@ -54,6 +54,14 @@
       }
     },
     {
+      "path": "pages/about/privacy",
+      "style": {
+        "navigationBarTitleText": "隐私政策",
+        "navigationStyle": "custom",
+        "backgroundColor": "#F2F2F7"
+      }
+    },
+    {
       "path": "pages/task/detail",
       "style": {
         "navigationBarTitleText": "检测报告",
