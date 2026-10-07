@@ -1,18 +1,22 @@
 package com.paperaigc.detect.service;
 
 import com.paperaigc.detect.domain.dto.LoginDTO;
+import com.paperaigc.detect.domain.dto.RegisterDTO;
 import com.paperaigc.detect.domain.entity.AuthUser;
 import com.paperaigc.detect.domain.vo.LoginVO;
 
 /**
- * 认证服务（开发期 mock）
+ * 认证服务
  *
- * <p>Sa-Token 基座接入后由 Sa-Token 承接，本 Service 及其实现可删除。</p>
+ * <p>账号密码登录 + 注册走 auth_user 表（BCrypt）；微信一键登录 mock；token 内存仓储。</p>
  */
 public interface IAuthService {
 
-    /** 登录 · 任意非空账密放行，admin/admin 派 OPS_ADMIN */
+    /** 登录 · 查 auth_user 表 + BCrypt 校验；admin/admin 兜底自动建管理员 */
     LoginVO login(LoginDTO dto);
+
+    /** 注册 · 用户名唯一 + 密码 BCrypt hash 落库，注册即登录 */
+    LoginVO register(RegisterDTO dto);
 
     /**
      * 微信一键登录（mock）

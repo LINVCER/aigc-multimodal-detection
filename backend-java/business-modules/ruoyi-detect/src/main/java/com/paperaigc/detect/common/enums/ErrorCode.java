@@ -31,6 +31,10 @@ public enum ErrorCode {
     /* ========== 2xxx 认证 ========== */
     LOGIN_USERNAME_EMPTY   (2001, "用户名不能为空"),
     LOGIN_PASSWORD_EMPTY   (2002, "密码不能为空"),
+    LOGIN_PASSWORD_WRONG   (2003, "用户名或密码错误"),
+    REGISTER_USERNAME_EXISTS (2004, "该用户名已被注册"),
+    REGISTER_PASSWORD_MISMATCH (2005, "两次输入的密码不一致"),
+    CAPTCHA_INVALID        (2006, "验证码错误或已过期"),
     LOGIN_TOKEN_INVALID    (2401, "token 无效或已过期"),
 
     /* ========== 3xxx 检测任务 ========== */

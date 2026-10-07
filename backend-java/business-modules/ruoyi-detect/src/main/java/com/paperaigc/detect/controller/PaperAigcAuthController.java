@@ -3,9 +3,12 @@ package com.paperaigc.detect.controller;
 import cn.dev33.satoken.annotation.SaIgnore;
 import com.paperaigc.detect.common.constant.AuthConstants;
 import com.paperaigc.detect.domain.dto.LoginDTO;
+import com.paperaigc.detect.domain.dto.RegisterDTO;
 import com.paperaigc.detect.domain.entity.AuthUser;
+import com.paperaigc.detect.domain.vo.CaptchaVO;
 import com.paperaigc.detect.domain.vo.LoginVO;
 import com.paperaigc.detect.service.IAuthService;
+import com.paperaigc.detect.service.impl.CaptchaService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,10 +33,22 @@ import org.springframework.web.bind.annotation.RestController;
 public class PaperAigcAuthController {
 
     private final IAuthService authService;
+    private final CaptchaService captchaService;
+
+    /** 图形验证码：返回 captchaId + base64 图片 */
+    @GetMapping("/captcha")
+    public R<CaptchaVO> captcha() {
+        return R.ok(captchaService.generate());
+    }
 
     @PostMapping("/login")
     public R<LoginVO> login(@Valid @RequestBody LoginDTO dto) {
         return R.ok(authService.login(dto));
+    }
+
+    @PostMapping("/register")
+    public R<LoginVO> register(@Valid @RequestBody RegisterDTO dto) {
+        return R.ok(authService.register(dto));
     }
 
     /**

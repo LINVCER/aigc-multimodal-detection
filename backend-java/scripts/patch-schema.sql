@@ -267,4 +267,18 @@ CREATE TABLE IF NOT EXISTS assistant_conversation (
   INDEX idx_user_updated (user_id, updated_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT '助手会话（保留 session_ttl_days 天）';
 
+-- ==================== 平台账号（登录/注册） ====================
+-- 对齐 com.paperaigc.detect.domain.entity.UserAccount · V0.3.0.009
+CREATE TABLE IF NOT EXISTS auth_user (
+  id            BIGINT PRIMARY KEY AUTO_INCREMENT,
+  username      VARCHAR(64)  NOT NULL COMMENT '登录名（学号/工号/邮箱）',
+  password_hash VARCHAR(128) NOT NULL COMMENT 'salt:SHA-256 hash',
+  real_name     VARCHAR(64)  NULL,
+  role          VARCHAR(32)  NOT NULL DEFAULT 'USER' COMMENT 'USER / ADMIN / OPS_ADMIN',
+  org_name      VARCHAR(128) NULL,
+  created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_username (username)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT '平台账号';
+
 
