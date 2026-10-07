@@ -47,7 +47,13 @@ ACCEPTANCE = {
     "polished": {"f1": 0.60},
     "mixed": {"f1": 0.60},
     "short_text": {"auroc": 0.85},
+    # 第七套：运营复核确认的申诉样本（build_appeal_evalset.py 产出 eval_appeal.jsonl）。
+    # 多数是 label=0 的确认误判，AUROC 常无定义，看 FPR：每版 checkpoint 在这批上的假阳率不得超过 10%
+    "appeal": {"fpr": 0.10},
 }
+
+# 越低越好的指标（验收时用 <=）
+LOWER_IS_BETTER = ("ece", "fpr", "brier")
 
 
 @torch.no_grad()
@@ -124,7 +130,7 @@ def score_set(name: str, pred: dict, det, threshold: float) -> dict:
             # 指标不可用（如 cls_only 无溯源头）→ N/A，不算 FAIL
             m["acceptance"][k] = {"target": line, "value": None, "pass": None}
             continue
-        ok = (v <= line) if k.startswith("ece") else (v >= line)
+        ok = (v <= line) if k.startswith(LOWER_IS_BETTER) else (v >= line)
         m["acceptance"][k] = {"target": line, "value": v, "pass": bool(ok)}
     return m
 
