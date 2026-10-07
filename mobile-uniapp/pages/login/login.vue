@@ -47,7 +47,7 @@ async function onWechatLogin() {
 <template>
   <view class="page">
     <view class="hero">
-      <text class="brand">论文AIGC检测</text>
+      <text class="brand">知源</text>
       <text class="tagline">AI 率 · 段落热力 · 疑似来源分布</text>
     </view>
 

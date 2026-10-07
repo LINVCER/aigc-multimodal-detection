@@ -167,7 +167,7 @@ const showEmptyFiltered = computed(() =>
     <el-header class="header">
       <div class="header-inner">
         <div class="brand-block">
-          <span class="brand">论文AIGC检测</span>
+          <span class="brand">知源</span>
         </div>
         <div class="header-actions">
           <div class="avatar-btn" @click="router.push('/profile')" :title="auth.user?.username || '我的'">

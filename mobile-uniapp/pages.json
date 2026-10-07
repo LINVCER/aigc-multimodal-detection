@@ -64,7 +64,7 @@
     {
       "path": "pages/assistant/chat",
       "style": {
-        "navigationBarTitleText": "论文检测助手",
+        "navigationBarTitleText": "小白",
         "navigationStyle": "custom",
         "backgroundColor": "#F2F2F7"
       }
@@ -72,7 +72,7 @@
   ],
   "globalStyle": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "论文AIGC检测",
+    "navigationBarTitleText": "知源",
     "navigationBarBackgroundColor": "#FFFFFF",
     "backgroundColor": "#F2F2F7"
   },

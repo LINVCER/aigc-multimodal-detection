@@ -58,7 +58,7 @@ function go(path: string) { router.push(path) }
   <div class="landing">
     <header class="nav">
       <div class="nav-inner">
-        <span class="brand">论文AIGC检测</span>
+        <span class="brand">知源</span>
         <nav class="nav-links">
           <a href="#how">怎么用</a><a href="#rescue">被误判了？</a><a href="#faq">常见问题</a>
           <el-button v-if="auth.token" round size="small" @click="go('/dashboard')">进入工作台</el-button>

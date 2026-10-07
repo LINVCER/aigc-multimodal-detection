@@ -28,7 +28,7 @@ async function onSubmit() {
   <div class="login-page">
     <div class="wrap">
       <div class="hero">
-        <div class="brand">论文AIGC检测</div>
+        <div class="brand">知源</div>
         <div class="tagline">教育部 2026 新规 · 学位论文 AI 率检测</div>
       </div>
 

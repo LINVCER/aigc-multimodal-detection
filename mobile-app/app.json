@@ -1,13 +1,16 @@
 {
   "expo": {
-    "name": "论文AIGC检测",
+    "name": "知源",
     "slug": "paper-aigc-detect",
     "version": "0.1.0",
     "orientation": "portrait",
     "scheme": "paperaigc",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
     "splash": {
-      "backgroundColor": "#1a56db"
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0D9488"
     },
     "ios": {
       "supportsTablet": true,

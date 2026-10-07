@@ -21,8 +21,8 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>论文 AIGC 检测</Text>
-      <Text style={styles.subtitle}>教育部 2026 新规 · 学位论文 AI 率检测</Text>
+      <Text style={styles.title}>知源</Text>
+      <Text style={styles.subtitle}>看得懂的论文 AI 率检测 · 溯源 · 不代写</Text>
 
       <TextInput
         style={styles.input}
@@ -50,14 +50,14 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', paddingHorizontal: 32, backgroundColor: '#fff' },
-  title: { fontSize: 28, fontWeight: '700', textAlign: 'center', color: '#1a56db' },
+  title: { fontSize: 28, fontWeight: '700', textAlign: 'center', color: '#0D9488' },
   subtitle: { fontSize: 13, textAlign: 'center', color: '#6b7280', marginTop: 8, marginBottom: 40 },
   input: {
     borderWidth: 1, borderColor: '#d1d5db', borderRadius: 10,
     paddingHorizontal: 14, paddingVertical: 12, fontSize: 16, marginBottom: 14,
   },
   button: {
-    backgroundColor: '#1a56db', borderRadius: 10, paddingVertical: 14,
+    backgroundColor: '#0D9488', borderRadius: 10, paddingVertical: 14,
     alignItems: 'center', marginTop: 6,
   },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
