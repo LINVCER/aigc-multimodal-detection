@@ -32,6 +32,7 @@ except Exception:  # pragma: no cover
     _HAS_JIEBA = False
 
 _TOKEN_RE = re.compile(r"[A-Za-z0-9]+|[一-鿿]")
+_CJK_RUN_RE = re.compile(r"[一-鿿]{2,}")
 _STOP = set("的了是在和与或及等着过也都就而但把被让给对于为以及并且吗呢啊吧呀么什么怎么如何可以能不会有没")
 
 
@@ -40,7 +41,12 @@ def _tokenize(text: str) -> list[str]:
     if _HAS_JIEBA:
         toks = [t.strip() for t in jieba.lcut(text) if t.strip()]
     else:
+        # 无 jieba（本地开发常见）：单字 BM25 噪音太大，补上相邻汉字二元组作「伪分词」，
+        # 让回退路径的召回更接近生产（requirements 里有 jieba）
         toks = _TOKEN_RE.findall(text)
+        for run in _CJK_RUN_RE.findall(text):
+            for i in range(len(run) - 1):
+                toks.append(run[i:i + 2])
     out = []
     for t in toks:
         if t in _STOP or len(t) == 0:
