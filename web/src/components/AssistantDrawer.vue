@@ -157,23 +157,24 @@ function onTaskChange(v: number | undefined) {
 
 watch(() => props.modelValue, async (open) => {
   if (!open) return
-  // 打开：若当前无会话，先恢复本地暂存的会话（切换窗口/刷新不丢）
+  // 1) 恢复本地暂存会话（路由切换导致组件卸载后，重新挂载时 messages 为空）
   if (messages.value.length === 0 && !conversationId.value) {
     restore()
   }
+  const restored = messages.value.length > 0
   if (taskOptions.value.length === 0) await loadTasks()
-  // 恢复的会话绑定了报告 → 重新加载段落快捷条
+  // 2) 恢复的会话绑定了报告 → 加载段落快捷条
   if (activeTaskId.value != null && taskDetail.value == null) {
     try { taskDetail.value = await getTaskDetail(activeTaskId.value) } catch { taskDetail.value = null }
   }
-  // 从 TaskDetail 打开：同步其 taskId
-  if (props.taskId != null && props.taskId !== activeTaskId.value) {
+  // 3) 只有「无历史会话」时才用当前页面 taskId 初始化；有历史会话则尊重它，不清空
+  if (!restored && props.taskId != null && props.taskId !== activeTaskId.value) {
     await selectTask(props.taskId)
   } else if (!welcome.value) {
     await refreshPrompts(activeTaskId.value)
   }
-  // 「为什么这段像 AI」直达
-  if (props.paragraphIdx != null) {
+  // 4) 「为什么这段像 AI」直达：仅无历史会话时（避免把新段落追问绑定到旧会话上下文）
+  if (props.paragraphIdx != null && !restored) {
     pendingParagraph = props.paragraphIdx
     send(`第 ${props.paragraphIdx + 1} 段为什么会被判成像 AI？`)
   }
