@@ -610,7 +610,7 @@ function suggestionBg(sev: 'info' | 'warn' | 'danger'): string {
             <el-tag type="warning" size="small">新增 {{ compareData.summary.added }}</el-tag>
             <el-tag type="info" size="small">删除 {{ compareData.summary.removed }}</el-tag>
           </div>
-          <el-table :data="compareData.rows" size="small" max-height="420" :row-class-name="({ row }) => 'cmp-row-' + row.status">
+          <el-table :data="compareData.rows" size="small" max-height="420" :row-class-name="({ row }: any) => 'cmp-row-' + row.status">
             <el-table-column label="段" width="110">
               <template #default="{ row }">
                 <span v-if="row.currIdx != null">本 {{ row.currIdx + 1 }}</span><span v-if="row.currIdx != null && row.parentIdx != null"> ← </span><span v-if="row.parentIdx != null">上 {{ row.parentIdx + 1 }}</span>
