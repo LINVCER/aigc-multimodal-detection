@@ -174,7 +174,8 @@ async def run_chat(req: ChatRequest, detector_getter: DetectorGetter) -> AsyncIt
                                         "label": TOOL_LABELS.get(call.name, "正在处理…")})
                 res = await runner.run(call.name, call.arguments or "{}")
                 tool_trace.append({"name": call.name, "ok": res.ok, "summary": res.summary})
-                yield sse("tool_result", {"name": call.name, "ok": res.ok, "summary": res.summary})
+                yield sse("tool_result", {"name": call.name, "ok": res.ok, "summary": res.summary,
+                                          "card": _card_payload(call.name, res)})
                 messages.append({"role": "tool", "tool_call_id": call.id, "name": call.name,
                                  "content": res.to_model_content()})
     except LLMError as e:
@@ -209,6 +210,16 @@ async def run_chat(req: ChatRequest, detector_getter: DetectorGetter) -> AsyncIt
         "boundaryType": boundary_type,               # 类型：rewrite / bypass / ghostwrite / null
         **kb_meta,                                   # kbHits / kbTopScore / kbTopRef：知识缺口信号（增长闭环 §1.1）
     })
+
+
+# 结构化分析卡（product-feature-plan §2.1）：这三种工具的 data 原样给前端渲染，助手文字作「翻译」
+CARD_TOOLS = {"explain_paragraph", "get_task_detail", "detect_text"}
+
+
+def _card_payload(tool: str, res: Any) -> Optional[dict[str, Any]]:
+    if tool not in CARD_TOOLS or not res.ok or not isinstance(res.data, dict):
+        return None
+    return res.data
 
 
 def _kb_meta(hits: list) -> dict[str, Any]:
