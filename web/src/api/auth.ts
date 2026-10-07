@@ -1,14 +1,28 @@
 import { http } from './client'
 import type { LoginResp, UserInfo } from './types'
 
-export async function login(username: string, password: string): Promise<LoginResp> {
+export async function login(username: string, password: string, captchaId?: string, captchaCode?: string): Promise<LoginResp> {
   const resp = await http.post('/api/v1/auth/login', {
     username,
     password,
     clientId: 'e5cd7e4891bf95d1d19206ce24a7b32e',
     grantType: 'password',
     tenantId: '000000',
+    ...(captchaId ? { captchaId, captchaCode } : {}),
   })
+  return resp.data.data
+}
+
+export async function register(username: string, password: string, confirmPassword: string, captchaId?: string, captchaCode?: string): Promise<LoginResp> {
+  const resp = await http.post('/api/v1/auth/register', {
+    username, password, confirmPassword,
+    ...(captchaId ? { captchaId, captchaCode } : {}),
+  })
+  return resp.data.data
+}
+
+export async function getCaptcha(): Promise<{ captchaId: string; imageBase64: string }> {
+  const resp = await http.get('/api/v1/auth/captcha')
   return resp.data.data
 }
 

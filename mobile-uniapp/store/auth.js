@@ -19,34 +19,59 @@ export const useAuth = defineStore('auth', {
       this.role = uni.getStorageSync('user_role') || ''
     },
 
+    /** 统一落库登录态 */
+    _applyLogin(token, user, fallbackName) {
+      uni.setStorageSync('access_token', token)
+      uni.setStorageSync('username', user.username || fallbackName)
+      uni.setStorageSync('user_id', user.id || '')
+      uni.setStorageSync('user_role', user.role || '')
+      this.token = token
+      this.username = user.username || fallbackName
+      this.userId = user.id || ''
+      this.role = user.role || ''
+    },
+
     /**
      * 登录
      * @param {string} username
      * @param {string} password
+     * @param {string} [captchaId]
+     * @param {string} [captchaCode]
      */
-    async login(username, password) {
+    async login(username, password, captchaId, captchaCode) {
       this.loading = true
       try {
         let token = 'mock-token'
         let user = { id: '', username, role: 'USER' }
         if (!MOCK_MODE) {
-          const data = await http({
-            url: '/api/v1/auth/login',
-            method: 'POST',
-            data: { username, password, clientId: 'e5cd7e4891bf95d1d19206ce24a7b32e', grantType: 'password' },
-            auth: false,
-          })
+          const payload = { username, password, clientId: 'e5cd7e4891bf95d1d19206ce24a7b32e', grantType: 'password' }
+          if (captchaId) { payload.captchaId = captchaId; payload.captchaCode = captchaCode }
+          const data = await http({ url: '/api/v1/auth/login', method: 'POST', data: payload, auth: false })
           token = data.accessToken
           user = data.user || user
         }
-        uni.setStorageSync('access_token', token)
-        uni.setStorageSync('username', user.username || username)
-        uni.setStorageSync('user_id', user.id || '')
-        uni.setStorageSync('user_role', user.role || '')
-        this.token = token
-        this.username = user.username || username
-        this.userId = user.id || ''
-        this.role = user.role || ''
+        this._applyLogin(token, user, username)
+      } finally {
+        this.loading = false
+      }
+    },
+
+    /**
+     * 注册（注册即登录）
+     */
+    async register(username, password, confirmPassword, captchaId, captchaCode) {
+      this.loading = true
+      try {
+        let token = 'mock-token'
+        let user = { id: '', username, role: 'USER' }
+        if (!MOCK_MODE) {
+          const payload = { username, password, confirmPassword }
+          if (captchaId) { payload.captchaId = captchaId; payload.captchaCode = captchaCode }
+          const data = await http({ url: '/api/v1/auth/register', method: 'POST', data: payload, auth: false })
+          token = data.accessToken
+          user = data.user || user
+        }
+        this._applyLogin(token, user, username)
       } finally {
         this.loading = false
       }

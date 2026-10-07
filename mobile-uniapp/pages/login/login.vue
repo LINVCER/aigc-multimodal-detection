@@ -1,21 +1,51 @@
 <script setup>
 import { ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import { useAuth } from '@/store/auth'
+import { http, MOCK_MODE } from '@/utils/request'
 
 const auth = useAuth()
+const mode = ref('login')   // 'login' | 'register'
 const username = ref('')
 const password = ref('')
+const confirmPassword = ref('')
+const captchaId = ref('')
+const captchaCode = ref('')
+const captchaImg = ref('')
+
+async function loadCaptcha() {
+  if (MOCK_MODE) { captchaId.value = ''; captchaImg.value = ''; return }
+  try {
+    const data = await http({ url: '/api/v1/auth/captcha', method: 'GET', auth: false })
+    captchaId.value = data.captchaId
+    captchaImg.value = data.imageBase64
+  } catch (e) {
+    captchaId.value = ''
+    captchaImg.value = ''
+  }
+}
+onLoad(loadCaptcha)
 
 async function onSubmit() {
   if (!username.value || !password.value) {
     uni.showToast({ title: '请输入账号和密码', icon: 'none' })
     return
   }
+  if (mode.value === 'register' && password.value !== confirmPassword.value) {
+    uni.showToast({ title: '两次输入的密码不一致', icon: 'none' })
+    return
+  }
   try {
-    await auth.login(username.value, password.value)
+    if (mode.value === 'register') {
+      await auth.register(username.value, password.value, confirmPassword.value, captchaId.value, captchaCode.value)
+    } else {
+      await auth.login(username.value, password.value, captchaId.value, captchaCode.value)
+    }
     uni.reLaunch({ url: '/pages/home/home' })
   } catch (e) {
-    uni.showToast({ title: e?.message || '登录失败', icon: 'none' })
+    uni.showToast({ title: e?.message || '操作失败', icon: 'none' })
+    if (captchaId.value) loadCaptcha()
+    captchaCode.value = ''
   }
 }
 
@@ -52,14 +82,28 @@ async function onWechatLogin() {
     </view>
 
     <view class="form">
+      <view class="seg">
+        <text class="seg-item" :class="{ active: mode === 'login' }" @click="mode = 'login'">登录</text>
+        <text class="seg-item" :class="{ active: mode === 'register' }" @click="mode = 'register'">注册</text>
+      </view>
+
       <view class="field">
         <input v-model="username" class="input" placeholder="账号 / 手机号" placeholder-style="color: rgba(60,60,67,0.30)" :cursor-spacing="24" :adjust-position="true" />
       </view>
       <view class="field">
-        <input v-model="password" class="input" placeholder="密码" password placeholder-style="color: rgba(60,60,67,0.30)" :cursor-spacing="24" :adjust-position="true" />
+        <input v-model="password" class="input" placeholder="密码（6-32 位）" password placeholder-style="color: rgba(60,60,67,0.30)" :cursor-spacing="24" :adjust-position="true" />
+      </view>
+      <view v-if="mode === 'register'" class="field">
+        <input v-model="confirmPassword" class="input" placeholder="再次输入密码" password placeholder-style="color: rgba(60,60,67,0.30)" :cursor-spacing="24" :adjust-position="true" />
+      </view>
+      <view class="captcha-row">
+        <view class="field captcha-field">
+          <input v-model="captchaCode" class="input" placeholder="验证码" placeholder-style="color: rgba(60,60,67,0.30)" :cursor-spacing="24" :adjust-position="true" />
+        </view>
+        <image v-if="captchaImg" class="captcha-img" :src="captchaImg" mode="aspectFill" @click="loadCaptcha" />
       </view>
 
-      <button class="submit" :loading="auth.loading" @click="onSubmit">登 录</button>
+      <button class="submit" :loading="auth.loading" @click="onSubmit">{{ mode === 'login' ? '登 录' : '注册并登录' }}</button>
 
       <!-- 微信一键登录 · 仅小程序端可见（H5 不支持 uni.login provider=weixin）-->
       <!-- #ifdef MP-WEIXIN -->
@@ -70,7 +114,7 @@ async function onWechatLogin() {
       </button>
       <!-- #endif -->
 
-      <text class="footer-hint">未注册账号将自动创建 · 登录即表示同意隐私政策</text>
+      <text class="footer-hint">{{ mode === 'login' ? '还没有账号？' : '已有账号？' }}<text class="switch-link" @click="mode = mode === 'login' ? 'register' : 'login'">{{ mode === 'login' ? '立即注册' : '去登录' }}</text></text>
     </view>
   </view>
 </template>
@@ -104,6 +148,34 @@ async function onWechatLogin() {
   background: $bg-grouped-primary;
   border-radius: $radius-card;
   padding: 4rpx $sp-4;
+  margin-bottom: $sp-3;
+}
+.seg {
+  display: flex;
+  background: $bg-grouped-primary;
+  border-radius: $radius-card;
+  padding: 4rpx;
+  margin-bottom: $sp-4;
+}
+.seg-item {
+  flex: 1;
+  text-align: center;
+  padding: 12rpx 0;
+  font-size: $fs-subhead;
+  color: $label-secondary;
+  border-radius: 12rpx;
+  &.active {
+    background: $bg-primary;
+    color: $label-primary;
+    font-weight: $fw-semibold;
+    box-shadow: $shadow-card;
+  }
+}
+.captcha-row { display: flex; align-items: center; gap: $sp-2; }
+.captcha-field { flex: 1; }
+.captcha-img {
+  width: 200rpx; height: $size-input-h;
+  border-radius: $radius-card;
   margin-bottom: $sp-3;
 }
 .input {
@@ -172,4 +244,5 @@ async function onWechatLogin() {
   text-align: center;
   line-height: $lh-normal;
 }
+.switch-link { color: $brand-primary; }
 </style>
