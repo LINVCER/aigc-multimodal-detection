@@ -96,6 +96,12 @@ uniapp 与 web 各有一个对话入口。零新服务、零新部署单元，LL
 - uniapp `components/AssistantAnalysisCard.vue` / web `components/AssistantAnalysisCard.vue`：段卡（校准概率条、疑似来源、表层特征 z 值与人话、最可疑句）、报告卡（AI 率 vs 红线、红黄绿段数、贡献最大的段、上次对比）、即时检测卡；对话页与抽屉在正文前渲染，助手文字作「翻译」
 - 卡片随消息一起进 web 抽屉的 localStorage 暂存
 
+### 复测对比视图（product-feature-plan §2.2）
+
+- Java：`GET /api/v1/detect/tasks/{id}/compare`，`ITaskCompareService` 按字符二元组 Jaccard ≥ 0.35 贪心配对正文段，给出 down / up / same / added / removed 与概率差；两次模型版本不同时 `comparable=false`，结论句明示不可直接比较
+- web：报告页「比上次」下加「查看段级对比」弹窗（两侧 AI 率、四类计数、逐段表格，降的行绿、涨的行红）
+- uniapp：同一入口，底部 sheet 展示
+
 ## 验证状态
 
 - Python：`compileall` 通过；知识库 32 块可加载。未在本机起服务（无 torch / 无 LLM key）
