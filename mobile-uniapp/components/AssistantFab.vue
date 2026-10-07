@@ -20,7 +20,7 @@ function open() {
 
 <template>
   <view v-if="ENABLE_ASSISTANT" class="fab" :style="{ bottom }" hover-class="fab--hover" @click="open">
-    <image class="fab-img" src="/static/ai_tag.png" mode="widthFix" />
+    <image class="fab-img" src="/static/xiaobai.gif" mode="widthFix" />
   </view>
 </template>
 

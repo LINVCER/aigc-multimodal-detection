@@ -338,7 +338,7 @@ function copyPara(text) { uni.setClipboardData({ data: text, showToast: false, s
           <text class="hero-paper">{{ detail.paperTitle }}</text>
 
           <view v-if="showAssistantTip" class="assist-tip">
-            <view class="assist-tip-avatar">AI</view>
+            <image class="assist-tip-avatar" src="/static/xiaobai.gif" mode="aspectFill" />
             <view class="assist-tip-body" @click="dismissAssistantTip(true)">
               <text class="assist-tip-text">{{ pass ? '达标了。要不要我说说哪几段还是偏「机器」，下次写得更稳？' : '别急，超标不等于作弊。要我带你看哪几段贡献最大、先改哪段吗？' }}</text>
               <text class="assist-tip-cta">和助手聊聊 ›</text>

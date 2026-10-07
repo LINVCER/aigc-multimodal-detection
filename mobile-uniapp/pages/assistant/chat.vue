@@ -152,7 +152,7 @@ async function refreshPrompts(id) {
     welcome.value = qp?.welcome || ''
     prompts.value = qp?.prompts || []
   } catch (e) {
-    welcome.value = '嗨，我是论文检测助手。检测结果看不懂、不知道怎么改，都可以直接问我。'
+    welcome.value = '嗨，我是小白。检测结果看不懂、不知道怎么改，都可以直接问我。'
   }
 }
 async function selectTask(id) {
@@ -419,10 +419,10 @@ function formatTime(t) {
       <view class="nav-inner">
         <view class="nav-btn" hover-class="nav-btn--hover" @click="goBack"><text class="nav-btn-icon">‹</text></view>
         <view class="nav-center">
-          <view class="nav-avatar"><text>AI</text><view class="nav-dot" /></view>
+          <view class="nav-avatar"><image class="nav-avatar-img" src="/static/xiaobai.gif" mode="aspectFill" /><view class="nav-dot" /></view>
           <view class="nav-text">
-            <text class="nav-title">论文检测助手</text>
-            <text class="nav-sub">{{ streaming ? '正在思考…' : '在线 · 不代写不改写' }}</text>
+            <text class="nav-title">小白</text>
+            <text v-if="streaming" class="nav-sub">正在思考…</text>
           </view>
         </view>
         <view class="nav-actions">
@@ -460,8 +460,8 @@ function formatTime(t) {
         <!-- 空态 -->
         <view v-if="isEmpty" class="empty">
           <view class="hero">
-            <view class="hero-orb"><text>AI</text></view>
-            <text class="hero-title">{{ activeTask ? '这份报告，想从哪聊起？' : '你好，我是论文检测助手' }}</text>
+            <image class="hero-orb" src="/static/xiaobai.gif" mode="aspectFill" />
+            <text class="hero-title">{{ activeTask ? '这份报告，想从哪聊起？' : '你好，我是小白' }}</text>
             <text class="hero-sub">{{ welcome }}</text>
           </view>
           <view class="abilities">
@@ -483,7 +483,7 @@ function formatTime(t) {
         <template v-for="(m, i) in messages" :key="i">
           <view v-if="showDayDivider(i)" class="day"><text>{{ dayLabel(m.ts) }}</text></view>
           <view class="row" :class="m.role">
-            <view v-if="m.role === 'assistant'" class="row-avatar"><text>AI</text></view>
+            <image v-if="m.role === 'assistant'" class="row-avatar" src="/static/xiaobai.gif" mode="aspectFill" />
             <view class="bubble" :class="m.role" @longpress="onBubbleLongPress(m, i)">
               <!-- 工具三态 -->
               <view v-if="m.role === 'assistant' && m.tools?.length" class="tools">
@@ -627,9 +627,9 @@ function formatTime(t) {
 .nav-center { flex: 1; min-width: 0; display: flex; align-items: center; gap: $sp-2; justify-content: center; }
 .nav-avatar {
   position: relative; width: 60rpx; height: 60rpx; border-radius: $radius-pill;
-  background: $brand-gradient-vivid; color: #fff; font-size: $fs-caption-2; font-weight: $fw-bold;
-  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
 }
+.nav-avatar-img { width: 100%; height: 100%; }
 .nav-dot { position: absolute; right: -2rpx; bottom: -2rpx; width: 16rpx; height: 16rpx; border-radius: 50%; background: $success-solid; border: 3rpx solid #fff; }
 .nav-text { display: flex; flex-direction: column; }
 .nav-title { font-size: $fs-headline; font-weight: $fw-semibold; color: $label-primary; line-height: 1.2; }
@@ -673,8 +673,6 @@ function formatTime(t) {
 .hero { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0 $sp-4 $sp-6; }
 .hero-orb {
   width: 128rpx; height: 128rpx; border-radius: $radius-pill;
-  background: $brand-gradient-vivid; color: #fff; font-size: $fs-title-3; font-weight: $fw-bold;
-  display: flex; align-items: center; justify-content: center;
   box-shadow: 0 16rpx 40rpx rgba(94, 92, 230, 0.28);
   margin-bottom: $sp-4;
 }

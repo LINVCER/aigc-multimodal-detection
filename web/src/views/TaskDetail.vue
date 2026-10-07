@@ -299,7 +299,7 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
                 </div>
               </div>
               <div v-if="showAssistantTip" class="assist-tip">
-                <span class="assist-tip-avatar">AI</span>
+                <img class="assist-tip-avatar" src="/xiaobai.gif" alt="小白" />
                 <span class="assist-tip-text" @click="dismissAssistantTip(true)">{{ pass ? '达标了。要不要我说说哪几段还是偏「机器」，下次写得更稳？' : '别急，超标不等于作弊。要我带你看哪几段贡献最大、先改哪段吗？' }} <b>和助手聊聊 ›</b></span>
                 <el-button link size="small" @click.stop="dismissAssistantTip(false)">✕</el-button>
               </div>

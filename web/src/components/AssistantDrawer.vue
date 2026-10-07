@@ -147,7 +147,7 @@ async function refreshPrompts(taskId?: number) {
     welcome.value = qp.welcome
     prompts.value = qp.prompts || []
   } catch {
-    welcome.value = '嗨，我是论文检测助手。检测结果看不懂、不知道怎么改，都可以直接问我。'
+    welcome.value = '嗨，我是小白。检测结果看不懂、不知道怎么改，都可以直接问我。'
   }
 }
 
@@ -395,8 +395,8 @@ function formatTime(t: number | string): string {
       <!-- ① 头部：只留身份 + 全局操作 -->
       <div class="ad-head">
         <div class="ad-title">
-          <span class="ad-avatar">AI</span>
-          <div class="ad-name">论文检测助手</div>
+          <img class="ad-avatar" src="/xiaobai.gif" alt="小白" />
+          <div class="ad-name">小白</div>
         </div>
         <div class="ad-head-actions">
           <el-tooltip content="历史对话" placement="bottom"><el-button link class="ad-icon-btn" @click="openHistory">🕘</el-button></el-tooltip>
@@ -444,7 +444,7 @@ function formatTime(t: number | string): string {
         <!-- ④ 消息流 -->
         <div ref="listEl" class="ad-list">
           <div class="ad-welcome">
-            <span class="ad-avatar sm">AI</span>
+            <img class="ad-avatar sm" src="/xiaobai.gif" alt="小白" />
             <div class="ad-welcome-text">{{ welcome }}</div>
           </div>
 
@@ -527,10 +527,8 @@ function formatTime(t: number | string): string {
 .ad-title { display: flex; align-items: center; gap: 10px; }
 .ad-avatar {
   width: 34px; height: 34px; border-radius: 50%; flex: none;
-  background: linear-gradient(135deg, #5E5CE6 0%, #64D2FF 100%);
-  color: #fff; font-weight: 700; font-size: 12px;
-  display: inline-flex; align-items: center; justify-content: center;
-  &.sm { width: 26px; height: 26px; font-size: 10px; }
+  object-fit: cover;
+  &.sm { width: 26px; height: 26px; }
 }
 .ad-name { font-weight: 600; font-size: 15px; }
 .ad-head-actions { display: flex; gap: 2px; }
