@@ -30,6 +30,14 @@ const buckets = computed(() => {
 })
 const rate = computed(() => (props.data?.aiRate == null ? null : Number(props.data.aiRate)))
 const over = computed(() => rate.value != null && props.data?.threshold != null && rate.value > Number(props.data.threshold))
+const facts = computed(() => {
+  const f = props.data?.surfaceFacts
+  if (!f || !f.sentences) return ''
+  const parts = [`${f.sentences} 句`, `平均 ${f.avgSentLen} 字（${f.sentLenMin}–${f.sentLenMax}）`]
+  if (f.discourseMarkers) parts.push(`套话连接词 ${f.discourseMarkers} 处：${(f.discourseMarkerList || []).join('、')}`)
+  else parts.push('没有套话连接词')
+  return parts.join(' · ')
+})
 </script>
 
 <template>
@@ -51,7 +59,7 @@ const over = computed(() => rate.value != null && props.data?.threshold != null 
       </view>
       <text v-if="data.reliability" class="card-warn">{{ data.reliability }}</text>
       <view v-if="surface.length" class="feat">
-        <text class="feat-title">表层特征</text>
+        <text class="feat-title">{{ data.evidenceBasis ? "表层特征 · " + data.evidenceBasis : "表层特征" }}</text>
         <view v-for="f in surface" :key="f.feature" class="feat-row">
           <text class="feat-name">{{ f.feature }}</text>
           <text class="feat-z" :class="f.zscore > 0 ? 'pos' : 'neg'">z={{ f.zscore > 0 ? '+' : '' }}{{ f.zscore }}</text>
@@ -59,6 +67,7 @@ const over = computed(() => rate.value != null && props.data?.threshold != null 
         </view>
       </view>
       <text v-else-if="typeof data.surfaceEvidence === 'string'" class="card-sub">{{ data.surfaceEvidence }}</text>
+      <text v-if="facts" class="facts">{{ facts }}</text>
       <view v-if="data.sentences?.length" class="sents">
         <text class="feat-title">最可疑的句子</text>
         <view v-for="s in data.sentences" :key="s.idx" class="sent-row">
@@ -106,12 +115,14 @@ const over = computed(() => rate.value != null && props.data?.threshold != null 
     </view>
     <text v-if="data.warning" class="card-warn">{{ data.warning }}</text>
     <view v-if="surface.length" class="feat">
+      <text v-if="data.evidenceBasis" class="feat-title">{{ data.evidenceBasis }}</text>
       <view v-for="f in surface" :key="f.feature" class="feat-row">
         <text class="feat-name">{{ f.feature }}</text>
         <text class="feat-z" :class="f.zscore > 0 ? 'pos' : 'neg'">z={{ f.zscore > 0 ? '+' : '' }}{{ f.zscore }}</text>
         <text class="feat-read">{{ f.reading }}</text>
       </view>
     </view>
+    <text v-if="facts" class="facts">{{ facts }}</text>
   </view>
 </template>
 
@@ -147,6 +158,7 @@ const over = computed(() => rate.value != null && props.data?.threshold != null 
 .feat-z { flex: none; font-size: $fs-caption-2; font-family: $font-family-mono; &.pos { color: $danger-fg; } &.neg { color: $info-fg; } }
 .feat-read { flex: 1; font-size: $fs-caption-1; color: $label-secondary; }
 
+.facts { display: block; margin-top: $sp-2; padding-top: $sp-2; border-top: $stroke-hairline dashed $separator; font-size: $fs-caption-2; color: $label-secondary; line-height: 1.5; }
 .sents { margin-top: $sp-2; }
 .sent-row { display: flex; align-items: baseline; gap: $sp-2; padding: 4rpx 0; }
 .sent-prob { flex: none; font-size: $fs-caption-2; font-weight: $fw-semibold; color: $danger-fg; font-variant-numeric: tabular-nums; }

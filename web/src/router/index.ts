@@ -4,7 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 
 const routes: RouteRecordRaw[] = [
   { path: '/login', name: 'Login', component: () => import('@/views/Login.vue'), meta: { public: true } },
-  { path: '/', redirect: '/dashboard' },
+  { path: '/', name: 'Landing', component: () => import('@/views/Landing.vue'), meta: { public: true } },
   { path: '/dashboard', name: 'Dashboard', component: () => import('@/views/Dashboard.vue') },
   { path: '/upload', name: 'Upload', component: () => import('@/views/Upload.vue') },
   { path: '/task/:id', name: 'TaskDetail', component: () => import('@/views/TaskDetail.vue'), props: true },

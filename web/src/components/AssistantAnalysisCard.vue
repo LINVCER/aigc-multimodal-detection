@@ -18,6 +18,14 @@ const buckets = computed(() => {
 const rate = computed<number | null>(() => (props.data?.aiRate == null ? null : Number(props.data.aiRate)))
 const over = computed(() => rate.value != null && props.data?.threshold != null && rate.value > Number(props.data.threshold))
 const fmtZ = (z: number) => `z=${z > 0 ? '+' : ''}${z}`
+const facts = computed<string>(() => {
+  const f = props.data?.surfaceFacts
+  if (!f || !f.sentences) return ''
+  const parts = [`${f.sentences} 句`, `平均 ${f.avgSentLen} 字（${f.sentLenMin}–${f.sentLenMax}）`]
+  if (f.discourseMarkers) parts.push(`套话连接词 ${f.discourseMarkers} 处：${(f.discourseMarkerList || []).join('、')}`)
+  else parts.push('没有套话连接词')
+  return parts.join(' · ')
+})
 </script>
 
 <template>
@@ -33,10 +41,11 @@ const fmtZ = (z: number) => `z=${z > 0 ? '+' : ''}${z}`
       <div class="prob"><span class="sub">校准概率</span><div class="bar"><div class="fill" :class="level" :style="{ width: (prob || 0) + '%' }" /></div><b :class="level">{{ prob == null ? '—' : prob + '%' }}</b></div>
       <div v-if="data.reliability" class="warn">{{ data.reliability }}</div>
       <div v-if="surface.length" class="feat">
-        <div class="sub">表层特征</div>
+        <div class="sub">表层特征<template v-if="data.evidenceBasis"> · {{ data.evidenceBasis }}</template></div>
         <div v-for="f in surface" :key="f.feature" class="row"><span class="name">{{ f.feature }}</span><code :class="f.zscore > 0 ? 'pos' : 'neg'">{{ fmtZ(f.zscore) }}</code><span class="read">{{ f.reading }}</span></div>
       </div>
       <div v-else-if="typeof data.surfaceEvidence === 'string'" class="sub">{{ data.surfaceEvidence }}</div>
+      <div v-if="facts" class="facts">{{ facts }}</div>
       <div v-if="data.sentences?.length" class="feat">
         <div class="sub">最可疑的句子</div>
         <div v-for="s in data.sentences" :key="s.idx" class="row"><b class="sp">{{ Math.round((s.aiProb || 0) * 100) }}%</b><span class="read ellipsis">{{ s.text }}…</span></div>
@@ -59,8 +68,10 @@ const fmtZ = (z: number) => `z=${z > 0 ? '+' : ''}${z}`
     <div class="prob"><span class="sub">校准概率</span><div class="bar"><div class="fill" :class="level" :style="{ width: (prob || 0) + '%' }" /></div><b :class="level">{{ prob == null ? '—' : prob + '%' }}</b></div>
     <div v-if="data.warning" class="warn">{{ data.warning }}</div>
     <div v-if="surface.length" class="feat">
+      <div v-if="data.evidenceBasis" class="sub">{{ data.evidenceBasis }}</div>
       <div v-for="f in surface" :key="f.feature" class="row"><span class="name">{{ f.feature }}</span><code :class="f.zscore > 0 ? 'pos' : 'neg'">{{ fmtZ(f.zscore) }}</code><span class="read">{{ f.reading }}</span></div>
     </div>
+    <div v-if="facts" class="facts">{{ facts }}</div>
   </div>
 </template>
 
@@ -78,6 +89,7 @@ const fmtZ = (z: number) => `z=${z > 0 ? '+' : ''}${z}`
 .fill { height: 100%; border-radius: 99px; &.red { background: var(--el-color-danger); } &.yellow { background: var(--el-color-warning); } &.green { background: var(--el-color-success); } }
 .prob b { font-variant-numeric: tabular-nums; &.red { color: var(--el-color-danger); } &.yellow { color: var(--el-color-warning-dark-2); } &.green { color: var(--el-color-success-dark-2); } }
 .feat { margin-top: 6px; }
+.facts { margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--el-border-color-lighter); color: var(--el-text-color-secondary); font-size: 11px; line-height: 1.5; }
 .row { display: flex; align-items: baseline; gap: 8px; padding: 2px 0; }
 .name { flex: none; }
 code { flex: none; font-size: 11px; &.pos { color: var(--el-color-danger); } &.neg { color: var(--el-color-primary); } }
