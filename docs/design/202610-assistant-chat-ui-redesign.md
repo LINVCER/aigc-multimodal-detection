@@ -2,7 +2,7 @@
 
 > 日期：2026-10
 > 范围：web `AssistantDrawer.vue` / uniapp `pages/assistant/chat.vue` 的对话界面结构与样式
-> 状态：已按 §2.2 四区布局全部落地（2026-10-07，web `AssistantDrawer.vue` + uniapp `pages/assistant/chat.vue`）：① Markdown 渲染 ② 头部瘦身 + 报告下拉 + 上下文卡（标题 / AI 率 / 红线 / 达标徽章 / 段落 chips）③ 工具调用图标 + spinner / ✓ / ✕ 状态 ④ 复制 + 点赞点踩（落 user_feedback suggestion）⑤ uniapp 同步 ⑥ 段落分析卡（product-feature-plan §2.1）
+> 状态：已按 §2.2 四区布局全部落地（2026-10-07，web `AssistantDrawer.vue` + uniapp `pages/assistant/chat.vue`）：① Markdown 渲染 ② 头部瘦身 + 报告下拉 + 上下文卡（标题 / AI 率 / 红线 / 达标徽章 / 段落 chips）③ 工具调用图标 + spinner / ✓ / ✕ 状态 ④ 复制 + 点赞点踩（落 user_feedback suggestion）⑤ uniapp 同步 ⑥ 段落分析卡（product-feature-plan §2.1）。uniapp 端随后整页重构超出本方案范围：空态能力卡、上下文 pill、「+」工具面板、粘贴即时检测、追问建议、停止 / 回到底部浮条、长按菜单、日期分隔（见 release-notes）
 
 ---
 
