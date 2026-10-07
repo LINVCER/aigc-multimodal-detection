@@ -204,6 +204,24 @@ CREATE TABLE IF NOT EXISTS assistant_quality_note (
   INDEX idx_tag_time (tag, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT '助手对话质检标注';
 
+-- ==================== 检测数据物化统计（detect-analytics-plan §3.2） ====================
+CREATE TABLE IF NOT EXISTS detect_statistics_daily (
+  id                 BIGINT PRIMARY KEY AUTO_INCREMENT,
+  stat_date          DATE NOT NULL,
+  scenario           VARCHAR(32) NOT NULL DEFAULT 'all' COMMENT 'all = 全场景',
+  status             VARCHAR(16) NOT NULL DEFAULT 'all' COMMENT 'all = 全状态',
+  total_count        INT NOT NULL DEFAULT 0,
+  done_count         INT NOT NULL DEFAULT 0,
+  ai_rate_sum        DECIMAL(12,2) NOT NULL DEFAULT 0 COMMENT 'DONE 任务 ai_rate 之和',
+  avg_ai_rate        DECIMAL(5,2) NULL,
+  pass_count         INT NOT NULL DEFAULT 0,
+  over_count         INT NOT NULL DEFAULT 0,
+  source_labels_json JSON NULL COMMENT '溯源主标签计数',
+  updated_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_date_scenario_status (stat_date, scenario, status),
+  INDEX idx_date (stat_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT '检测数据按天×场景×状态物化统计';
+
 -- ==================== 句级结果 ====================
 CREATE TABLE IF NOT EXISTS detect_sentence_result (
   id             BIGINT PRIMARY KEY AUTO_INCREMENT,

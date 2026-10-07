@@ -7,6 +7,7 @@ import com.paperaigc.detect.domain.entity.DetectTask;
 import com.paperaigc.detect.domain.vo.PageVO;
 import com.paperaigc.detect.repository.IDetectTaskRepository;
 import com.paperaigc.detect.service.IAdminUserService;
+import com.paperaigc.detect.service.impl.DetectAnalyticsServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.common.core.domain.R;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -42,6 +44,15 @@ public class AdminTaskController {
                         || ParamUtils.containsIgnoreCase(t.getPaperTitle(), q.getKeyword()))
                 .filter(t -> q.getMinAiRate() == null || (t.getAiRate() != null && t.getAiRate() >= q.getMinAiRate()))
                 .filter(t -> q.getMaxAiRate() == null || (t.getAiRate() != null && t.getAiRate() <= q.getMaxAiRate()))
+                .filter(t -> ParamUtils.isBlank(q.getRateBucket())
+                        || (t.getAiRate() != null && q.getRateBucket().equals(DetectAnalyticsServiceImpl.bucketOf(t.getAiRate()))))
+                .filter(t -> q.getPass() == null
+                        || (t.getAiRate() != null && t.getThreshold() != null && q.getPass() == (t.getAiRate() <= t.getThreshold())))
+                .filter(t -> ParamUtils.isBlank(q.getModelVersion()) || q.getModelVersion().equals(t.getModelVersion()))
+                .filter(t -> ParamUtils.isBlank(q.getDateFrom())
+                        || (t.getCreatedAt() != null && !t.getCreatedAt().toLocalDate().isBefore(LocalDate.parse(q.getDateFrom()))))
+                .filter(t -> ParamUtils.isBlank(q.getDateTo())
+                        || (t.getCreatedAt() != null && !t.getCreatedAt().toLocalDate().isAfter(LocalDate.parse(q.getDateTo()))))
                 .sorted(Comparator.comparing(DetectTask::getCreatedAt,
                         Comparator.nullsLast(Comparator.reverseOrder())))
                 .map(this::maskForAdmin)

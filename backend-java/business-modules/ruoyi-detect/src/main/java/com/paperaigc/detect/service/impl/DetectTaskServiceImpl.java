@@ -52,6 +52,7 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
     private final TextProcessor textProcessor;
     private final com.paperaigc.detect.service.IScenarioThresholdService scenarioThresholdService;
     private final com.paperaigc.detect.service.INotifyService notifyService;
+    private final com.paperaigc.detect.service.IDetectAnalyticsService analyticsService;
 
     /* ==================== §3.1 提交 ==================== */
 
@@ -193,6 +194,12 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
         boolean allFailed = attemptedCount > 0 && rateCount == 0;
         task.setStatus(allFailed ? DetectConstants.STATUS_FAILED : DetectConstants.STATUS_DONE);
         task.setFinishedAt(LocalDateTime.now());
+        // 物化统计：终态计入当天分片（detect-analytics-plan §4 方案 B）；失败不影响任务
+        try {
+            analyticsService.record(task);
+        } catch (Exception e) {
+            log.warn("analytics record failed task={}: {}", task.getId(), e.toString());
+        }
         if (!allFailed) {
             try {
                 notifyService.taskDone(task);
@@ -272,6 +279,12 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
         DetectTask task = taskRepository.findById(id)
                 .orElseThrow(() -> new BizException(ErrorCode.DETECT_TASK_NOT_FOUND));
 
+        // 重试会再次计入终态，先把上一次的扣回，避免双计
+        try {
+            analyticsService.revert(task);
+        } catch (Exception e) {
+            log.warn("analytics revert failed task={}: {}", id, e.toString());
+        }
         task.setStatus(DetectConstants.STATUS_PENDING);
         task.setFinishedAt(null);
         task.setAiRate(null);
@@ -321,6 +334,11 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
     @Transactional(rollbackFor = Exception.class)
     public void delete(Long id) {
         taskRepository.findById(id).ifPresent(t -> {
+            try {
+                analyticsService.revert(t);
+            } catch (Exception e) {
+                log.warn("analytics revert failed task={}: {}", id, e.toString());
+            }
             if (t.getFilePath() != null) storageService.delete(t.getFilePath());
             taskRepository.deleteById(id);
         });
