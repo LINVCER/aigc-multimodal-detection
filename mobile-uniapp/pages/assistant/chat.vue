@@ -1,7 +1,7 @@
 <script setup>
-import { ref, computed, nextTick, onUnmounted } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
-import { chatStream, getQuickPrompts } from '@/api/assistant'
+import { ref, computed, nextTick } from 'vue'
+import { onLoad, onUnload } from '@dcloudio/uni-app'
+import { chatStream, getQuickPrompts, listConversations, getConversation, deleteConversation } from '@/api/assistant'
 import { listTasks, getTaskDetail } from '@/api/detect'
 import { useAuth } from '@/store/auth'
 import AssistantAnalysisCard from '@/components/AssistantAnalysisCard.vue'
@@ -34,6 +34,35 @@ const taskDetail = ref(null)
 
 let stream = null
 
+// ---- 本地持久化：切换页面/杀进程重进不丢（后端 MySQL 仍作 7 天跨设备备份）----
+const LS_KEY = 'paperaigc_chat_state'
+
+function persist() {
+  try {
+    uni.setStorageSync(LS_KEY, JSON.stringify({
+      conversationId: conversationId.value,
+      taskId: taskId.value,
+      messages: messages.value,
+    }))
+  } catch (e) { /* 存储异常忽略 */ }
+}
+
+function restore() {
+  try {
+    const raw = uni.getStorageSync(LS_KEY)
+    if (!raw) return
+    const state = JSON.parse(raw)
+    conversationId.value = state.conversationId || ''
+    taskId.value = state.taskId ?? null
+    messages.value = state.messages || []
+  } catch (e) { /* 解析失败忽略 */ }
+}
+
+// ---- 历史会话（聊天记录，后端保留 7 天）----
+const showHistory = ref(false)
+const historyList = ref([])
+const loadingHistory = ref(false)
+
 const canSend = computed(() => input.value.trim().length > 0 && !streaming.value)
 const showQuick = computed(() => messages.value.length === 0 && prompts.value.length > 0)
 const activeTask = computed(() => tasks.value.find((t) => t.id === taskId.value) || null)
@@ -48,23 +77,30 @@ const riskParagraphs = computed(() => {
 onLoad(async (query) => {
   const sys = uni.getSystemInfoSync()
   statusBarHeight.value = sys.statusBarHeight || 20
-  if (query?.taskId) taskId.value = Number(query.taskId)
-  if (query?.paragraphIdx !== undefined && query.paragraphIdx !== '') paragraphIdx.value = Number(query.paragraphIdx)
-  if (query?.conversationId) conversationId.value = query.conversationId
-
+  // 1) 每次进入页面都是新实例，先恢复本地暂存会话
+  restore()
+  const restored = messages.value.length > 0
   loadTasks()
+  // 2) 无历史会话时才用 query 初始化；有历史则尊重恢复的上下文，不清空
+  if (!restored) {
+    if (query?.taskId) taskId.value = Number(query.taskId)
+    if (query?.paragraphIdx !== undefined && query.paragraphIdx !== '') paragraphIdx.value = Number(query.paragraphIdx)
+    if (query?.conversationId) conversationId.value = query.conversationId
+  }
   await refreshPrompts(taskId.value || undefined)
-  if (taskId.value != null) {
+  if (taskId.value != null && taskDetail.value == null) {
     try { taskDetail.value = await getTaskDetail(taskId.value) } catch (e) { taskDetail.value = null }
   }
-
-  // 从「为什么这段像 AI」直达：自动发第一问
-  if (taskId.value != null && paragraphIdx.value != null) {
+  // 3) 「为什么这段像 AI」直达：仅无历史会话时（避免把新段落追问绑到旧会话）
+  if (!restored && taskId.value != null && paragraphIdx.value != null) {
     send(`第 ${paragraphIdx.value + 1} 段为什么会被判成像 AI？`)
   }
 })
 
-onUnmounted(() => { stream?.abort() })
+onUnload(() => {
+  stream?.abort()
+  persist()
+})
 
 function loadTasks() {
   listTasks()
@@ -89,6 +125,7 @@ async function selectTask(id) {
   messages.value = []
   taskDetail.value = null
   paragraphIdx.value = null
+  persist()
   await refreshPrompts(id)
   if (id != null) {
     try { taskDetail.value = await getTaskDetail(id) } catch (e) { taskDetail.value = null }
@@ -186,6 +223,7 @@ function send(text) {
     reply.streaming = false
     streaming.value = false
     if (!reply.text && !reply.error) reply.error = '助手没有返回内容，再试一次'
+    persist()
     scrollBottom()
   })
 }
@@ -211,6 +249,65 @@ function onNewChat() {
   conversationId.value = ''
   messages.value = []
   streaming.value = false
+  persist()
+}
+
+// ---- 历史会话（聊天记录）----
+async function openHistory() {
+  showHistory.value = true
+  await loadHistory()
+}
+
+async function loadHistory() {
+  loadingHistory.value = true
+  try {
+    historyList.value = await listConversations(auth.userId ? Number(auth.userId) : undefined, 30)
+  } catch (e) {
+    historyList.value = []
+  } finally {
+    loadingHistory.value = false
+  }
+}
+
+async function resumeConversation(c) {
+  try {
+    const detail = await getConversation(c.conversationId)
+    conversationId.value = c.conversationId
+    if (c.taskId != null && c.taskId !== taskId.value) {
+      taskId.value = c.taskId
+      taskDetail.value = null
+      try { taskDetail.value = await getTaskDetail(c.taskId) } catch (e) { taskDetail.value = null }
+      await refreshPrompts(c.taskId)
+    }
+    messages.value = (detail.messages || [])
+      .filter((m) => m.role === 'user' || m.role === 'assistant')
+      .map((m) => ({ role: m.role, text: m.content, tools: [], error: null, streaming: false }))
+    showHistory.value = false
+    persist()
+    scrollBottom()
+  } catch (e) { /* toast 由请求层 */ }
+}
+
+async function removeConversation(c) {
+  try {
+    await deleteConversation(c.conversationId)
+    historyList.value = historyList.value.filter((x) => x.conversationId !== c.conversationId)
+    if (conversationId.value === c.conversationId) {
+      conversationId.value = ''
+      messages.value = []
+      persist()
+    }
+  } catch (e) { /* ignore */ }
+}
+
+function formatTime(t) {
+  const ts = typeof t === 'number' ? t * 1000 : Date.parse(t)
+  if (!ts || isNaN(ts)) return ''
+  const diff = Date.now() - ts
+  if (diff < 60000) return '刚刚'
+  if (diff < 3600000) return `${Math.floor(diff / 60000)} 分钟前`
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)} 小时前`
+  return `${Math.floor(diff / 86400000)} 天前`
 }
 </script>
 
@@ -224,10 +321,34 @@ function onNewChat() {
           <text class="nav-title">论文检测助手</text>
           <text v-if="activeTask" class="nav-sub">{{ activeTask.paperTitle }}</text>
         </view>
-        <text class="nav-btn" @click="onNewChat">新对话</text>
+        <view class="nav-right">
+          <text class="nav-btn" @click="openHistory">历史</text>
+          <text class="nav-btn" @click="onNewChat">新对话</text>
+        </view>
       </view>
     </view>
 
+    <!-- 历史会话列表 -->
+    <view v-if="showHistory" class="history">
+      <view class="history-head">
+        <text class="history-back" @click="showHistory = false">← 返回</text>
+        <text class="history-title">历史对话 · 保留 7 天</text>
+      </view>
+      <scroll-view class="history-list" scroll-y>
+        <view v-if="loadingHistory" class="history-empty">加载中…</view>
+        <view v-else-if="historyList.length === 0" class="history-empty">暂无历史对话</view>
+        <view v-for="c in historyList" :key="c.conversationId" class="history-item" @click="resumeConversation(c)">
+          <view class="history-item-main">
+            <text class="history-item-title">{{ c.title || '（无标题）' }}</text>
+            <text class="history-item-meta">{{ formatTime(c.updatedAt) }} · {{ c.turns }} 轮</text>
+          </view>
+          <text class="history-del" @click.stop="removeConversation(c)">删除</text>
+        </view>
+      </scroll-view>
+    </view>
+
+    <!-- 对话内容 -->
+    <template v-else>
     <!-- 报告选择条 -->
     <scroll-view v-if="tasks.length" class="task-strip" scroll-x :show-scrollbar="false">
       <view class="task-strip-inner">
@@ -314,6 +435,7 @@ function onNewChat() {
         <button v-else class="send-btn" :disabled="!canSend" @click="onSend">发送</button>
       </view>
     </view>
+    </template>
   </view>
 </template>
 
@@ -340,6 +462,32 @@ function onNewChat() {
   font-size: $fs-caption-2; color: $label-secondary; margin-top: 2rpx;
   max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+.nav-right { display: flex; align-items: center; gap: $sp-3; }
+
+/* ===== 历史会话 ===== */
+.history { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.history-head {
+  display: flex; align-items: center; gap: $sp-3;
+  padding: $sp-3 $sp-4;
+  background: $bg-primary;
+  border-bottom: $stroke-hairline solid $separator;
+}
+.history-back { color: $brand-primary; font-size: $fs-body; }
+.history-title { font-size: $fs-footnote; color: $label-secondary; }
+.history-list { flex: 1; min-height: 0; padding: $sp-3 $sp-4; }
+.history-empty { text-align: center; color: $label-tertiary; font-size: $fs-footnote; padding: 80rpx 0; }
+.history-item {
+  display: flex; align-items: center; justify-content: space-between; gap: $sp-3;
+  background: $bg-primary; border-radius: $radius-card; padding: $sp-3 $sp-4;
+  margin-bottom: $sp-2; box-shadow: $shadow-card;
+}
+.history-item-main { flex: 1; min-width: 0; }
+.history-item-title {
+  font-size: $fs-subhead; font-weight: $fw-medium; color: $label-primary;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.history-item-meta { font-size: $fs-caption-2; color: $label-secondary; margin-top: 4rpx; }
+.history-del { flex: none; font-size: $fs-footnote; color: $danger-fg; }
 
 /* ===== 报告选择条 ===== */
 .task-strip {
