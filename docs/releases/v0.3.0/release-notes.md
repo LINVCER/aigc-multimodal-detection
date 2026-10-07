@@ -90,6 +90,12 @@ uniapp 与 web 各有一个对话入口。零新服务、零新部署单元，LL
 - web / uniapp 报告页：首次看到 DONE 报告时 hero 下出现助手一句话（达标 / 超标两版文案），点击进对话，关闭后按设备 / 浏览器记一次
 - 未做（需外部条件）：golden set `--live`（LLM key）、分享「助手解读卡」（备案后）、订阅消息真实发送（真 openid）
 
+### 助手结构化分析卡（product-feature-plan §2.1）
+
+- Python：`tool_result` 事件对 `explain_paragraph / get_task_detail / detect_text` 三种工具附带 `card`（即工具 data 原样），其余工具不带
+- uniapp `components/AssistantAnalysisCard.vue` / web `components/AssistantAnalysisCard.vue`：段卡（校准概率条、疑似来源、表层特征 z 值与人话、最可疑句）、报告卡（AI 率 vs 红线、红黄绿段数、贡献最大的段、上次对比）、即时检测卡；对话页与抽屉在正文前渲染，助手文字作「翻译」
+- 卡片随消息一起进 web 抽屉的 localStorage 暂存
+
 ## 验证状态
 
 - Python：`compileall` 通过；知识库 32 块可加载。未在本机起服务（无 torch / 无 LLM key）
