@@ -102,6 +102,14 @@ uniapp 与 web 各有一个对话入口。零新服务、零新部署单元，LL
 - web：报告页「比上次」下加「查看段级对比」弹窗（两侧 AI 率、四类计数、逐段表格，降的行绿、涨的行红）
 - uniapp：同一入口，底部 sheet 展示
 
+### 检测分析 P0（detect-analytics-plan，按方案推荐：物化表 + 提交时增量）
+
+- SQL `V0.3.0.008`：`detect_statistics_daily`（天 × 场景 × 状态，`all` 表示不分维；比方案多一列 `ai_rate_sum` 以便增量更新平均值）；`patch-schema.sql` 同步
+- Java：`DetectStatisticsDaily` + Mapper；`IDetectAnalyticsService`（`record` 终态计入 4 个分片、`revert` 重试 / 删除前扣回、`rebuild` 全量重算、`analytics` 读）；`DetectTaskServiceImpl` 在终态 / 重试 / 删除三处挂钩；`AdminAnalyticsController`：`GET /admin/detect/analytics?dateFrom&dateTo&scenario&status`、`POST /admin/detect/statistics/rebuild?days`
+- 明细筛选增强：`DetectTaskQueryDTO` 加 `rateBucket / pass / modelVersion / dateFrom / dateTo`，`/admin/task/list` 生效
+- web：新页 `/admin/analytics`（菜单「检测分析」）：日期 / 场景 / 状态筛选，KPI 五卡，趋势折线（检测量 + 平均 AI 率），AI 率分桶、场景、状态、溯源主标签四组分布条，明细表带达标标签；「重算统计」按钮首次上线补历史
+- 未做（P1/P2）：CSV 导出、定时重算、模型灰度对比、申诉合理率接入
+
 ## 验证状态
 
 - Python：`compileall` 通过；知识库 32 块可加载。未在本机起服务（无 torch / 无 LLM key）
