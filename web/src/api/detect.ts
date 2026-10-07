@@ -1,5 +1,5 @@
 import { http } from './client'
-import type { DetectTask, TaskDetail, PageResp, HumanizeResp, SentenceScore, StatisticsResp } from './types'
+import type { TaskCompare, DetectTask, TaskDetail, PageResp, HumanizeResp, SentenceScore, StatisticsResp } from './types'
 
 /** §3.1 提交论文（W3.b · scenario；W3.c 前透传 userId 便于后台 topUsers/userLabel 归属） */
 export async function submitPaper(
@@ -30,6 +30,12 @@ export async function listTasks(params: { pageNum?: number; pageSize?: number; s
 }
 
 /** §3.3 任务详情 */
+/** 复测对比：当前任务 vs parent_task_id（product-feature-plan §2.2） */
+export async function getTaskCompare(id: number): Promise<TaskCompare> {
+  const resp = await http.get(`/api/v1/detect/tasks/${id}/compare`)
+  return resp.data.data
+}
+
 export async function getTaskDetail(id: number): Promise<TaskDetail> {
   const resp = await http.get(`/api/v1/detect/tasks/${id}`)
   return resp.data.data

@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onUnmounted } from 'vue'
 import { onLoad, onShareAppMessage } from '@dcloudio/uni-app'
-import { getTaskDetail, requestHumanize, retryTask, cancelTask } from '@/api/detect'
+import { getTaskDetail, requestHumanize, retryTask, cancelTask, getTaskCompare } from '@/api/detect'
 import { downloadReportPdf } from '@/api/report'
 import { SOURCE_MAP, COLOR, paragraphRisk, aiRateColor } from '@/utils/constants'
 import { diffChars } from '@/utils/diff'
@@ -19,6 +19,20 @@ const humanizingMap = ref({})
 const diffOpenMap = ref({})
 const expandedMap = ref({})
 const scrollIntoId = ref('')
+/* 复测对比视图 */
+const compareOpen = ref(false)
+const compareLoading = ref(false)
+const compareData = ref(null)
+const COMPARE_STATUS = { down: '降了', up: '涨了', same: '持平', added: '新增', removed: '已删' }
+async function openCompare() {
+  compareOpen.value = true
+  if (compareData.value) return
+  compareLoading.value = true
+  try { compareData.value = await getTaskCompare(taskId) }
+  catch (e) { compareOpen.value = false }
+  finally { compareLoading.value = false }
+}
+const pct = (v) => (v == null ? '—' : Math.round(v * 100) + '%')
 /* 首次看到 DONE 报告时，助手主动打个招呼（只弹一次，按设备记） */
 const assistantTipDismissed = ref(!!uni.getStorageSync('assistant_tip_shown'))
 const showAssistantTip = computed(() => detail.value?.status === 'DONE' && !assistantTipDismissed.value)
@@ -383,6 +397,7 @@ function toggleExpand(idx) {
           比上次 {{ detail.aiRate <= detail.parentAiRate ? '−' : '+' }}{{ Math.abs(detail.aiRate - detail.parentAiRate).toFixed(1) }}%
         </text>
         <text class="compare-sub">上次 {{ detail.parentAiRate.toFixed(1) }}%<template v-if="detail.parentModelVersion && detail.parentModelVersion !== detail.modelVersion">，模型已更新，不可直接比较</template></text>
+        <text class="compare-link" @click="openCompare">查看段级对比 ›</text>
       </view>
       <text class="hero-paper">{{ detail.paperTitle }}</text>
 
@@ -574,6 +589,40 @@ function toggleExpand(idx) {
   </scroll-view>
 
   <FeedbackSheet v-model="feedbackOpen" :task-id="Number(taskId) || 0" default-category="appeal" :paragraphs="detail?.paragraphs || []" />
+
+  <!-- 复测对比 sheet -->
+  <view v-if="compareOpen" class="cmp-mask" @click="compareOpen = false">
+    <view class="cmp-sheet" @click.stop>
+      <view class="cmp-handle" />
+      <view class="cmp-head"><text class="cmp-title">与上次检测对比</text><text class="cmp-close" @click="compareOpen = false">✕</text></view>
+      <view v-if="compareLoading" class="cmp-loading"><text>加载中…</text></view>
+      <template v-else-if="compareData">
+        <text class="cmp-headline" :class="compareData.comparable ? (compareData.summary.pass ? 'ok' : 'warn') : ''">{{ compareData.summary.headline }}</text>
+        <view class="cmp-sides">
+          <view class="cmp-side"><text class="cmp-side-label">上次</text><text class="cmp-side-rate">{{ compareData.parent.aiRate == null ? '—' : compareData.parent.aiRate.toFixed(1) + '%' }}</text></view>
+          <text class="cmp-arrow">→</text>
+          <view class="cmp-side"><text class="cmp-side-label">本次</text><text class="cmp-side-rate" :class="compareData.summary.pass ? 'ok' : 'bad'">{{ compareData.current.aiRate == null ? '—' : compareData.current.aiRate.toFixed(1) + '%' }}</text></view>
+        </view>
+        <view class="cmp-stats">
+          <text class="cmp-stat down">降 {{ compareData.summary.down }}</text>
+          <text class="cmp-stat up">涨 {{ compareData.summary.up }}</text>
+          <text class="cmp-stat added">新增 {{ compareData.summary.added }}</text>
+          <text class="cmp-stat removed">删除 {{ compareData.summary.removed }}</text>
+        </view>
+        <scroll-view scroll-y class="cmp-list">
+          <view v-for="(r, i) in compareData.rows" :key="i" class="cmp-row" :class="r.status">
+            <view class="cmp-row-head">
+              <text class="cmp-row-idx"><template v-if="r.currIdx != null">本 {{ r.currIdx + 1 }}</template><template v-if="r.currIdx != null && r.parentIdx != null"> ← </template><template v-if="r.parentIdx != null">上 {{ r.parentIdx + 1 }}</template></text>
+              <text class="cmp-row-status" :class="r.status">{{ COMPARE_STATUS[r.status] }}<template v-if="r.delta != null"> {{ r.delta > 0 ? '+' : '' }}{{ Math.round(r.delta * 100) }}pp</template></text>
+            </view>
+            <text class="cmp-row-preview">{{ r.preview }}…</text>
+            <text class="cmp-row-probs">{{ pct(r.parentProb) }} → {{ pct(r.currProb) }}</text>
+          </view>
+        </scroll-view>
+        <text class="cmp-foot">段落按文本相似度配对；改动很大的段会分别算作「新增」和「删除」。</text>
+      </template>
+    </view>
+  </view>
 </template>
 
 <style lang="scss" scoped>
@@ -772,6 +821,36 @@ function toggleExpand(idx) {
 .compare { margin-top: $sp-3; display: flex; flex-direction: column; align-items: center; gap: 4rpx; }
 .compare-main { font-size: $fs-subhead; font-weight: $fw-semibold; &.down { color: $success-fg; } &.up { color: $danger-fg; } }
 .compare-sub { font-size: $fs-caption-1; color: $label-secondary; }
+.compare-link { font-size: $fs-caption-1; color: $brand-primary; font-weight: $fw-medium; margin-top: 4rpx; }
+
+/* ============ 复测对比 sheet ============ */
+.cmp-mask { position: fixed; left: 0; right: 0; top: 0; bottom: 0; background: rgba(0, 0, 0, 0.35); z-index: $z-sheet; display: flex; align-items: flex-end; }
+.cmp-sheet {
+  width: 100%; max-height: 86vh; display: flex; flex-direction: column;
+  background: $bg-primary; border-radius: $radius-sheet $radius-sheet 0 0;
+  padding: $sp-3 $sp-4; padding-bottom: #{"calc(#{$sp-4} + env(safe-area-inset-bottom))"};
+}
+.cmp-handle { width: 72rpx; height: 8rpx; border-radius: $radius-pill; background: $fill-primary; margin: 0 auto $sp-3; }
+.cmp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: $sp-2; }
+.cmp-title { font-size: $fs-headline; font-weight: $fw-semibold; }
+.cmp-close { color: $label-tertiary; font-size: $fs-body; padding: 0 $sp-1; }
+.cmp-loading { padding: $sp-8 0; text-align: center; color: $label-secondary; font-size: $fs-subhead; }
+.cmp-headline { display: block; font-size: $fs-subhead; line-height: $lh-normal; padding: $sp-2 $sp-3; border-radius: $radius-md; background: $fill-quaternary; color: $label-primary; &.ok { background: $success-bg; color: $success-fg; } &.warn { background: $warning-bg; color: $warning-fg; } }
+.cmp-sides { display: flex; align-items: center; justify-content: center; gap: $sp-5; margin: $sp-3 0 $sp-2; }
+.cmp-side { display: flex; flex-direction: column; align-items: center; }
+.cmp-side-label { font-size: $fs-caption-1; color: $label-secondary; }
+.cmp-side-rate { font-size: $fs-title-1; font-weight: $fw-bold; letter-spacing: -1rpx; &.ok { color: $success-fg; } &.bad { color: $danger-fg; } }
+.cmp-arrow { font-size: $fs-title-2; color: $label-quaternary; }
+.cmp-stats { display: flex; justify-content: center; gap: $sp-2; margin-bottom: $sp-2; }
+.cmp-stat { font-size: $fs-caption-1; font-weight: $fw-semibold; padding: 2rpx $sp-2; border-radius: $radius-xs; &.down { background: $success-bg; color: $success-fg; } &.up { background: $danger-bg; color: $danger-fg; } &.added { background: $warning-bg; color: $warning-fg; } &.removed { background: $neutral-bg; color: $neutral-fg; } }
+.cmp-list { flex: 1; min-height: 0; max-height: 46vh; }
+.cmp-row { padding: $sp-2 $sp-3; border-radius: $radius-md; margin-bottom: $sp-1; background: $bg-grouped-primary; &.down { background: $success-bg; } &.up { background: $danger-bg; } }
+.cmp-row-head { display: flex; justify-content: space-between; align-items: center; }
+.cmp-row-idx { font-size: $fs-caption-1; color: $label-secondary; }
+.cmp-row-status { font-size: $fs-caption-1; font-weight: $fw-semibold; &.down { color: $success-fg; } &.up { color: $danger-fg; } &.same { color: $label-secondary; } &.added { color: $warning-fg; } &.removed { color: $neutral-fg; } }
+.cmp-row-preview { display: block; font-size: $fs-footnote; color: $label-primary; margin-top: 4rpx; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.cmp-row-probs { display: block; font-size: $fs-caption-2; color: $label-secondary; margin-top: 2rpx; font-variant-numeric: tabular-nums; }
+.cmp-foot { display: block; font-size: $fs-caption-2; color: $label-tertiary; margin-top: $sp-2; }
 .hero-paper {
   display: block;
   font-size: $fs-footnote; color: $label-secondary;

@@ -44,6 +44,11 @@ export function listTasks() {
   }).then((d) => d.rows || d)
 }
 
+/** 复测对比：当前任务 vs 上一次（product-feature-plan §2.2） */
+export function getTaskCompare(id) {
+  return http({ url: `/api/v1/detect/tasks/${id}/compare` })
+}
+
 export function getTaskDetail(id) {
   if (MOCK_MODE) return Promise.resolve({ ...mockDetail, id })
   return http({ url: `/api/v1/detect/tasks/${id}` })

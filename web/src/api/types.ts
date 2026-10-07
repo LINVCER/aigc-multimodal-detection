@@ -56,6 +56,37 @@ export interface TaskDetail extends DetectTask {
   parentCreatedAt?: string | null
 }
 
+export type CompareRowStatus = 'down' | 'up' | 'same' | 'added' | 'removed'
+
+export interface TaskCompareSide {
+  id: number
+  paperTitle: string
+  aiRate: number | null
+  threshold: number
+  modelVersion: string | null
+  createdAt: string | null
+  bodyParagraphs: number
+}
+
+export interface TaskCompareRow {
+  currIdx: number | null
+  parentIdx: number | null
+  preview: string
+  currProb: number | null
+  parentProb: number | null
+  delta: number | null
+  status: CompareRowStatus
+  similarity: number | null
+}
+
+export interface TaskCompare {
+  current: TaskCompareSide
+  parent: TaskCompareSide
+  comparable: boolean
+  summary: { deltaRate: number | null; pass: boolean; changed: number; down: number; up: number; added: number; removed: number; headline: string }
+  rows: TaskCompareRow[]
+}
+
 export interface PageResp<T> {
   total: number
   rows: T[]

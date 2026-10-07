@@ -2,11 +2,11 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getTaskDetail, requestHumanize, downloadReportPdf } from '@/api/detect'
+import { getTaskDetail, requestHumanize, downloadReportPdf, getTaskCompare } from '@/api/detect'
 import Skeleton from '@/components/Skeleton.vue'
 import FeedbackDialog from '@/components/FeedbackDialog.vue'
 import AssistantDrawer from '@/components/AssistantDrawer.vue'
-import type { TaskDetail, ParagraphResult } from '@/api/types'
+import type { TaskDetail, ParagraphResult, TaskCompare } from '@/api/types'
 
 const feedbackOpen = ref(false)
 // 论文检测助手抽屉；assistantParagraph 非空时打开即自动追问该段
@@ -125,6 +125,24 @@ async function copyText(text: string) {
 }
 
 const downloading = ref(false)
+
+/* 复测对比视图（product-feature-plan §2.2） */
+const compareOpen = ref(false)
+const compareLoading = ref(false)
+const compareData = ref<TaskCompare | null>(null)
+const COMPARE_STATUS: Record<string, { text: string; type: 'success' | 'danger' | 'info' | 'warning' }> = {
+  down: { text: '降了', type: 'success' }, up: { text: '涨了', type: 'danger' }, same: { text: '持平', type: 'info' },
+  added: { text: '新增段', type: 'warning' }, removed: { text: '已删段', type: 'info' },
+}
+async function openCompare() {
+  compareOpen.value = true
+  if (compareData.value) return
+  compareLoading.value = true
+  try { compareData.value = await getTaskCompare(Number(props.id)) }
+  catch { compareOpen.value = false }
+  finally { compareLoading.value = false }
+}
+const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v * 100) + '%')
 async function onDownloadPdf() {
   if (!detail.value) return
   downloading.value = true
@@ -381,6 +399,7 @@ function suggestionBg(sev: 'info' | 'warn' | 'danger'): string {
                 <span class="cmp-sub">
                   上次 <router-link :to="{ name: 'TaskDetail', params: { id: detail.parentTaskId } }">#{{ detail.parentTaskId }}</router-link> {{ detail.parentAiRate.toFixed(1) }}%<template v-if="detail.parentModelVersion && detail.parentModelVersion !== detail.modelVersion">，模型已更新，不可直接比较</template>
                 </span>
+                <el-button link type="primary" size="small" @click="openCompare">查看段级对比 ›</el-button>
               </div>
               <div class="hero-paper">{{ detail.paperTitle }}</div>
               <div v-if="showAssistantTip" class="assist-tip">
@@ -566,6 +585,50 @@ function suggestionBg(sev: 'info' | 'warn' | 'danger'): string {
     </el-main>
 
     <FeedbackDialog v-model="feedbackOpen" :task-id="Number(id)" default-category="appeal" :paragraphs="detail?.paragraphs" />
+
+    <!-- 复测对比 -->
+    <el-dialog v-model="compareOpen" width="820" title="与上次检测对比" align-center>
+      <div v-loading="compareLoading" class="cmp">
+        <template v-if="compareData">
+          <el-alert :type="compareData.comparable ? (compareData.summary.pass ? 'success' : 'warning') : 'info'" :closable="false" show-icon :title="compareData.summary.headline" />
+          <div class="cmp-sides">
+            <div class="cmp-side">
+              <div class="cmp-side-label">上次 · #{{ compareData.parent.id }}</div>
+              <div class="cmp-side-rate">{{ compareData.parent.aiRate == null ? '—' : compareData.parent.aiRate.toFixed(1) + '%' }}</div>
+              <div class="cmp-side-sub">{{ compareData.parent.bodyParagraphs }} 段正文 · {{ compareData.parent.modelVersion }}</div>
+            </div>
+            <div class="cmp-arrow">→</div>
+            <div class="cmp-side">
+              <div class="cmp-side-label">本次 · #{{ compareData.current.id }}</div>
+              <div class="cmp-side-rate" :class="compareData.summary.pass ? 'ok' : 'bad'">{{ compareData.current.aiRate == null ? '—' : compareData.current.aiRate.toFixed(1) + '%' }}</div>
+              <div class="cmp-side-sub">{{ compareData.current.bodyParagraphs }} 段正文 · {{ compareData.current.modelVersion }} · 红线 {{ compareData.current.threshold }}%</div>
+            </div>
+          </div>
+          <div class="cmp-stats">
+            <el-tag type="success" size="small">降了 {{ compareData.summary.down }}</el-tag>
+            <el-tag type="danger" size="small">涨了 {{ compareData.summary.up }}</el-tag>
+            <el-tag type="warning" size="small">新增 {{ compareData.summary.added }}</el-tag>
+            <el-tag type="info" size="small">删除 {{ compareData.summary.removed }}</el-tag>
+          </div>
+          <el-table :data="compareData.rows" size="small" max-height="420" :row-class-name="({ row }) => 'cmp-row-' + row.status">
+            <el-table-column label="段" width="110">
+              <template #default="{ row }">
+                <span v-if="row.currIdx != null">本 {{ row.currIdx + 1 }}</span><span v-if="row.currIdx != null && row.parentIdx != null"> ← </span><span v-if="row.parentIdx != null">上 {{ row.parentIdx + 1 }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="preview" label="内容" min-width="300" show-overflow-tooltip />
+            <el-table-column label="上次" width="70"><template #default="{ row }">{{ pct(row.parentProb) }}</template></el-table-column>
+            <el-table-column label="本次" width="70"><template #default="{ row }">{{ pct(row.currProb) }}</template></el-table-column>
+            <el-table-column label="变化" width="110">
+              <template #default="{ row }">
+                <el-tag :type="COMPARE_STATUS[row.status]?.type" size="small">{{ COMPARE_STATUS[row.status]?.text }}<template v-if="row.delta != null"> {{ row.delta > 0 ? '+' : '' }}{{ Math.round(row.delta * 100) }}pp</template></el-tag>
+              </template>
+            </el-table-column>
+          </el-table>
+          <div class="cmp-foot">段落按文本相似度配对；改动很大的段会分别算作「新增」和「删除」。</div>
+        </template>
+      </div>
+    </el-dialog>
     <AssistantDrawer v-model="assistantOpen" :task-id="Number(id)" :paragraph-idx="assistantParagraph" />
   </el-container>
 </template>
@@ -652,6 +715,18 @@ function suggestionBg(sev: 'info' | 'warn' | 'danger'): string {
   margin-top: 12px;
 }
 .hero-compare { margin-top: 10px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.cmp { display: flex; flex-direction: column; gap: 12px; }
+.cmp-sides { display: flex; align-items: center; justify-content: center; gap: 24px; }
+.cmp-side { text-align: center; }
+.cmp-side-label { font-size: 12px; color: rgba(60,60,67,0.60); }
+.cmp-side-rate { font-size: 28px; font-weight: 600; letter-spacing: -0.5px; }
+.cmp-side-rate.ok { color: #1B7F3E; } .cmp-side-rate.bad { color: #C62A22; }
+.cmp-side-sub { font-size: 12px; color: rgba(60,60,67,0.60); }
+.cmp-arrow { font-size: 24px; color: rgba(60,60,67,0.30); }
+.cmp-stats { display: flex; gap: 8px; justify-content: center; }
+.cmp-foot { font-size: 12px; color: rgba(60,60,67,0.60); }
+:deep(.cmp-row-down) { background: rgba(52,199,89,0.06); }
+:deep(.cmp-row-up) { background: rgba(255,59,48,0.06); }
 .cmp-down { color: #1B7F3E; font-weight: 600; }
 .cmp-up { color: #C62A22; font-weight: 600; }
 .cmp-sub { font-size: 12px; color: rgba(60,60,67,0.60); }
