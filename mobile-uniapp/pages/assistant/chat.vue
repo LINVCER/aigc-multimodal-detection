@@ -4,6 +4,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import { chatStream, getQuickPrompts } from '@/api/assistant'
 import { listTasks, getTaskDetail } from '@/api/detect'
 import { useAuth } from '@/store/auth'
+import AssistantAnalysisCard from '@/components/AssistantAnalysisCard.vue'
 
 /*
  * 论文检测助手 · 对话页
@@ -131,7 +132,7 @@ function onSend() {
 function send(text) {
   if (streaming.value) return
   messages.value.push({ role: 'user', text })
-  const reply = { role: 'assistant', text: '', tools: [], error: null, streaming: true }
+  const reply = { role: 'assistant', text: '', tools: [], cards: [], error: null, streaming: true }
   messages.value.push(reply)
   streaming.value = true
   scrollBottom()
@@ -163,6 +164,7 @@ function send(text) {
         case 'tool_result': {
           const t = reply.tools.find((x) => x.name === data?.name && x.status === 'running')
           if (t) t.status = data?.ok === false ? 'failed' : 'done'
+          if (data?.card) reply.cards.push({ name: data.name, data: data.card })
           break
         }
         case 'error':
@@ -280,6 +282,8 @@ function onNewChat() {
                 {{ t.status === 'running' ? '正在' : '' }}{{ t.label }}{{ t.status === 'failed' ? '（失败）' : '' }}
               </text>
             </view>
+            <!-- 结构化分析卡：工具返回的数据直接渲染，正文是助手的「翻译」 -->
+            <AssistantAnalysisCard v-for="(c, k) in (m.cards || [])" :key="'c' + k" :name="c.name" :data="c.data" />
             <text v-if="m.text" class="bubble-text" user-select>{{ m.text }}</text>
             <view v-else-if="m.streaming && !m.error" class="typing">
               <view class="dot" /><view class="dot" /><view class="dot" />

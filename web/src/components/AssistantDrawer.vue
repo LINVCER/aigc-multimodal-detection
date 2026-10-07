@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, watch, onBeforeUnmount } from 'vue'
+import AssistantAnalysisCard from '@/components/AssistantAnalysisCard.vue'
 import { chatStream, getQuickPrompts, listConversations, getConversation, deleteConversation, type ChatHandle } from '@/api/assistant'
 import { listTasks, getTaskDetail } from '@/api/detect'
 import type { DetectTask, TaskDetail } from '@/api/types'
@@ -12,10 +13,13 @@ import type { DetectTask, TaskDetail } from '@/api/types'
  */
 
 interface ToolChip { name: string; label: string; status: 'running' | 'done' | 'failed' }
+interface AnalysisCard { name: string; data: any }
 interface Msg {
   role: 'user' | 'assistant'
   text: string
   tools?: ToolChip[]
+  /** 结构化分析卡（tool_result.card） */
+  cards?: AnalysisCard[]
   error?: string | null
   streaming?: boolean
 }
@@ -218,6 +222,7 @@ function send(text: string) {
         case 'tool_result': {
           const t = reply.tools!.find((x) => x.name === data?.name && x.status === 'running')
           if (t) t.status = data?.ok === false ? 'failed' : 'done'
+          if (data?.card) (reply.cards ||= []).push({ name: data.name, data: data.card })
           break
         }
         case 'error':
@@ -431,6 +436,7 @@ function formatTime(t: number | string): string {
                 {{ t.status === 'running' ? '正在' : '' }}{{ t.label }}{{ t.status === 'failed' ? '（失败）' : '' }}
               </span>
             </div>
+            <AssistantAnalysisCard v-for="(c, k) in (m.cards || [])" :key="'c' + k" :name="c.name" :data="c.data" />
             <div v-if="m.text" class="ad-text">{{ m.text }}</div>
             <div v-else-if="m.streaming && !m.error" class="ad-typing"><i /><i /><i /></div>
             <div v-if="m.error" class="ad-err">
