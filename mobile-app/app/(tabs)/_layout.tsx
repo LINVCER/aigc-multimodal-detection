@@ -7,7 +7,7 @@ function TabIcon({ label, focused }: { label: string; focused: boolean }) {
 
 export default function TabsLayout() {
   return (
-    <Tabs screenOptions={{ headerTitleAlign: 'center', tabBarActiveTintColor: '#1a56db' }}>
+    <Tabs screenOptions={{ headerTitleAlign: 'center', tabBarActiveTintColor: '#0D9488' }}>
       <Tabs.Screen
         name="index"
         options={{

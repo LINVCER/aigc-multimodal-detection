@@ -1,4 +1,4 @@
-import { View, Text, FlatList, Pressable, StyleSheet, RefreshControl } from 'react-native';
+import { View, Text, FlatList, Pressable, Image, StyleSheet, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { listTasks, type DetectTask } from '@/api/detect';
@@ -56,6 +56,10 @@ export default function TaskListScreen() {
           !isLoading ? <Text style={styles.empty}>暂无检测记录，去「上传检测」提交论文</Text> : null
         }
       />
+
+      <Pressable style={styles.fab} onPress={() => router.push('/assistant/chat')}>
+        <Image source={require('../../assets/xiaobai.gif')} style={styles.fabImg} />
+      </Pressable>
     </View>
   );
 }
@@ -73,4 +77,6 @@ const styles = StyleSheet.create({
   meta: { fontSize: 12, color: '#6b7280' },
   aiRate: { fontSize: 16, fontWeight: '700' },
   empty: { textAlign: 'center', color: '#9ca3af', marginTop: 60 },
+  fab: { position: 'absolute', right: 20, bottom: 24, width: 56, height: 56, borderRadius: 28, elevation: 4, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 6 },
+  fabImg: { width: 56, height: 56, borderRadius: 28 },
 });

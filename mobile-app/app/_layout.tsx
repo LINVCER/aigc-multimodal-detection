@@ -28,6 +28,7 @@ function AuthGate() {
       <Stack.Screen name="login" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="task/[id]" options={{ title: '检测报告' }} />
+      <Stack.Screen name="assistant/chat" options={{ title: '小白', headerShown: true }} />
     </Stack>
   );
 }
