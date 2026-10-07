@@ -86,9 +86,9 @@ function goModalityPicker() { uni.switchTab({ url: '/pages/upload/upload' }) }
 function goText(scenarioKey, mode) {
   if (scenarioKey) uni.setStorageSync('pending_scenario', scenarioKey)
   if (mode) uni.setStorageSync('pending_upload_mode', mode)
-  uni.navigateTo({ url: '/pages/upload/text' })
+  uni.switchTab({ url: '/pages/upload/upload' })
 }
-function goAudio() { uni.navigateTo({ url: '/pages/upload/audio' }) }
+function goAssistant() { uni.navigateTo({ url: '/pages/assistant/chat' }) }
 
 function goRecords() { uni.switchTab({ url: '/pages/index/index' }) }
 function goProfile() { uni.switchTab({ url: '/pages/profile/profile' }) }
@@ -111,7 +111,7 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
     <view class="hero-cta" hover-class="hero-cta-hover" @click="goModalityPicker">
       <view class="hero-cta-body">
         <text class="hero-cta-title">立即开始检测</text>
-        <text class="hero-cta-desc">选择内容类型：论文 / 音频 / 图像</text>
+        <text class="hero-cta-desc">上传论文全文，几十秒出 AI 率报告</text>
       </view>
       <text class="hero-cta-arrow">→</text>
     </view>
@@ -128,10 +128,10 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
         <text class="quick-label">粘贴文本</text>
         <text class="quick-desc">即时打分</text>
       </view>
-      <view class="quick-tile" hover-class="quick-tile-hover" @click="goAudio">
-        <view class="quick-icon quick-icon-audio" />
-        <text class="quick-label">音频检测</text>
-        <text class="quick-desc">MP3 / WAV</text>
+      <view class="quick-tile" hover-class="quick-tile-hover" @click="goAssistant">
+        <view class="quick-icon quick-icon-assistant" />
+        <text class="quick-label">论文助手</text>
+        <text class="quick-desc">解读 · 答疑</text>
       </view>
       <view class="quick-tile" hover-class="quick-tile-hover" @click="goRecords">
         <view class="quick-icon quick-icon-history" />
@@ -286,8 +286,8 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
 .quick-icon-history {
   background: rgba(0, 199, 190, 0.10) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300C7BE' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M3 12a9 9 0 1 0 3-6.7'/><path d='M3 4v5h5'/><path d='M12 7v5l4 2'/></svg>") no-repeat center / 44rpx 44rpx;
 }
-.quick-icon-audio {
-  background: rgba(255, 45, 85, 0.10) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FF2D55' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M9 18V5l12-2v13'/><circle cx='6' cy='18' r='3'/><circle cx='18' cy='16' r='3'/></svg>") no-repeat center / 44rpx 44rpx;
+.quick-icon-assistant {
+  background: rgba(94, 92, 230, 0.10) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235E5CE6' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M21 12a8 8 0 0 1-11.6 7.1L4 20l1.1-4.4A8 8 0 1 1 21 12z'/><circle cx='9' cy='12' r='.8'/><circle cx='12' cy='12' r='.8'/><circle cx='15' cy='12' r='.8'/></svg>") no-repeat center / 44rpx 44rpx;
 }
 .quick-label {
   display: block;

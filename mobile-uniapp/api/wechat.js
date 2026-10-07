@@ -22,7 +22,7 @@ export function saveSubscribeTemplate(payload) {
 
 /**
  * 便捷封装：请求订阅授权 → 存后端
- * 用于 upload/text.vue upload/audio.vue 提交成功后调用
+ * 用于 upload/upload.vue 提交成功后调用
  * @param {string[]} tmplIds 要请求授权的模板 ID 列表
  * @returns Promise<string[]> · accepted 的 tmplIds
  */

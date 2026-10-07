@@ -131,7 +131,11 @@ onLoad(async (query) => {
   if (!restored && taskId.value != null && paragraphIdx.value != null) {
     send(`第 ${paragraphIdx.value + 1} 段为什么会被判成像 AI？`)
   } else {
-    scrollBottom()
+    // 上传页「问助手为什么」带过来的首问（storage 传，取完即删）
+    let pending = ''
+    try { pending = uni.getStorageSync('pending_assistant_prompt') || ''; if (pending) uni.removeStorageSync('pending_assistant_prompt') } catch (e) { /* ignore */ }
+    if (pending) send(pending)
+    else scrollBottom()
   }
 })
 onUnload(() => { stream?.abort(); persist() })
