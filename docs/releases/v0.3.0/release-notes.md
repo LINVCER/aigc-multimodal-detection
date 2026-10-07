@@ -84,6 +84,12 @@ uniapp 与 web 各有一个对话入口。零新服务、零新部署单元，LL
 - web / uniapp：上传页「这是修改稿？对比上一次」选择器；报告页 hero 显示「比上次 −X%」，模型版本不同时明示不可直接比较
 - web 管理端「助手运营」加「对话质检」tab：会话列表（越界过滤）+ 抽屉看完整对话与每轮审计 + 五类标注与评分 + 30 天标签统计。会话落库依赖 Python 配了 `ASSISTANT_KB_DB_*` 且**未配** `ASSISTANT_REDIS_URL`（`session.py` Redis 优先、不落库），compose 已改为不给 inference 注入 Redis
 
+### 增长闭环 P2 · 评测验收线 + 首测欢迎（方案 §4 / §5）
+
+- `ml/evaluation/text/eval.py`：`ACCEPTANCE` 加第七套 `appeal: {fpr ≤ 0.10}`；验收比较改为按 `LOWER_IS_BETTER = (ece, fpr, brier)` 判方向
+- web / uniapp 报告页：首次看到 DONE 报告时 hero 下出现助手一句话（达标 / 超标两版文案），点击进对话，关闭后按设备 / 浏览器记一次
+- 未做（需外部条件）：golden set `--live`（LLM key）、分享「助手解读卡」（备案后）、订阅消息真实发送（真 openid）
+
 ## 验证状态
 
 - Python：`compileall` 通过；知识库 32 块可加载。未在本机起服务（无 torch / 无 LLM key）
