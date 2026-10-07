@@ -11,8 +11,10 @@ import com.paperaigc.detect.domain.vo.DetectTaskDetailVO;
 import com.paperaigc.detect.domain.vo.DetectTaskVO;
 import com.paperaigc.detect.domain.vo.PageVO;
 import com.paperaigc.detect.domain.vo.StatisticsVO;
+import com.paperaigc.detect.domain.vo.TaskCompareVO;
 import com.paperaigc.detect.service.IDetectTaskService;
 import com.paperaigc.detect.service.IScenarioThresholdService;
+import com.paperaigc.detect.service.ITaskCompareService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +52,7 @@ public class DetectController {
 
     private final IDetectTaskService detectTaskService;
     private final IScenarioThresholdService scenarioThresholdService;
+    private final ITaskCompareService taskCompareService;
 
     /* ==================== §3.1 提交 ==================== */
 
@@ -83,6 +86,13 @@ public class DetectController {
     @GetMapping("/detect/tasks/{id}")
     public R<DetectTaskDetailVO> detail(@PathVariable Long id) {
         return R.ok(detectTaskService.detail(id));
+    }
+
+    /* ==================== 复测对比（product-feature-plan §2.2） ==================== */
+
+    @GetMapping("/detect/tasks/{id}/compare")
+    public R<TaskCompareVO> compare(@PathVariable Long id) {
+        return R.ok(taskCompareService.compare(id));
     }
 
     /* ==================== §3.4 重试 ==================== */
