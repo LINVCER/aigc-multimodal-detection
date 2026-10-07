@@ -2,7 +2,7 @@
 
 > 日期：2026-10
 > 方向：**后面训练的模型检测出「具体判断 AIGC 率的原因」，作为结构化证据交给 AI 助手，由助手解释给用户**
-> 状态：方案评审中 · 未实施
+> 状态：**L1 已实施（2026-10-07）**，L2 待训练 fusion，L3 未排期 · 调研结论与改进点见 §7
 
 ---
 
@@ -59,7 +59,7 @@ AI 助手（推理侧）
 
 `explain_paragraph` / `detect_text` 工具拿到证据后：
 
-- `SURFACE_EVIDENCE` 映射（`tools.py` L36-43）已把特征名 → 人话方向写死（"句长变化 z 低 → 句子很匀，机器文本的『平』"）；
+- `SURFACE_EXPLAIN` 映射（`tools.py`，8 维）已把特征名 → 人话方向写死（"句长变化 z 低 → 句子很匀，机器文本的『平』"）；
 - 提示词（`prompts.py` L19）已要求「引用具体数值翻译成人话」；
 - 前端结构化分析卡（段卡/报告卡/即时检测卡）已落地渲染；
 - 知识库已写「统计特征」科普。
@@ -90,7 +90,9 @@ AI 助手（推理侧）
 }
 ```
 
-> `ParagraphPrediction` 已含 calibrated_prob / source_probs / sentences，**只缺 surfaceEvidence**。
+> `ParagraphPrediction` 已含 calibrated_prob / source_probs / sentences；`surfaceEvidence` 不入库，由助手工具在解释时现算（见 §7.2），所以 Java 侧零改动。
+>
+> **实际字段名以代码为准**（上面示例是意图）：`surfaceEvidence[]` 每项为 `{feature, zscore, reading}`；新增 `evidenceBasis`（人话限定语）、`evidenceBasisKey`（`checkpoint | baseline | document`）、`surfaceFacts`（事实读数：`sentences / avgSentLen / sentLenMin / sentLenMax / sentLenCv / discourseMarkers / discourseMarkerList / ttr / repeatBigramRate`）。
 
 ---
 
@@ -98,13 +100,43 @@ AI 助手（推理侧）
 
 | 阶段 | 动作 | 产出 | 周期 |
 |---|---|---|---|
-| **L1 过渡** | `surface_profile` 接一个**通用中文论文文体基线**（内置 30 维 mean/std），cls_only 也能吐方向性 z-score | 助手立刻能「有据解释」，解释 0→1 | 几小时 |
+| **L1 过渡** ✅ | 三级基线：checkpoint scaler > 外置基线文件（`build_surface_baseline.py` 产出，`TEXT_SURFACE_BASELINE_PATH`）> **文档内基线**（对照同篇其它正文段）；另给不依赖基线的**事实读数** | cls_only / stub 都能「有据解释」，且不越权说「比人类更…」 | 已完成 |
 | **L2 治本** ⭐ | **训出 fusion 模型**（v0.3.0-fusion，分类 + surface + source 三支路）并部署 | 真实 z-score（训练集 scaler）+ 真实溯源 | 数天~数周 |
 | **L3 增强** | 句子级特征全量、归因（特征重要性/token 归因）、重写前后对比、溯源相似度检索 | 解释颗粒度到句、可验证、可申诉 | 长期 |
 
 ---
 
-## 6. 需要你拍板
+## 7. 调研结论与改进点（2026-10-07）
+
+**可行性**：§2 的现状核对无误（`fusion_model.py` 三支路、`checkpoint.py` 含 `surface_scaler`、`train.py` 落盘 scaler、推理侧 `surface_profile` / source 分支就位）。方案成立，L2 只差算力与数据。
+
+**原方案的三个问题及处理**
+
+1. **「内置通用中文论文基线」没有数据来源**。仓库里没有任何人类正文语料（`ml/datasets/text/data/` 不存在，无 jsonl），手写一组 mean/std 等于编造。处理：基线改为**外置文件**，由 `ml/datasets/text/build_surface_baseline.py` 从真实语料拟合后挂载；在拿到语料之前，用**文档内基线**顶上（目标段对照同一篇文章其它正文段，≥ 4 段才算），这是零数据、且语义诚实的方案。
+2. **z-score 的「比较对象」必须随证据一起下发**，否则助手会把「比你全文其它段更平」说成「比人类写的更平」。处理：工具返回 `evidenceBasis` 限定语，提示词规则 2 要求翻译时带上；三种基线三句话。
+3. **没有基线时助手只能空谈**。处理：新增 `surfaceFacts` 事实读数（几句、平均几字、最长最短、命中的套话连接词及次数、用词重复度），不依赖任何基线，前端分析卡以一行小字展示，助手可直接引用数字。
+
+**本次落地文件**
+
+| 层 | 文件 | 改动 |
+|---|---|---|
+| 共享 | `ml/common/surface_features.py` | `surface_facts()` · `document_baseline_zscores()` · `load_surface_baseline()` |
+| 训练侧 | `ml/datasets/text/build_surface_baseline.py` | 人类语料 → 30 维 mean/std JSON |
+| 助手 | `assistant/tools.py` | `_surface_zscores` 三级基线 · `_attach_surface_evidence` · `explain_paragraph` 传同篇其它段作参考 |
+| 助手 | `assistant/config.py` / `prompts.py` | `TEXT_SURFACE_BASELINE_PATH` · 规则 2 补基线限定与事实读数 |
+| 前端 | web / uniapp `AssistantAnalysisCard.vue` | 表层特征标题带基线限定 · 底部事实读数行 |
+
+**L2 前置清单**：① 人类 + AI 混合语料按 `schema.py` 落到 `ml/datasets/text/data/`（`build_dataset.py`）；② 单卡 A100 跑 `v0.3.0-fusion-deberta-large.yaml`（或先 v0.2.0 mdeberta 验证增益）；③ `MODEL_SWITCH.md` 切 checkpoint，`surface_profile` 自动走 checkpoint scaler，`evidenceBasis` 自动变「模型自带基线」；④ 用 `assistant/eval/golden.jsonl` 的 e01 / e06 回归解释质量。
+
+**L3 建议**：先不做 token 归因（DeBERTa 上的梯度归因对学生不可读，也难验证）；优先做「重写前后对比」（已有 parentTaskId 对比接口，把表层特征差值也摆出来）和句级 facts。
+
+## 6. 需要你拍板（已按「执行」处理）
+
+- L1：已做，且不止内置基线，见 §7。
+- L2：需要你安排训练算力与语料，代码与配置已就绪。
+- L3：建议先做重写前后对比，归因缓做。
+
+## 原 §6
 
 1. **是否先做 L1 过渡**——让 cls_only 模型先吐方向性 surface 证据（几小时），在 fusion 模型训出来之前，用户就能看到「有解释的检测」？
 2. **L2 的训练**——fusion 模型训练（v0.3.0）谁来跑、用什么数据（`ml/datasets/text` 已有多套评测集 + 申诉样本池）？这个周期最长，建议尽早排。

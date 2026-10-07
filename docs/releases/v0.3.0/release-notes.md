@@ -153,9 +153,25 @@ uniapp 与 web 各有一个对话入口。零新服务、零新部署单元，LL
 - web：≥ 1000px 双栏，右侧固定「来源分布 + 下一步（问助手 / 再测一次 / 申诉 / 下载）」；章节视图保留；humanize 死代码移除
 - uniapp：段落预览 72 字、句级高亮图例、底部 meta 行（模型版本 / 时间 / 复核提示）
 
+### 可解释证据链 L1（explainable-evidence-plan §5 L1 / §7）
+
+- `ml/common/surface_features.py`：`surface_facts()` 事实读数、`document_baseline_zscores()` 文档内基线、`load_surface_baseline()` 外置基线
+- `ml/datasets/text/build_surface_baseline.py`：从人类语料拟合 30 维 mean/std，产出 JSON；推理服务用 `TEXT_SURFACE_BASELINE_PATH` 挂载
+- 助手 `tools.py`：三级基线（checkpoint scaler > 外置基线 > 同篇其它正文段），工具结果新增 `evidenceBasis / evidenceBasisKey / surfaceFacts`；`explain_paragraph` 把同篇其它正文段作为参考集
+- `prompts.py` 规则 2：翻译 z 值必须带比较对象；无 z 值引用事实读数，不编数
+- web / uniapp `AssistantAnalysisCard.vue`：表层特征标题带基线限定，底部一行事实读数
+- 金标集新增 e06（问「跟谁比的」须答出比较对象）
+
+### 营销起盘：落地页 + SEO + 第一批内容（marketing-plan §9）
+
+- web 新增公开路由 `/` → `Landing.vue`（原 `/` 重定向到 dashboard 取消；已登录用户落地页右上「进入工作台」）
+- `index.html` 补 description / keywords / og meta；FAQ 注入 schema.org FAQPage
+- `docs/operation/202610-marketing-content-seeds.md`：10 个选题 + 2 篇成稿 + 发布前检查
+- 竞品 gap 文档：PDF 导出 / 粘贴模式 / 改进建议卡标记已落地
+
 ## 验证状态
 
-- Python：`compileall` 通过；知识库 32 块可加载。未在本机起服务（无 torch / 无 LLM key）
+- Python：`compileall` 通过；知识库 32 块可加载。未在本机起服务（无 torch / 无 LLM key / 无 numpy，`surface_facts` 与文档内基线未本机跑过，逻辑复用已有 `extract_surface_features` 与 `SurfaceScaler`）
 - Java：本机 Maven 本地仓库无 Spring Boot 3.3.4，**未编译**；代码按 Java 21 / RuoYi-Vue-Plus 5.x 写法人工复核
 - 前端：未跑 `vue-tsc`（web 无 node_modules）；uniapp 未真机
 
