@@ -276,3 +276,69 @@ class SurfaceScaler:
                 "请用同版本代码推理或重训"
             )
         return cls(np.asarray(d["mean"]), np.asarray(d["std"]))
+
+
+# ---------------------------------------------------------------------------
+# 可解释证据辅助（助手翻译层用；纯统计，不依赖模型，cls_only / stub 也能用）
+# ---------------------------------------------------------------------------
+
+MIN_DOC_BASELINE_REFS = 4
+
+
+def surface_facts(text: str) -> dict:
+    """
+    不依赖任何基线的事实读数：句数 / 平均句长 / 最长最短句 / 命中的套话连接词 / 用词重复度。
+    没有 z-score 基线时，助手也能引用这些数字，而不是空谈「像 AI」。
+    """
+    text = _WS_RE.sub(" ", (text or "")).strip()
+    if len(text) < 2:
+        return {"chars": len(text), "sentences": 0}
+    sents = _split_sentences(text)
+    sent_lens = [len(s) for s in sents] or [len(text)]
+    tokens = _tokenize(text)
+    tok_counter = Counter(tokens)
+    markers = {m: text.count(m) for m in _DISCOURSE_MARKERS if m in text}
+    ordered = sorted(markers.items(), key=lambda kv: -kv[1])
+    mean_len = float(np.mean(sent_lens))
+    return {
+        "chars": len(text),
+        "sentences": len(sents),
+        "avgSentLen": round(mean_len, 1),
+        "sentLenMin": int(min(sent_lens)),
+        "sentLenMax": int(max(sent_lens)),
+        "sentLenCv": round(_safe_std(sent_lens) / (mean_len + 1e-6), 2),
+        "discourseMarkers": int(sum(markers.values())),
+        "discourseMarkerList": [f"{m}×{c}" if c > 1 else m for m, c in ordered[:6]],
+        "ttr": round(len(tok_counter) / max(len(tokens), 1), 2),
+        "repeatBigramRate": round(_ngram_repeat_rate(tokens, 2), 2),
+    }
+
+
+def document_baseline_zscores(target: str, references: Sequence[str]) -> dict[str, float] | None:
+    """
+    文档内基线：目标段的 30 维特征对照同一篇文章其它正文段的分布做 z-score。
+    不需要训练集统计量；语义是「比全文其它段更……」而不是「比人类文本更……」，翻译时必须带这个限定。
+    参考段少于 MIN_DOC_BASELINE_REFS 时分布不可信，返回 None。
+    """
+    refs = [r for r in references if r and len(r.strip()) >= 2]
+    if len(refs) < MIN_DOC_BASELINE_REFS:
+        return None
+    scaler = SurfaceScaler().fit(extract_surface_features_batch(refs))
+    z = scaler.transform(extract_surface_features(target)[None])[0]
+    return {name: float(v) for name, v in zip(SURFACE_FEATURE_NAMES, z)}
+
+
+def load_surface_baseline(path: str) -> "SurfaceScaler | None":
+    """读取 build_surface_baseline.py 产出的外置基线 JSON；文件缺失或版本不符返回 None，不阻断服务。"""
+    import json
+    import os
+
+    if not path or not os.path.exists(path):
+        return None
+    try:
+        with open(path, encoding="utf-8") as f:
+            d = json.load(f)
+        scaler = SurfaceScaler.from_dict(d)
+        return scaler if scaler.mean is not None else None
+    except (OSError, ValueError, KeyError):
+        return None

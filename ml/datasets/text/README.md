@@ -53,6 +53,19 @@ python -m ml.datasets.text.build_evalsets --data ml/datasets/text/data
 `scenario_mix` 均衡采样在这批数据上只能防"某一 domain 淹没"，真正的 6 场景分布要靠自建数据补齐；
 `build_dataset` 会对不足 500 条的场景打 warning。
 
+## 表层特征基线（`build_surface_baseline.py`）
+
+cls_only checkpoint 没有 `surface_scaler`，助手解释「为什么像 AI」拿不到 z-score。用人类正文拟合一份外置基线：
+
+```bash
+python -m ml.datasets.text.build_surface_baseline \
+    --input ml/datasets/text/data/train.jsonl \
+    --output deploy/inference-python/assets/surface_baseline_zh_thesis.json \
+    --scenarios academic_bachelor academic_master academic_phd
+```
+
+推理服务设 `TEXT_SURFACE_BASELINE_PATH` 指向该文件即可生效；fusion checkpoint 上线后以其自带 scaler 为准，此文件自动退居次选。
+
 ## 评测集（`data/evalsets/`）
 
 | 文件 | 构成 | 盯什么 |

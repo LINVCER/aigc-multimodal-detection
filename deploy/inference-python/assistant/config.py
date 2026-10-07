@@ -103,6 +103,8 @@ class AssistantConfig:
 
     # 产品命名（进 system prompt 与欢迎语）
     product_name: str = _env("ASSISTANT_PRODUCT_NAME", "论文检测助手")
+    # build_surface_baseline.py 产出的 30 维表层特征基线；cls_only 模型解释「为什么像 AI」时的次选基线
+    surface_baseline_path: str = _env("TEXT_SURFACE_BASELINE_PATH")
 
     extra: dict = field(default_factory=dict)
 

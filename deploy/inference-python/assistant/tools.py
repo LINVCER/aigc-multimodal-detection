@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import sys
 from dataclasses import dataclass
 from typing import Any, Awaitable, Callable, Optional
 
@@ -17,6 +19,20 @@ from .config import CONFIG
 from .knowledge import get_kb
 
 log = logging.getLogger("assistant.tools")
+
+# 与 detectors/text.py 同一套路径探测：ml/common 在仓库根或容器 /app 下
+_HERE = os.path.dirname(os.path.abspath(__file__))
+for _cand in (os.path.abspath(os.path.join(_HERE, "..")), os.path.abspath(os.path.join(_HERE, "..", "..", ".."))):
+    if os.path.isdir(os.path.join(_cand, "ml", "common")) and _cand not in sys.path:
+        sys.path.insert(0, _cand)
+try:
+    from ml.common.surface_features import (  # noqa: E402
+        SURFACE_FEATURE_NAMES, document_baseline_zscores, extract_surface_features, load_surface_baseline, surface_facts,
+    )
+    _SURFACE_OK = True
+except Exception as _e:  # numpy / ml 包缺失时只丢证据，不丢对话
+    log.warning("surface_features 不可用，助手将无法给表层证据：%s", _e)
+    _SURFACE_OK = False
 
 # 由 main.py 注入：返回当前已加载的 TextAIGCDetector（可能为 None → 走 stub 口径说明）
 DetectorGetter = Callable[[], Any]
@@ -42,6 +58,15 @@ SURFACE_EXPLAIN = {
     "repeat_bigram_rate": ("重复搭配", "固定搭配反复出现", "搭配不重复"),
     "avg_sent_len": ("平均句长", "句子偏长", "句子偏短"),
 }
+
+
+# 证据基线来源 → 给用户看的限定语；翻译时必须带，避免「比人类更平」这种越权表述
+EVIDENCE_BASIS_LABEL = {
+    "checkpoint": "相对训练集文本分布（模型自带基线）",
+    "baseline": "相对通用中文论文基线（外置统计）",
+    "document": "相对本文其它正文段落",
+}
+_BASELINE_CACHE: dict[str, Any] = {}
 
 
 @dataclass
@@ -288,11 +313,8 @@ class ToolRunner:
         if len(text) < 120:
             data["reliability"] = f"该段只有 {len(text)} 字，低于 120 字可靠判定门槛，结论仅供参考"
         det = self._get_detector()
-        profile = _surface_profile(det, text)
-        if profile:
-            data["surfaceEvidence"] = profile
-        else:
-            data["surfaceEvidence"] = "当前模型未启用表层特征支路，只能基于概率解释"
+        refs = [p.get("text") or "" for p in paras if not p.get("excluded") and p.get("paragraphIdx") != idx]
+        _attach_surface_evidence(data, det, text, refs)
         return ToolResult(ok=True, data=data, summary=f"第 {idx} 段 校准概率 {data['calibratedProb']}，{data['verdict']}")
 
     async def tool_detect_text(self, args: dict[str, Any]) -> ToolResult:
@@ -308,9 +330,7 @@ class ToolRunner:
             "verdict": _verdict(pred.calibrated_prob), "modelVersion": pred.model_version,
             "warning": pred.warning or ("" if len(text) >= 120 else f"仅 {len(text)} 字，结果不可靠"),
         }
-        profile = _surface_profile(det, text)
-        if profile:
-            data["surfaceEvidence"] = profile
+        _attach_surface_evidence(data, det, text, [])
         return ToolResult(ok=True, data=data, summary=f"校准概率 {pred.calibrated_prob}，{data['verdict']}")
 
     async def tool_get_threshold_policy(self, args: dict[str, Any]) -> ToolResult:
@@ -377,14 +397,57 @@ def _verdict(p: Optional[float]) -> str:
     return "低风险（绿）"
 
 
-def _surface_profile(det: Any, text: str) -> Optional[list[dict[str, Any]]]:
-    """用 fusion 模型自带的 scaler 把 30 维表层特征转成 z-score，挑最偏离的几维翻成人话。"""
-    if det is None:
-        return None
-    try:
-        z = det.surface_profile(text)   # {name: zscore}，cls_only 模型返回 None
-    except Exception:
-        return None
+def _external_baseline():
+    """TEXT_SURFACE_BASELINE_PATH 指向的外置基线，进程内只读一次。"""
+    if "scaler" not in _BASELINE_CACHE:
+        _BASELINE_CACHE["scaler"] = load_surface_baseline(CONFIG.surface_baseline_path) if _SURFACE_OK else None
+    return _BASELINE_CACHE["scaler"]
+
+
+def _surface_zscores(det: Any, text: str, references: list[str]) -> tuple[Optional[dict[str, float]], str]:
+    """三级基线：fusion checkpoint 自带 scaler > 外置基线文件 > 同一篇文章其它正文段。返回 (z, basis)。"""
+    if det is not None:
+        try:
+            z = det.surface_profile(text)   # cls_only 模型返回 None
+        except Exception:
+            z = None
+        if z:
+            return z, "checkpoint"
+    if not _SURFACE_OK:
+        return None, ""
+    scaler = _external_baseline()
+    if scaler is not None:
+        z = scaler.transform(extract_surface_features(text)[None])[0]
+        return {n: float(v) for n, v in zip(SURFACE_FEATURE_NAMES, z)}, "baseline"
+    z = document_baseline_zscores(text, references) if references else None
+    return (z, "document") if z else (None, "")
+
+
+def _attach_surface_evidence(data: dict[str, Any], det: Any, text: str, references: list[str]) -> None:
+    """往工具结果里塞 surfaceEvidence / evidenceBasis / surfaceFacts；三者都没有时给一句说明。"""
+    z, basis = _surface_zscores(det, text, references)
+    profile = _surface_profile(z)
+    if profile:
+        data["surfaceEvidence"] = profile
+        data["evidenceBasis"] = EVIDENCE_BASIS_LABEL.get(basis, basis)
+        data["evidenceBasisKey"] = basis
+    elif z:
+        data["surfaceEvidence"] = f"表层特征{EVIDENCE_BASIS_LABEL.get(basis, basis)}没有明显偏离，像 AI 的判断主要来自语义层面，不是句长或套话"
+        data["evidenceBasisKey"] = basis
+    else:
+        data["surfaceEvidence"] = (
+            "当前模型没有表层特征基线，且这篇文章正文段太少，无法做段落间对比；只能基于概率和下面的事实读数解释"
+            if _SURFACE_OK else "当前服务未启用表层特征，只能基于概率解释"
+        )
+    if _SURFACE_OK:
+        try:
+            data["surfaceFacts"] = surface_facts(text)
+        except Exception:
+            pass
+
+
+def _surface_profile(z: Optional[dict[str, float]]) -> Optional[list[dict[str, Any]]]:
+    """把 30 维 z-score 挑最偏离的几维翻成人话。"""
     if not z:
         return None
     items = []
