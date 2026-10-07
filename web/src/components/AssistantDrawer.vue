@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, watch, onBeforeUnmount } from 'vue'
 import AssistantAnalysisCard from '@/components/AssistantAnalysisCard.vue'
+import { renderMarkdown } from '@/utils/markdown'
 import { chatStream, getQuickPrompts, listConversations, getConversation, deleteConversation, type ChatHandle } from '@/api/assistant'
 import { listTasks, getTaskDetail } from '@/api/detect'
 import type { DetectTask, TaskDetail } from '@/api/types'
@@ -13,6 +14,11 @@ import type { DetectTask, TaskDetail } from '@/api/types'
  */
 
 interface ToolChip { name: string; label: string; status: 'running' | 'done' | 'failed' }
+/** 工具调用图标（chat-ui-redesign §3 ③） */
+const TOOL_ICON: Record<string, string> = {
+  get_task_detail: '📄', list_my_tasks: '🗂', explain_paragraph: '🔍', detect_text: '⚡',
+  get_threshold_policy: '📏', search_knowledge: '📚', create_appeal: '🚩',
+}
 interface AnalysisCard { name: string; data: any }
 interface Msg {
   role: 'user' | 'assistant'
@@ -434,11 +440,12 @@ function formatTime(t: number | string): string {
           <div class="ad-bubble" :class="m.role">
             <div v-if="m.role === 'assistant' && m.tools?.length" class="ad-tools">
               <span v-for="(t, k) in m.tools" :key="k" class="ad-tool" :class="t.status">
-                {{ t.status === 'running' ? '正在' : '' }}{{ t.label }}{{ t.status === 'failed' ? '（失败）' : '' }}
+                {{ TOOL_ICON[t.name] || '🔧' }} {{ t.status === 'running' ? '正在' : '' }}{{ t.label }}{{ t.status === 'failed' ? '（失败）' : '' }}
               </span>
             </div>
             <AssistantAnalysisCard v-for="(c, k) in (m.cards || [])" :key="'c' + k" :name="c.name" :data="c.data" />
-            <div v-if="m.text" class="ad-text">{{ m.text }}</div>
+            <div v-if="m.text && m.role === 'assistant'" class="ad-text md" v-html="renderMarkdown(m.text)"></div>
+            <div v-else-if="m.text" class="ad-text">{{ m.text }}</div>
             <div v-else-if="m.streaming && !m.error" class="ad-typing"><i /><i /><i /></div>
             <div v-if="m.error" class="ad-err">
               <span>{{ m.error }}</span>
@@ -533,6 +540,17 @@ function formatTime(t: number | string): string {
   &.assistant { background: #fff; border-bottom-left-radius: 4px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04); }
 }
 .ad-text { white-space: pre-wrap; word-break: break-word; }
+.ad-text.md { white-space: normal; }
+.ad-text.md :deep(p) { margin: 0 0 6px; line-height: 1.6; }
+.ad-text.md :deep(p:last-child) { margin-bottom: 0; }
+.ad-text.md :deep(h4), .ad-text.md :deep(h5), .ad-text.md :deep(h6) { margin: 8px 0 4px; font-size: 14px; font-weight: 600; }
+.ad-text.md :deep(ul), .ad-text.md :deep(ol) { margin: 2px 0 6px; padding-left: 18px; }
+.ad-text.md :deep(li) { margin: 2px 0; line-height: 1.55; }
+.ad-text.md :deep(code) { font-size: 12px; padding: 1px 5px; border-radius: 4px; background: var(--el-fill-color); }
+.ad-text.md :deep(pre) { margin: 6px 0; padding: 8px 10px; border-radius: 8px; background: var(--el-fill-color); overflow-x: auto; }
+.ad-text.md :deep(pre code) { padding: 0; background: none; }
+.ad-text.md :deep(blockquote) { margin: 6px 0; padding: 4px 10px; border-left: 3px solid var(--el-border-color); color: var(--el-text-color-secondary); }
+.ad-text.md :deep(strong) { font-weight: 600; }
 .ad-tools { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
 .ad-tool {
   font-size: 11px; padding: 1px 8px; border-radius: 4px;

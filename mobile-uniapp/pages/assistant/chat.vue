@@ -5,6 +5,7 @@ import { chatStream, getQuickPrompts, listConversations, getConversation, delete
 import { listTasks, getTaskDetail } from '@/api/detect'
 import { useAuth } from '@/store/auth'
 import AssistantAnalysisCard from '@/components/AssistantAnalysisCard.vue'
+import { renderMarkdown } from '@/utils/markdown'
 
 /*
  * 论文检测助手 · 对话页
@@ -16,6 +17,12 @@ import AssistantAnalysisCard from '@/components/AssistantAnalysisCard.vue'
  */
 
 const auth = useAuth()
+
+/* 工具调用图标（chat-ui-redesign §3 ③） */
+const TOOL_ICON = {
+  get_task_detail: '📄', list_my_tasks: '🗂', explain_paragraph: '🔍', detect_text: '⚡',
+  get_threshold_policy: '📏', search_knowledge: '📚', create_appeal: '🚩',
+}
 
 const taskId = ref(null)             // null = 通用咨询
 const paragraphIdx = ref(null)
@@ -400,12 +407,14 @@ function formatTime(t) {
             <!-- 工具调用提示 -->
             <view v-if="m.role === 'assistant' && m.tools?.length" class="tools">
               <text v-for="(t, k) in m.tools" :key="k" class="tool-chip" :class="t.status">
-                {{ t.status === 'running' ? '正在' : '' }}{{ t.label }}{{ t.status === 'failed' ? '（失败）' : '' }}
+                {{ TOOL_ICON[t.name] || '🔧' }} {{ t.status === 'running' ? '正在' : '' }}{{ t.label }}{{ t.status === 'failed' ? '（失败）' : '' }}
               </text>
             </view>
             <!-- 结构化分析卡：工具返回的数据直接渲染，正文是助手的「翻译」 -->
             <AssistantAnalysisCard v-for="(c, k) in (m.cards || [])" :key="'c' + k" :name="c.name" :data="c.data" />
-            <text v-if="m.text" class="bubble-text" user-select>{{ m.text }}</text>
+            <!-- 助手回复按 Markdown 子集渲染；用户消息原样 -->
+            <rich-text v-if="m.text && m.role === 'assistant'" class="bubble-md" :nodes="renderMarkdown(m.text)" user-select />
+            <text v-else-if="m.text" class="bubble-text" user-select>{{ m.text }}</text>
             <view v-else-if="m.streaming && !m.error" class="typing">
               <view class="dot" /><view class="dot" /><view class="dot" />
             </view>
@@ -591,6 +600,15 @@ function formatTime(t) {
   }
 }
 .bubble-text { white-space: pre-wrap; word-break: break-word; }
+.bubble-md { display: block; word-break: break-word; line-height: $lh-normal; }
+/* rich-text 内部节点只能靠 class 命中（小程序不穿透标签选择器） */
+.bubble-md :deep(.md-p) { margin: 0 0 $sp-1; }
+.bubble-md :deep(.md-h) { display: block; margin: $sp-2 0 4rpx; font-weight: $fw-semibold; }
+.bubble-md :deep(.md-list) { margin: 4rpx 0 $sp-1; padding-left: 36rpx; }
+.bubble-md :deep(.md-li) { margin: 2rpx 0; }
+.bubble-md :deep(.md-code) { font-family: $font-family-mono; font-size: $fs-caption-1; padding: 0 6rpx; border-radius: $radius-xs; background: $fill-tertiary; }
+.bubble-md :deep(.md-pre) { display: block; margin: $sp-1 0; padding: $sp-2 $sp-3; border-radius: $radius-sm; background: $fill-tertiary; font-family: $font-family-mono; font-size: $fs-caption-1; white-space: pre-wrap; }
+.bubble-md :deep(.md-quote) { display: block; margin: $sp-1 0; padding: 4rpx $sp-3; border-left: 4rpx solid $separator-opaque; color: $label-secondary; }
 
 .tools { display: flex; flex-wrap: wrap; gap: $sp-1; margin-bottom: $sp-2; }
 .tool-chip {
