@@ -19,6 +19,14 @@ const humanizingMap = ref({})
 const diffOpenMap = ref({})
 const expandedMap = ref({})
 const scrollIntoId = ref('')
+/* 首次看到 DONE 报告时，助手主动打个招呼（只弹一次，按设备记） */
+const assistantTipDismissed = ref(!!uni.getStorageSync('assistant_tip_shown'))
+const showAssistantTip = computed(() => detail.value?.status === 'DONE' && !assistantTipDismissed.value)
+function dismissAssistantTip(go) {
+  assistantTipDismissed.value = true
+  try { uni.setStorageSync('assistant_tip_shown', '1') } catch (e) { /* ignore */ }
+  if (go) goAssistant()
+}
 let pollTimer = null
 let taskId = null
 
@@ -378,6 +386,16 @@ function toggleExpand(idx) {
       </view>
       <text class="hero-paper">{{ detail.paperTitle }}</text>
 
+      <!-- 首测欢迎：助手主动一句 -->
+      <view v-if="showAssistantTip" class="assist-tip">
+        <view class="assist-tip-avatar">AI</view>
+        <view class="assist-tip-body" @click="dismissAssistantTip(true)">
+          <text class="assist-tip-text">{{ pass ? '达标了。要不要我说说哪几段还是偏「机器」，下次写得更稳？' : '别急，超标不等于作弊。要我带你看哪几段贡献最大、先改哪段吗？' }}</text>
+          <text class="assist-tip-cta">和助手聊聊 ›</text>
+        </view>
+        <text class="assist-tip-close" @click.stop="dismissAssistantTip(false)">✕</text>
+      </view>
+
       <!-- 报告操作 · DONE 状态才出现 -->
       <view v-if="detail.status === 'DONE'" class="report-actions">
         <button
@@ -647,6 +665,24 @@ function toggleExpand(idx) {
 
 .retry-btn { margin-top: $sp-5; min-width: 320rpx; }
 .cancel-btn { margin-top: $sp-5; min-width: 320rpx; }
+.assist-tip {
+  width: 100%;
+  display: flex; align-items: flex-start; gap: $sp-2;
+  margin-top: $sp-4; padding: $sp-3;
+  border-radius: $radius-md;
+  background: $brand-primary-wash;
+  text-align: left;
+}
+.assist-tip-avatar {
+  flex: none; width: 48rpx; height: 48rpx; border-radius: $radius-pill;
+  background: $brand-gradient-vivid; color: #fff;
+  font-size: $fs-caption-2; font-weight: $fw-bold;
+  display: flex; align-items: center; justify-content: center;
+}
+.assist-tip-body { flex: 1; }
+.assist-tip-text { display: block; font-size: $fs-footnote; color: $label-primary; line-height: $lh-normal; }
+.assist-tip-cta { display: block; margin-top: $sp-1; font-size: $fs-footnote; font-weight: $fw-semibold; color: $brand-primary; }
+.assist-tip-close { flex: none; color: $label-tertiary; font-size: $fs-footnote; padding: 0 $sp-1; }
 .report-actions {
   margin-top: $sp-4;
   display: flex;

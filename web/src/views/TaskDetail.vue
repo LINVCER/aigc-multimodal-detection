@@ -11,6 +11,14 @@ import type { TaskDetail, ParagraphResult } from '@/api/types'
 const feedbackOpen = ref(false)
 // 论文检测助手抽屉；assistantParagraph 非空时打开即自动追问该段
 const assistantOpen = ref(false)
+// 首次看到 DONE 报告时，助手主动打个招呼（只弹一次，按浏览器记）
+const assistantTipDismissed = ref<boolean>(!!localStorage.getItem('assistant_tip_shown'))
+const showAssistantTip = computed(() => detail.value?.status === 'DONE' && !assistantTipDismissed.value)
+function dismissAssistantTip(go: boolean) {
+  assistantTipDismissed.value = true
+  try { localStorage.setItem('assistant_tip_shown', '1') } catch { /* ignore */ }
+  if (go) openAssistant()
+}
 const assistantParagraph = ref<number | null>(null)
 function openAssistant(paragraphIdx?: number) {
   assistantParagraph.value = paragraphIdx ?? null
@@ -375,6 +383,14 @@ function suggestionBg(sev: 'info' | 'warn' | 'danger'): string {
                 </span>
               </div>
               <div class="hero-paper">{{ detail.paperTitle }}</div>
+              <div v-if="showAssistantTip" class="assist-tip">
+                <span class="assist-tip-avatar">AI</span>
+                <span class="assist-tip-text" @click="dismissAssistantTip(true)">
+                  {{ pass ? '达标了。要不要我说说哪几段还是偏「机器」，下次写得更稳？' : '别急，超标不等于作弊。要我带你看哪几段贡献最大、先改哪段吗？' }}
+                  <b>和助手聊聊 ›</b>
+                </span>
+                <el-button link size="small" @click.stop="dismissAssistantTip(false)">✕</el-button>
+              </div>
             </div>
           </el-card>
 
@@ -639,6 +655,19 @@ function suggestionBg(sev: 'info' | 'warn' | 'danger'): string {
 .cmp-down { color: #1B7F3E; font-weight: 600; }
 .cmp-up { color: #C62A22; font-weight: 600; }
 .cmp-sub { font-size: 12px; color: rgba(60,60,67,0.60); }
+.assist-tip {
+  margin-top: 14px; padding: 10px 12px; border-radius: 10px;
+  background: rgba(0, 122, 255, 0.08);
+  display: flex; align-items: center; gap: 10px; text-align: left;
+}
+.assist-tip-avatar {
+  flex: none; width: 26px; height: 26px; border-radius: 50%;
+  background: linear-gradient(135deg, #5E5CE6 0%, #64D2FF 100%);
+  color: #fff; font-size: 10px; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.assist-tip-text { flex: 1; font-size: 13px; line-height: 1.5; cursor: pointer; }
+.assist-tip-text b { color: var(--el-color-primary); margin-left: 6px; font-weight: 600; }
 .hero-paper {
   font-size: var(--fs-subhead); color: var(--label-secondary);
   margin-top: 20px; padding-top: 20px;
