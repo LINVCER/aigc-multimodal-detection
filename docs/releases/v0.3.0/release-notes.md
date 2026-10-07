@@ -110,6 +110,12 @@ uniapp 与 web 各有一个对话入口。零新服务、零新部署单元，LL
 - web：新页 `/admin/analytics`（菜单「检测分析」）：日期 / 场景 / 状态筛选，KPI 五卡，趋势折线（检测量 + 平均 AI 率），AI 率分桶、场景、状态、溯源主标签四组分布条，明细表带达标标签；「重算统计」按钮首次上线补历史
 - 未做（P1/P2）：CSV 导出、定时重算、模型灰度对比、申诉合理率接入
 
+### 助手对话 Markdown 渲染 + 工具图标（chat-ui-redesign P0 ① ③）
+
+- web `utils/markdown.ts` / uniapp `utils/markdown.js`：极简白名单渲染（标题 / 粗斜体 / 行内与块代码 / 列表 / 引用 / 段落），先整体转义再解析，不引第三方库；助手回复按此渲染，用户消息原样
+- 工具调用 chip 加图标（📄 报告 🔍 段落 📚 资料 🚩 申诉 等）
+- `knowledge.py`：无 jieba 时回退分词改为字 + 字二元组。注意：本机没有 jieba，此前报告的 golden set 离线基线是回退分词的结果，不代表生产（requirements 有 jieba）
+
 ## 验证状态
 
 - Python：`compileall` 通过；知识库 32 块可加载。未在本机起服务（无 torch / 无 LLM key）

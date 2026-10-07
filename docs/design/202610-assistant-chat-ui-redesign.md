@@ -2,7 +2,7 @@
 
 > 日期：2026-10
 > 范围：web `AssistantDrawer.vue` / uniapp `pages/assistant/chat.vue` 的对话界面结构与样式
-> 状态：方案评审中 · 未实施
+> 状态：P0 ① Markdown 渲染（极简白名单，不引库）与 ③ 工具调用图标 已落地（2026-10-07，web + uniapp）；P2 ⑥ 段落分析卡已由 product-feature-plan §2.1 落地；② 头部瘦身 / 上下文卡、P1 复制与点赞点踩 待做
 
 ---
 

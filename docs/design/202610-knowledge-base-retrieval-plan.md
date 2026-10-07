@@ -2,7 +2,7 @@
 
 > 日期：2026-10
 > 范围：论文检测助手知识库（`deploy/inference-python/assistant/knowledge/`）的检索与存储升级
-> 状态：方案评审中 · 未实施
+> 状态：Phase 0 BM25 + 倒排 ✅；Phase 1 内容入库（knowledge_chunk + 后台编辑 + 热加载）✅ 已由 agent 分支落地；Phase 2 向量检索按触发条件待定。2026-10-07 补：无 jieba 环境的回退分词改为字 + 字二元组（生产有 jieba，不受影响）
 
 ---
 
