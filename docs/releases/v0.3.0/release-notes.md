@@ -213,6 +213,11 @@ uniapp 与 web 各有一个对话入口。零新服务、零新部署单元，LL
 - 逻辑：已登录直跳；验证码 5 分钟过期后禁提交并提示刷新；服务端锁定文案解析成倒计时，倒计时内禁用按钮；注册用户名实时查重（新接口 `GET /api/v1/auth/username-available`，防抖 400ms）；密码规则逐条勾选；`redirect` 只接受站内单斜杠路径（uniapp 只接受 `/pages/` 路径）；提交中屏蔽重复提交；密码错误后清空密码重输；Caps Lock 提示（web）
 - 视觉：web 左栏渐变 + 光斑 + 玻璃卡价值主张 + 小白气泡，右栏白卡、滑块分段、48px 输入框聚焦光环、SVG 眼睛、验证码悬浮「换一张」、自绘复选框、渐变主按钮；uniapp 渐变头图 + 上浮白卡，同一套控件语言
 
+### 后台用户管理页优化
+
+- 后端：列表改 SQL 分页（count + LIMIT）、排序白名单（最近登录 / 创建时间 / 用户名）、当前页账号一次聚合 detect_task 出检测数与最近检测；新增 `GET /admin/account/stats`（总数 / 正常 / 停用 / 今日新增 / 7 日活跃 / 按角色）、`GET /admin/account/{id}`、`PUT /admin/account/{id}`（姓名 / 组织）、`POST /admin/account/batch-status`（批量停用启用，自动跳过操作者）
+- web：顶部 5 张 KPI 卡 + 角色分布；筛选条 + 排序；多选批量停用 / 启用；表格头像首字母、角色色签、检测数可点、相对时间；账号详情抽屉（可编辑姓名 / 组织、角色、状态、重置密码、最近检测任务列表直达报告）；导出当前筛选结果 CSV；用户画像 demo 退为次 tab
+
 ## 验证状态
 
 - Python：`compileall` 通过；知识库 32 块可加载。未在本机起服务（无 torch / 无 LLM key / 无 numpy，`surface_facts` 与文档内基线未本机跑过，逻辑复用已有 `extract_surface_features` 与 `SurfaceScaler`）
