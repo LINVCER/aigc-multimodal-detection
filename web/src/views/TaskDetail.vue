@@ -114,7 +114,20 @@ function probColor(prob: number) { return prob >= 0.7 ? 'var(--system-red)' : pr
 /* 段落筛选 / 视图 / 展开 */
 type Filter = 'all' | 'high' | 'mid' | 'low' | 'excluded'
 const paraFilter = ref<Filter>('all')
-const paragraphView = ref<'paragraph' | 'section'>('paragraph')
+const paragraphView = ref<'paragraph' | 'section' | 'annotate'>('paragraph')
+/* 全文标注：按原文顺序连续排版，句子按 AI 概率着色（紫 = 高度疑似，蓝 = 中度），非正文灰显 */
+const annotBreaks = computed(() => {
+  const set = new Set<number>()
+  let prev = ''
+  for (const p of detail.value?.paragraphs || []) { const s = p.sectionName || ''; if (s && s !== prev) set.add(p.paragraphIdx); prev = s }
+  return set
+})
+const annotStats = computed(() => {
+  let total = 0, suspect = 0, high = 0
+  for (const p of bodyParas.value) for (const s of p.sentences || []) { total++; if (s.aiProb >= 0.4) suspect++; if (s.aiProb >= 0.7) high++ }
+  return { total, suspect, high }
+})
+const annotClass = (prob: number) => (prob >= 0.7 ? 'high' : prob >= 0.4 ? 'mid' : '')
 const expandedMap = ref<Record<number, boolean>>({})
 const allExpanded = ref(true)
 const filteredParas = computed(() => {
@@ -388,6 +401,7 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
                 <el-radio-group v-model="paragraphView" size="small">
                   <el-radio-button value="paragraph">段落</el-radio-button>
                   <el-radio-button value="section">章节</el-radio-button>
+                  <el-radio-button value="annotate">全文标注</el-radio-button>
                 </el-radio-group>
                 <el-button v-if="paragraphView === 'paragraph'" link size="small" @click="toggleAll">{{ allExpanded ? '全部收起' : '全部展开' }}</el-button>
               </div>
@@ -411,6 +425,26 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
                     <span class="sec-para-text">{{ (p.text || '').slice(0, 80) }}…</span>
                   </div>
                 </div>
+              </el-card>
+            </template>
+
+            <template v-else-if="paragraphView === 'annotate'">
+              <el-card class="annot" body-style="padding: 0">
+                <div class="annot-bar">
+                  <span class="annot-legend"><i class="a high" /> 高度疑似 AI ≥70% <i class="a mid" /> 中度疑似 40–70% <i class="a ex" /> 未参与计算</span>
+                  <span class="muted small">疑似句 {{ annotStats.suspect }} / {{ annotStats.total }}（高度 {{ annotStats.high }}）· 点击句子问小白</span>
+                </div>
+                <article class="annot-doc">
+                  <template v-for="p in detail.paragraphs" :key="p.paragraphIdx">
+                    <h4 v-if="annotBreaks.has(p.paragraphIdx)" class="annot-h">{{ p.sectionName }}</h4>
+                    <p :id="'annot-' + p.paragraphIdx" class="annot-p" :class="{ ex: p.excluded }" :title="p.excluded ? '未参与计算 · ' + (EXCLUDE_REASON_LABEL[p.excludeReason || ''] || '非正文') : '段 ' + (p.paragraphIdx + 1) + ' · AI 概率 ' + Math.round((p.calibratedProb || 0) * 100) + '%'">
+                      <template v-if="p.excluded">{{ p.text }}</template>
+                      <template v-else-if="p.sentences?.length"><span v-for="s in p.sentences" :key="s.sentenceIdx" class="annot-s" :class="annotClass(s.aiProb)" :title="'句 AI 概率 ' + Math.round(s.aiProb * 100) + '%'" @click="openAssistant(p.paragraphIdx)">{{ s.text }}</span></template>
+                      <template v-else><span class="annot-s" :class="annotClass(p.calibratedProb || 0)" @click="openAssistant(p.paragraphIdx)">{{ p.text }}</span></template>
+                    </p>
+                  </template>
+                </article>
+                <div class="annot-foot">着色依据为句级 AI 概率，颜色只表示「像」的程度，不是判定结论；整体 AI 率以校准后的正文比例为准。</div>
               </el-card>
             </template>
 
@@ -651,6 +685,21 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
 .para-excluded-text { font-size: 14px; line-height: 1.6; color: var(--label-secondary); }
 .para-actions { display: flex; gap: 10px; margin-top: 10px; }
 .excluded-badge { font-size: 12px; color: var(--label-secondary); background: rgba(120, 120, 128, 0.14); padding: 2px 10px; border-radius: 99px; }
+
+/* 全文标注 */
+.annot { margin-top: 8px; overflow: hidden; }
+.annot-bar { position: sticky; top: 56px; z-index: 2; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 20px; background: rgba(250, 251, 252, 0.95); backdrop-filter: blur(8px); border-bottom: 1px solid var(--label-quaternary); font-size: 12px; }
+.annot-legend { display: inline-flex; align-items: center; gap: 6px; color: var(--label-secondary); }
+.a { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-left: 8px; } .a.high { background: #7C3AED; } .a.mid { background: #3B82F6; } .a.ex { background: rgba(120, 120, 128, 0.35); }
+.annot-doc { padding: 28px 44px 20px; font-family: 'Noto Serif SC', 'Songti SC', 'STSong', SimSun, serif; font-size: 15.5px; line-height: 2; color: var(--label); }
+.annot-h { font-family: inherit; font-size: 17px; font-weight: 700; margin: 22px 0 8px; text-align: center; }
+.annot-h:first-child { margin-top: 0; }
+.annot-p { margin: 0 0 4px; text-indent: 2em; text-align: justify; }
+.annot-p.ex { color: var(--label-tertiary); }
+.annot-s { cursor: pointer; border-radius: 2px; transition: background .15s; } .annot-s:hover { background: rgba(0, 122, 255, 0.08); }
+.annot-s.high { color: #7C3AED; } .annot-s.mid { color: #3B82F6; }
+.annot-foot { padding: 10px 20px 14px; font-size: 12px; color: var(--label-tertiary); border-top: 1px solid var(--label-quaternary); }
+@media (max-width: 640px) { .annot-doc { padding: 20px 18px; font-size: 15px; } }
 
 /* 章节 */
 .sec-card { margin-top: 10px; overflow: hidden; }
