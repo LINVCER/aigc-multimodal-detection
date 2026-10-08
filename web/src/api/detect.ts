@@ -1,5 +1,5 @@
 import { http } from './client'
-import type { TaskCompare, DetectTask, TaskDetail, PageResp, HumanizeResp, SentenceScore, StatisticsResp, ReportShare, SharedReport } from './types'
+import type { TaskCompare, DetectTask, TaskDetail, PageResp, HumanizeResp, SentenceScore, StatisticsResp, ReportShare, SharedReport, ReportVerify } from './types'
 
 /** §3.1 提交论文（W3.b · scenario；W3.c 前透传 userId 便于后台 topUsers/userLabel 归属） */
 export async function submitPaper(
@@ -48,6 +48,12 @@ export async function revokeShare(token: string): Promise<void> {
 /** 公开只读报告（不带 token 也能读；401 拦截器不会触发因为是 200/业务码） */
 export async function getSharedReport(token: string): Promise<SharedReport> {
   const resp = await http.get(`/api/v1/share/${token}`)
+  return resp.data.data
+}
+
+/** 公开验证报告真伪（不需登录） */
+export async function verifyReport(reportNo: string, code: string): Promise<ReportVerify> {
+  const resp = await http.post('/api/v1/verify', { reportNo, code })
   return resp.data.data
 }
 

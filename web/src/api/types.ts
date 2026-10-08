@@ -47,8 +47,33 @@ export interface ParagraphResult {
   sectionName?: string            // 归属章节（摘要 / 引言 / 方法 / 参考文献 ...）
 }
 
+export interface ReportVerify {
+  valid: boolean
+  signatureValid: boolean
+  message: string
+  reportNo?: string
+  paperTitle?: string
+  scenario?: string
+  threshold?: number
+  aiRate?: number | null
+  pass?: boolean
+  modelVersion?: string
+  wordCount?: number | null
+  bodyParagraphCount?: number | null
+  detectedAt?: string | null
+  signedAt?: string | null
+  fingerprint?: string | null
+  verifyCount?: number
+}
+
 export interface TaskDetail extends DetectTask {
   paragraphs: ParagraphResult[]
+  reportNo?: string | null
+  verifyCode?: string | null
+  reportFingerprint?: string | null
+  verifyUrl?: string | null
+  signedAt?: string | null
+  verifyCount?: number | null
   sourceLabels: Record<string, number>
   parentAiRate?: number | null
   parentModelVersion?: string | null
@@ -89,6 +114,7 @@ export interface SharedReport {
     sectionName: string | null
     sentences: Array<{ sentenceIdx: number; text: string; aiProb: number }>
   }>
+  reportNo?: string | null
   watermark: string
   expiresAt: string
   viewCount: number

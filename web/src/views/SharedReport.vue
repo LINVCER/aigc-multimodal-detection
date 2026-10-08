@@ -71,7 +71,7 @@ const fmt = (s?: string | null) => (s ? String(s).replace('T', ' ').slice(0, 16)
             <div>
               <div class="eyebrow">{{ SCENARIO_LABEL[data.scenario] || data.scenario }} · 红线 {{ data.threshold }}%</div>
               <h1 class="title">{{ data.paperTitle }}</h1>
-              <div class="meta">检测时间 {{ fmt(data.detectedAt) }} · 模型 {{ data.modelVersion || '—' }} · {{ data.wordCount || '—' }} 字</div>
+              <div class="meta">检测时间 {{ fmt(data.detectedAt) }} · 模型 {{ data.modelVersion || '—' }} · {{ data.wordCount || '—' }} 字<template v-if="data.reportNo"> · 报告编号 {{ data.reportNo }}（<router-link to="/verify" class="meta-link">验证真伪</router-link>）</template></div>
             </div>
             <div class="rate-box">
               <div class="rate" :style="{ color }">{{ data.aiRate?.toFixed(1) }}<span>%</span></div>
@@ -135,7 +135,7 @@ const fmt = (s?: string | null) => (s ? String(s).replace('T', ' ').slice(0, 16)
 .hero-top { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; }
 .eyebrow { font-size: 12px; color: var(--label-secondary); letter-spacing: .5px; }
 .title { font-size: 24px; letter-spacing: -0.5px; margin: 6px 0 6px; }
-.meta { font-size: 12px; color: var(--label-tertiary); }
+.meta { font-size: 12px; color: var(--label-tertiary); } .meta-link { color: var(--system-blue); text-decoration: none; }
 .rate-box { text-align: right; flex: none; }
 .rate { font-size: 48px; font-weight: 700; letter-spacing: -1.5px; line-height: 1; font-variant-numeric: tabular-nums; } .rate span { font-size: 20px; color: var(--label-secondary); margin-left: 2px; }
 .verdict { display: inline-block; margin-top: 8px; padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; }

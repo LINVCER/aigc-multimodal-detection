@@ -325,6 +325,13 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
                     <span class="muted">上次 {{ detail.parentAiRate.toFixed(1) }}%<template v-if="detail.parentModelVersion && detail.parentModelVersion !== detail.modelVersion"> · 模型已更新，不可直接比较</template></span>
                     <span class="link">逐段对比 ›</span>
                   </div>
+                  <div v-if="detail.reportNo" class="cred">
+                    <span class="cred-k">报告编号</span><code>{{ detail.reportNo }}</code>
+                    <span class="cred-k">验证码</span><code>{{ detail.verifyCode }}</code>
+                    <el-button link size="small" @click="copyText(`报告编号 ${detail.reportNo} 验证码 ${detail.verifyCode}`)">复制</el-button>
+                    <router-link v-if="detail.verifyUrl" :to="`/verify/${detail.reportNo}?code=${detail.verifyCode}`" class="cred-link">验证页 ›</router-link>
+                    <span v-if="detail.verifyCount" class="muted small">被验证 {{ detail.verifyCount }} 次</span>
+                  </div>
                   <div class="hero-actions">
                     <el-button type="primary" round @click="openAssistant()">💬 问助手解读</el-button>
                     <el-button round @click="goSection('sec-paras')">看段落</el-button>
@@ -586,6 +593,8 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
 .compare { margin-top: 12px; padding: 8px 12px; border-radius: 10px; background: rgba(120, 120, 128, 0.08); display: flex; align-items: center; gap: 10px; font-size: 13px; cursor: pointer; }
 .compare .down { color: #1B7F3E; } .compare .up { color: #C62A22; } .compare .link { margin-left: auto; color: var(--system-blue); font-weight: 500; }
 .hero-actions { margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+.cred { margin-top: 12px; padding: 8px 12px; border-radius: 10px; background: rgba(52, 199, 89, 0.08); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }
+.cred-k { color: var(--label-secondary); font-size: 12px; } .cred code { font-weight: 600; letter-spacing: .5px; user-select: all; } .cred-link { color: var(--system-blue); text-decoration: none; margin-left: 4px; }
 .assist-tip { margin-top: 18px; padding: 10px 12px; border-radius: 10px; background: rgba(0, 122, 255, 0.08); display: flex; align-items: center; gap: 10px; text-align: left; }
 .assist-tip-avatar { flex: none; width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg, #5E5CE6 0%, #64D2FF 100%); color: #fff; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
 .assist-tip-text { flex: 1; font-size: 13px; line-height: 1.5; cursor: pointer; } .assist-tip-text b { color: var(--system-blue); margin-left: 6px; }

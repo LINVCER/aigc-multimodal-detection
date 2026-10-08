@@ -60,7 +60,7 @@ function go(path: string) { router.push(path) }
       <div class="nav-inner">
         <span class="brand">知源</span>
         <nav class="nav-links">
-          <a href="#how">怎么用</a><a href="#rescue">被误判了？</a><a href="#faq">常见问题</a>
+          <a href="#how">怎么用</a><a href="#rescue">被误判了？</a><a href="#faq">常见问题</a><router-link to="/verify">验证报告</router-link>
           <el-button v-if="auth.token" round size="small" @click="go('/dashboard')">进入工作台</el-button>
           <el-button v-else round size="small" @click="go('/login')">登录</el-button>
         </nav>
@@ -162,6 +162,7 @@ function go(path: string) { router.push(path) }
 .brand { font-weight: 700; font-size: 17px; letter-spacing: -0.3px; }
 .nav-links { display: flex; align-items: center; gap: 20px; }
 .nav-links a { color: var(--label-secondary); text-decoration: none; font-size: 14px; }
+.nav-links a.router-link-active { color: var(--label); }
 .nav-links a:hover { color: var(--label); }
 
 .hero { max-width: 1080px; margin: 0 auto; padding: 72px 24px 48px; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr); gap: 48px; align-items: center; }

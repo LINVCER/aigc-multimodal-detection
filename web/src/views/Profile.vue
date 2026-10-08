@@ -101,6 +101,11 @@ async function logout() {
             <span class="chevron">›</span>
           </div>
           <div class="separator"></div>
+          <div class="row clickable" @click="router.push('/verify')">
+            <span class="row-title">验证报告真伪</span>
+            <span class="chevron">›</span>
+          </div>
+          <div class="separator"></div>
           <div class="row clickable" @click="router.push('/privacy')">
             <span class="row-title">隐私政策</span>
             <span class="chevron">›</span>
