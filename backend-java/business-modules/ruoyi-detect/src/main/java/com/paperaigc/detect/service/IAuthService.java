@@ -36,6 +36,13 @@ public interface IAuthService {
      */
     LoginVO loginByWechat(String code, String nickname, String avatarUrl);
 
+    /**
+     * 注册前查重
+     * @param username 用户名
+     * @return 可注册返回 true；格式不合法也返回 false
+     */
+    boolean usernameAvailable(String username);
+
     /** 登出 · 清 token */
     void logout(String bearerToken);
 

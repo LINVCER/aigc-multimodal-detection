@@ -42,6 +42,12 @@ public class PaperAigcAuthController {
         return R.ok(captchaService.generate());
     }
 
+    /** 注册前用户名查重；只回 available 布尔，不暴露其它信息 */
+    @GetMapping("/username-available")
+    public R<java.util.Map<String, Boolean>> usernameAvailable(@org.springframework.web.bind.annotation.RequestParam String username) {
+        return R.ok(java.util.Map.of("available", authService.usernameAvailable(username)));
+    }
+
     @PostMapping("/login")
     public R<LoginVO> login(@Valid @RequestBody LoginDTO dto) {
         return R.ok(authService.login(dto));

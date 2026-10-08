@@ -147,6 +147,13 @@ public class AuthServiceImpl implements IAuthService {
     }
 
     @Override
+    public boolean usernameAvailable(String username) {
+        String u = username == null ? "" : username.trim();
+        if (!USERNAME_OK.matcher(u).matches()) return false;
+        return findByUsername(u) == null;
+    }
+
+    @Override
     public void logout(String bearerToken) {
         String token = AuthConstants.stripBearer(bearerToken);
         if (token != null) tokenRepository.remove(token);
