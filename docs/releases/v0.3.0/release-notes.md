@@ -169,10 +169,33 @@ uniapp 与 web 各有一个对话入口。零新服务、零新部署单元，LL
 - `docs/operation/202610-marketing-content-seeds.md`：10 个选题 + 2 篇成稿 + 发布前检查
 - 竞品 gap 文档：PDF 导出 / 粘贴模式 / 改进建议卡标记已落地
 
+### 登录 / 注册完善（三端 + 后端）
+
+**后端**
+- `LoginAttemptGuard`：按用户名连续失败 5 次锁 15 分钟（Caffeine 内存），剩余 ≤ 2 次时提示次数；成功即清零
+- 验证码改为可配置强制（`platform.auth.captcha-required`，默认 true）；不带 captchaId 返回 2011「请输入验证码」
+- 密码策略：6-32 位、含字母和数字、不等于用户名（注册与改密共用）；用户名限 `[A-Za-z0-9_.@-]{2,64}`
+- `POST /api/v1/auth/password` 修改密码：校验原密码，成功后当前 token 作废
+- `auth_user` 新增 `status`（0 停用拒登）/ `last_login_at`（V0.3.0.010，patch-schema 同步）
+- token 仓储换 Caffeine，`platform.auth.token-ttl-days`（默认 7 天）闲置失效；`LoginVO.expiresIn`
+- 新错误码 2007-2012
+
+**web**
+- 登录页：双栏（品牌 + 价值主张 / 表单），行内校验，密码显示切换，注册密码强度条与隐私协议勾选，记住账号，验证码加载 / 失败 / 点击刷新三态，服务端错误行内展示（锁定、验证码、停用），`?mode=register` 直达注册
+- 启动用 `/me` 校验本地 token 并刷新角色；401 跳登录带 `redirect` 回原页
+- 新公开页 `/privacy`；我的页加「修改密码」弹窗、隐私政策与历史报告跳转
+
+**uniapp**
+- 登录页同上（无双栏）；请求层 401 / 1401 / 2401 统一清态并记 `pending_login_redirect`，登录后回原页；App 启动 `validate()`
+- 我的页「修改密码」底部 sheet；退出登录调服务端 logout
+
+**RN**
+- 登录页同上：行内校验、显示密码、强度条、协议勾选、记住账号（SecureStore）、验证码三态、键盘避让
+
 ## 验证状态
 
 - Python：`compileall` 通过；知识库 32 块可加载。未在本机起服务（无 torch / 无 LLM key / 无 numpy，`surface_facts` 与文档内基线未本机跑过，逻辑复用已有 `extract_surface_features` 与 `SurfaceScaler`）
-- Java：本机 Maven 本地仓库无 Spring Boot 3.3.4，**未编译**；代码按 Java 21 / RuoYi-Vue-Plus 5.x 写法人工复核
+- Java：本机 Maven 本地仓库无 Spring Boot 3.3.4，**未编译**；代码按 Java 21 / RuoYi-Vue-Plus 5.x 写法人工复核。远程跑前先执行 V0.3.0.009 / 010
 - 前端：未跑 `vue-tsc`（web 无 node_modules）；uniapp 未真机
 
 ## 已知未做（按调研 §5 排期归属 W2/W3）
