@@ -81,6 +81,10 @@ public class FeedbackServiceImpl implements IFeedbackService {
         List<Feedback> all = feedbackRepository.findAll().stream()
                 .filter(f -> ParamUtils.isBlank(q.getStatus()) || q.getStatus().equals(f.getStatus()))
                 .filter(f -> q.getUserId() == null || q.getUserId().equals(f.getUserId()))
+                .filter(f -> ParamUtils.isBlank(q.getCategory()) || q.getCategory().equals(f.getCategory()))
+                .filter(f -> q.getTaskId() == null || q.getTaskId().equals(f.getTaskId()))
+                .filter(f -> ParamUtils.isBlank(q.getDateFrom()) || (f.getCreatedAt() != null && !f.getCreatedAt().toLocalDate().isBefore(java.time.LocalDate.parse(q.getDateFrom()))))
+                .filter(f -> ParamUtils.isBlank(q.getDateTo()) || (f.getCreatedAt() != null && !f.getCreatedAt().toLocalDate().isAfter(java.time.LocalDate.parse(q.getDateTo()))))
                 .filter(f -> ParamUtils.isBlank(q.getKeyword())
                         || ParamUtils.containsIgnoreCase(f.getContent(), q.getKeyword())
                         || ParamUtils.containsIgnoreCase(f.getContact(), q.getKeyword()))
@@ -97,6 +101,41 @@ public class FeedbackServiceImpl implements IFeedbackService {
                 : all.subList(from, to).stream().map(FeedbackVO::from).toList();
 
         return PageVO.of(total, rows);
+    }
+
+    @Override
+    public java.util.Map<String, Object> stats() {
+        List<Feedback> all = feedbackRepository.findAll();
+        java.time.LocalDate today = java.time.LocalDate.now();
+        java.util.Map<String, Long> byStatus = new java.util.LinkedHashMap<>();
+        for (String s : List.of(FeedbackConstants.STATUS_PENDING, FeedbackConstants.STATUS_PROCESSING, FeedbackConstants.STATUS_REPLIED, FeedbackConstants.STATUS_IGNORED)) byStatus.put(s, 0L);
+        java.util.Map<String, Long> byCategory = new java.util.LinkedHashMap<>();
+        for (String c : List.of(FeedbackConstants.CATEGORY_APPEAL, FeedbackConstants.CATEGORY_BUG, FeedbackConstants.CATEGORY_SUGGESTION)) byCategory.put(c, 0L);
+        long todayNew = 0, pendingAppeal = 0;
+        for (Feedback f : all) {
+            byStatus.merge(f.getStatus() == null ? FeedbackConstants.STATUS_PENDING : f.getStatus(), 1L, Long::sum);
+            byCategory.merge(f.getCategory() == null ? "other" : f.getCategory(), 1L, Long::sum);
+            if (f.getCreatedAt() != null && f.getCreatedAt().toLocalDate().equals(today)) todayNew++;
+            if (FeedbackConstants.STATUS_PENDING.equals(f.getStatus()) && FeedbackConstants.CATEGORY_APPEAL.equals(f.getCategory())) pendingAppeal++;
+        }
+        java.util.Map<String, Object> out = new java.util.LinkedHashMap<>();
+        out.put("total", (long) all.size());
+        out.put("byStatus", byStatus);
+        out.put("byCategory", byCategory);
+        out.put("todayNew", todayNew);
+        out.put("pendingAppeal", pendingAppeal);
+        return out;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int batchHandle(List<Long> ids, FeedbackHandleDTO dto) {
+        if (ids == null) return 0;
+        int n = 0;
+        for (Long id : ids.stream().filter(java.util.Objects::nonNull).distinct().toList()) {
+            try { handle(id, dto); n++; } catch (Exception e) { log.warn("batch handle feedback={} failed: {}", id, e.toString()); }
+        }
+        return n;
     }
 
     @Override

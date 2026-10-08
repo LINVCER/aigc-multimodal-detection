@@ -73,6 +73,23 @@ public class FeedbackController {
         return R.ok(feedbackService.page(query));
     }
 
+    /** 后台统计（KPI 卡 / 侧栏角标） */
+    @GetMapping("/admin/feedback/stats")
+    public R<Map<String, Object>> stats() {
+        return R.ok(feedbackService.stats());
+    }
+
+    /** 后台批量处置：body { ids: [...], status, reply? } */
+    @PostMapping("/admin/feedback/batch-handle")
+    public R<Map<String, Integer>> batchHandle(@RequestBody Map<String, Object> body) {
+        Object raw = body.get("ids");
+        List<Long> ids = raw instanceof List<?> l ? l.stream().filter(Number.class::isInstance).map(x -> ((Number) x).longValue()).toList() : List.of();
+        FeedbackHandleDTO dto = new FeedbackHandleDTO();
+        dto.setStatus(body.get("status") == null ? null : String.valueOf(body.get("status")));
+        dto.setReply(body.get("reply") == null ? null : String.valueOf(body.get("reply")));
+        return R.ok(Map.of("updated", feedbackService.batchHandle(ids, dto)));
+    }
+
     /** 后台处理反馈（回复 / 标 IGNORED / 置 PROCESSING） */
     @PostMapping("/admin/feedback/{id}/handle")
     public R<Void> handle(@PathVariable Long id, @RequestBody FeedbackHandleDTO dto) {

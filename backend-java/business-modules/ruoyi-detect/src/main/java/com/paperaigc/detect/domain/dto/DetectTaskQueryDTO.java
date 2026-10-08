@@ -31,6 +31,11 @@ public class DetectTaskQueryDTO {
     private Double minAiRate;
     private Double maxAiRate;
 
+    /** 排序白名单：createdAt / aiRate / wordCount；缺省 id 倒序 */
+    private String sortBy;
+    /** asc / desc */
+    private String sortOrder;
+
     private Integer pageNum = 1;
     private Integer pageSize = 20;
 }

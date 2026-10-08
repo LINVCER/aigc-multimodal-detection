@@ -1,87 +1,57 @@
 package com.paperaigc.detect.controller;
 
 import cn.dev33.satoken.annotation.SaIgnore;
-import com.paperaigc.detect.common.util.ParamUtils;
 import com.paperaigc.detect.domain.dto.DetectTaskQueryDTO;
-import com.paperaigc.detect.domain.entity.DetectTask;
 import com.paperaigc.detect.domain.vo.PageVO;
-import com.paperaigc.detect.repository.IDetectTaskRepository;
-import com.paperaigc.detect.service.IAdminUserService;
-import com.paperaigc.detect.service.impl.DetectAnalyticsServiceImpl;
+import com.paperaigc.detect.service.IAdminTaskService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.dromara.common.core.domain.R;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDate;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * 运营后台 · 全平台任务列表 · Wave 3.e (§3.4)
+ * 运营后台 · 全平台任务 · Wave 3.e (§3.4)
+ *
+ * <p>单条重试 / 取消 / 删除复用 /api/v1/detect/tasks/{id}/... ；这里只提供列表、统计与批量。</p>
  */
-@Slf4j
 @SaIgnore
 @RestController
 @RequestMapping("/admin/task")
 @RequiredArgsConstructor
 public class AdminTaskController {
 
-    private final IDetectTaskRepository taskRepository;
-    private final IAdminUserService adminUserService;
+    private final IAdminTaskService adminTaskService;
 
     @GetMapping("/list")
     public R<PageVO<Map<String, Object>>> list(DetectTaskQueryDTO q) {
-        List<Map<String, Object>> all = taskRepository.findAll().stream()
-                .filter(t -> ParamUtils.isBlank(q.getStatus())   || q.getStatus().equals(t.getStatus()))
-                .filter(t -> ParamUtils.isBlank(q.getScenario()) || q.getScenario().equals(t.getScenario()))
-                .filter(t -> q.getUserId() == null || q.getUserId().equals(t.getUserId()))
-                .filter(t -> ParamUtils.isBlank(q.getKeyword())
-                        || ParamUtils.containsIgnoreCase(t.getPaperTitle(), q.getKeyword()))
-                .filter(t -> q.getMinAiRate() == null || (t.getAiRate() != null && t.getAiRate() >= q.getMinAiRate()))
-                .filter(t -> q.getMaxAiRate() == null || (t.getAiRate() != null && t.getAiRate() <= q.getMaxAiRate()))
-                .filter(t -> ParamUtils.isBlank(q.getRateBucket())
-                        || (t.getAiRate() != null && q.getRateBucket().equals(DetectAnalyticsServiceImpl.bucketOf(t.getAiRate()))))
-                .filter(t -> q.getPass() == null
-                        || (t.getAiRate() != null && t.getThreshold() != null && q.getPass() == (t.getAiRate() <= t.getThreshold())))
-                .filter(t -> ParamUtils.isBlank(q.getModelVersion()) || q.getModelVersion().equals(t.getModelVersion()))
-                .filter(t -> ParamUtils.isBlank(q.getDateFrom())
-                        || (t.getCreatedAt() != null && !t.getCreatedAt().toLocalDate().isBefore(LocalDate.parse(q.getDateFrom()))))
-                .filter(t -> ParamUtils.isBlank(q.getDateTo())
-                        || (t.getCreatedAt() != null && !t.getCreatedAt().toLocalDate().isAfter(LocalDate.parse(q.getDateTo()))))
-                .sorted(Comparator.comparing(DetectTask::getCreatedAt,
-                        Comparator.nullsLast(Comparator.reverseOrder())))
-                .map(this::maskForAdmin)
-                .toList();
-
-        int total = all.size();
-        int pageNum = q.getPageNum() == null || q.getPageNum() < 1 ? 1 : q.getPageNum();
-        int pageSize = q.getPageSize() == null || q.getPageSize() < 1 ? 20 : q.getPageSize();
-        int from = Math.max(0, (pageNum - 1) * pageSize);
-        int to = Math.min(total, from + pageSize);
-        List<Map<String, Object>> rows = from >= total ? List.of() : all.subList(from, to);
-        return R.ok(PageVO.of(total, rows));
+        return R.ok(adminTaskService.page(q));
     }
 
-    /** 运营视图：不返回原文段落，只带列表字段 + 用户脱敏标识 */
-    private Map<String, Object> maskForAdmin(DetectTask t) {
-        Map<String, Object> m = new HashMap<>();
-        m.put("id",           t.getId());
-        m.put("paperTitle",   t.getPaperTitle());
-        m.put("scenario",     t.getScenario());
-        m.put("threshold",    t.getThreshold());
-        m.put("aiRate",       t.getAiRate());
-        m.put("status",       t.getStatus());
-        m.put("createdAt",    t.getCreatedAt() == null ? null : t.getCreatedAt().toString());
-        m.put("wordCount",    t.getWordCount());
-        m.put("modelVersion", t.getModelVersion() == null ? "stub-v0" : t.getModelVersion());
-        Long uid = t.getUserId();
-        m.put("userId", uid);
-        m.put("userLabel", adminUserService.userLabel(uid));
-        return m;
+    @GetMapping("/stats")
+    public R<Map<String, Object>> stats() {
+        return R.ok(adminTaskService.stats());
+    }
+
+    /** body { ids: [...] } */
+    @PostMapping("/batch-delete")
+    public R<Map<String, Integer>> batchDelete(@RequestBody Map<String, Object> body) {
+        return R.ok(Map.of("deleted", adminTaskService.batchDelete(ids(body))));
+    }
+
+    /** body { ids: [...] }，只对 FAILED 生效 */
+    @PostMapping("/batch-retry")
+    public R<Map<String, Integer>> batchRetry(@RequestBody Map<String, Object> body) {
+        return R.ok(Map.of("retried", adminTaskService.batchRetry(ids(body))));
+    }
+
+    private static List<Long> ids(Map<String, Object> body) {
+        Object raw = body == null ? null : body.get("ids");
+        return raw instanceof List<?> l ? l.stream().filter(Number.class::isInstance).map(x -> ((Number) x).longValue()).toList() : List.of();
     }
 }

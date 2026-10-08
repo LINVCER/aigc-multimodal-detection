@@ -31,4 +31,18 @@ public interface IFeedbackService {
      * @param dto 处理参数
      */
     void handle(Long id, FeedbackHandleDTO dto);
+
+    /**
+     * 后台统计：按状态 / 按分类 / 今日新增 / 待处理申诉数
+     * @return 统计 Map
+     */
+    java.util.Map<String, Object> stats();
+
+    /**
+     * 批量处置（忽略 / 置处理中 / 统一回复）
+     * @param ids 反馈 id
+     * @param dto 状态 / 回复
+     * @return 成功条数
+     */
+    int batchHandle(java.util.List<Long> ids, FeedbackHandleDTO dto);
 }

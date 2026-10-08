@@ -3,8 +3,11 @@ package com.paperaigc.detect.controller;
 import cn.dev33.satoken.annotation.SaIgnore;
 import com.paperaigc.detect.common.constant.FeedbackConstants;
 import com.paperaigc.detect.domain.dto.FeedbackQueryDTO;
-import com.paperaigc.detect.domain.entity.AdminUser;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.paperaigc.detect.common.constant.DetectConstants;
 import com.paperaigc.detect.domain.entity.DetectTask;
+import com.paperaigc.detect.domain.entity.UserAccount;
+import com.paperaigc.detect.mapper.UserAccountMapper;
 import com.paperaigc.detect.repository.IDetectTaskRepository;
 import com.paperaigc.detect.service.IAdminUserService;
 import com.paperaigc.detect.service.IFeedbackService;
@@ -43,16 +46,18 @@ public class AdminDashboardController {
     private final IDetectTaskRepository taskRepository;
     private final IAdminUserService adminUserService;
     private final IFeedbackService feedbackService;
+    private final UserAccountMapper accountMapper;
 
     @GetMapping("/dashboard")
     public R<Map<String, Object>> dashboard() {
         Collection<DetectTask> allTasks = taskRepository.findAll();
-        Collection<AdminUser> allUsers = adminUserService.findAll();
+        // 用户口径以 auth_user（真实登录账号）为准；只取建表后 30 天内的创建时间给趋势用
+        List<UserAccount> allUsers = accountMapper.selectList(new LambdaQueryWrapper<UserAccount>().select(UserAccount::getId, UserAccount::getCreatedAt));
         String today = LocalDate.now().toString();
 
         /* ---------- KPI ---------- */
         Map<String, Object> kpi = new LinkedHashMap<>();
-        kpi.put("todayNewUser", adminUserService.countTodayNewUser());
+        kpi.put("todayNewUser", (int) allUsers.stream().filter(u -> u.getCreatedAt() != null && u.getCreatedAt().toLocalDate().toString().equals(today)).count());
         kpi.put("todayDetect",  (int) allTasks.stream()
                 .filter(t -> t.getCreatedAt() != null && t.getCreatedAt().toLocalDate().toString().equals(today)).count());
         kpi.put("totalUser",    allUsers.size());
@@ -61,6 +66,13 @@ public class AdminDashboardController {
                 .filter(t -> t.getAiRate() != null)
                 .mapToDouble(DetectTask::getAiRate)
                 .average().orElse(0.0));
+        long doneCnt = allTasks.stream().filter(t -> DetectConstants.STATUS_DONE.equals(t.getStatus())).count();
+        long overCnt = allTasks.stream().filter(t -> DetectConstants.STATUS_DONE.equals(t.getStatus()) && t.getAiRate() != null && t.getThreshold() != null && t.getAiRate() > t.getThreshold()).count();
+        kpi.put("overRate", doneCnt == 0 ? 0.0 : round1(overCnt * 100.0 / doneCnt));
+        kpi.put("failedTasks", (int) allTasks.stream().filter(t -> DetectConstants.STATUS_FAILED.equals(t.getStatus())).count());
+        kpi.put("runningTasks", (int) allTasks.stream().filter(t -> DetectConstants.STATUS_PENDING.equals(t.getStatus()) || DetectConstants.STATUS_RUNNING.equals(t.getStatus())).count());
+        Object fbStats = feedbackService.stats().get("byStatus");
+        kpi.put("pendingFeedback", fbStats instanceof Map<?, ?> fm && fm.get(FeedbackConstants.STATUS_PENDING) instanceof Number n ? n.intValue() : 0);
 
         /* ---------- 30 天趋势 ---------- */
         List<Map<String, Object>> trend = new ArrayList<>();
@@ -71,7 +83,7 @@ public class AdminDashboardController {
             long detectCount = allTasks.stream()
                     .filter(t -> t.getCreatedAt() != null && t.getCreatedAt().toLocalDate().toString().equals(key)).count();
             long userCount = allUsers.stream()
-                    .filter(u -> u.getRegisteredAt() != null && u.getRegisteredAt().toLocalDate().toString().equals(key)).count();
+                    .filter(u -> u.getCreatedAt() != null && u.getCreatedAt().toLocalDate().toString().equals(key)).count();
             double avgRate = allTasks.stream()
                     .filter(t -> t.getCreatedAt() != null && t.getCreatedAt().toLocalDate().toString().equals(key))
                     .filter(t -> t.getAiRate() != null)

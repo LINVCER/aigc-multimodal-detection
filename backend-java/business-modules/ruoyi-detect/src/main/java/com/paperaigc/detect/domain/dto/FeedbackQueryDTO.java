@@ -14,6 +14,16 @@ public class FeedbackQueryDTO {
     /** 关键字：content 或 contact 大小写不敏感 contains */
     private String keyword;
 
+    /** 分类过滤：bug / suggestion / appeal；空为不限 */
+    private String category;
+
+    /** 关联任务 id */
+    private Long taskId;
+
+    /** 提交日期区间 yyyy-MM-dd */
+    private String dateFrom;
+    private String dateTo;
+
     /** C 端"我的反馈"用；后台不传 */
     private Long userId;
 
