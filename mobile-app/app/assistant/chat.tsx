@@ -14,11 +14,13 @@ interface Msg {
 }
 
 export default function AssistantChatScreen() {
-  const params = useLocalSearchParams<{ taskId?: string }>();
+  const params = useLocalSearchParams<{ taskId?: string; paragraphIdx?: string }>();
   const taskId = params.taskId ? Number(params.taskId) : undefined;
+  // 从报告页某一段进来：预填首问，用户可直接发
+  const prefill = params.paragraphIdx != null && params.paragraphIdx !== '' ? `为什么第 ${Number(params.paragraphIdx) + 1} 段像 AI？` : '';
 
   const [messages, setMessages] = useState<Msg[]>([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState(prefill);
   const [streaming, setStreaming] = useState(false);
   const [conversationId, setConversationId] = useState('');
   const handleRef = useRef<ChatHandle | null>(null);

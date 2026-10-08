@@ -7,9 +7,13 @@ export interface DetectTask {
   paperTitle: string;
   status: TaskStatus;
   aiRate: number | null;
-  degreeType: 'BACHELOR' | 'MASTER' | 'PHD';
+  /** 旧字段，后端已改用 scenario；保留给 mock */
+  degreeType?: 'BACHELOR' | 'MASTER' | 'PHD';
+  scenario?: string;
   threshold: number;
   createdAt: string;
+  modelVersion?: string;
+  reportNo?: string | null;
 }
 
 export interface SentenceScore {
@@ -21,15 +25,21 @@ export interface SentenceScore {
 export interface ParagraphResult {
   paragraphIdx: number;
   text: string;
-  aiProb: number;
-  calibratedProb: number;
+  aiProb: number | null;
+  calibratedProb: number | null;
   sourceLabel: string | null;
   sentences: SentenceScore[];
+  excluded?: boolean;
+  excludeReason?: string | null;
+  sectionName?: string | null;
 }
 
 export interface TaskDetail extends DetectTask {
   paragraphs: ParagraphResult[];
   sourceLabels: Record<string, number>;
+  verifyCode?: string | null;
+  reportFingerprint?: string | null;
+  verifyUrl?: string | null;
 }
 
 // ---- mock 数据（EXPO_PUBLIC_API_BASE 未配置时启用，纯 UI 开发用）----

@@ -10,7 +10,9 @@ const STATUS_LABEL: Record<DetectTask['status'], { text: string; color: string }
   FAILED: { text: '失败', color: '#ef4444' },
 };
 
-const DEGREE_LABEL = { BACHELOR: '本科', MASTER: '硕士', PHD: '博士' } as const;
+const DEGREE_LABEL: Record<string, string> = { BACHELOR: '本科', MASTER: '硕士', PHD: '博士' };
+const SCENARIO_LABEL: Record<string, string> = { academic_bachelor: '本科', academic_master: '硕士', academic_phd: '博士', job_report: '职业报告', self_media: '自媒体', other: '其他' };
+const sceneOf = (t: DetectTask) => (t.scenario && SCENARIO_LABEL[t.scenario]) || (t.degreeType && DEGREE_LABEL[t.degreeType]) || '';
 
 function aiRateColor(rate: number, threshold: number): string {
   if (rate <= threshold) return '#10b981';
@@ -27,7 +29,7 @@ function TaskCard({ task, onPress }: { task: DetectTask; onPress: () => void }) 
         <Text style={[styles.status, { color: status.color }]}>{status.text}</Text>
       </View>
       <View style={styles.cardBody}>
-        <Text style={styles.meta}>{DEGREE_LABEL[task.degreeType]} · 红线 {task.threshold}% · {task.createdAt}</Text>
+        <Text style={styles.meta}>{sceneOf(task)} · 红线 {task.threshold}% · {String(task.createdAt).slice(0, 16)}</Text>
         {task.status === 'DONE' && task.aiRate != null && (
           <Text style={[styles.aiRate, { color: aiRateColor(task.aiRate, task.threshold) }]}>
             AI 率 {task.aiRate.toFixed(1)}%
@@ -45,6 +47,13 @@ export default function TaskListScreen() {
   return (
     <View style={styles.container}>
       <FlatList
+        ListHeaderComponent={
+          <View style={styles.quick}>
+            <Pressable style={[styles.quickItem, styles.quickPrimary]} onPress={() => router.push('/upload')}><Text style={styles.quickIcon}>📤</Text><Text style={[styles.quickText, { color: '#fff' }]}>上传论文</Text></Pressable>
+            <Pressable style={styles.quickItem} onPress={() => router.push('/assistant/chat')}><Text style={styles.quickIcon}>💬</Text><Text style={styles.quickText}>问小白</Text></Pressable>
+            <Pressable style={styles.quickItem} onPress={() => router.push('/verify')}><Text style={styles.quickIcon}>🛡️</Text><Text style={styles.quickText}>验证报告</Text></Pressable>
+          </View>
+        }
         data={data ?? []}
         keyExtractor={(t) => String(t.id)}
         renderItem={({ item }) => (
@@ -66,6 +75,10 @@ export default function TaskListScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f3f4f6' },
+  quick: { flexDirection: 'row', gap: 10, marginBottom: 14 },
+  quickItem: { flex: 1, backgroundColor: '#fff', borderRadius: 12, paddingVertical: 12, alignItems: 'center', gap: 4, borderWidth: 1, borderColor: '#e5e7eb' },
+  quickPrimary: { backgroundColor: '#0D9488', borderColor: '#0D9488' },
+  quickIcon: { fontSize: 18 }, quickText: { fontSize: 12, fontWeight: '600', color: '#111827' },
   card: {
     backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12,
     shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
