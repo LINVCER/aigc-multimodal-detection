@@ -21,6 +21,12 @@ export async function register(username: string, password: string, confirmPasswo
   return resp.data.data
 }
 
+/** 注册前用户名查重 */
+export async function checkUsername(username: string): Promise<boolean> {
+  const resp = await http.get('/api/v1/auth/username-available', { params: { username } })
+  return !!resp.data.data?.available
+}
+
 export async function getCaptcha(): Promise<{ captchaId: string; imageBase64: string }> {
   const resp = await http.get('/api/v1/auth/captcha')
   return resp.data.data
