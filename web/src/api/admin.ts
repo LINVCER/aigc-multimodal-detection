@@ -79,9 +79,32 @@ export interface AdminAccount {
   status: 0 | 1
   lastLoginAt: string | null
   createdAt: string
+  detectCount: number
+  lastDetectAt: string | null
 }
 
-export async function listAccounts(params: { keyword?: string; role?: AccountRole; status?: 0 | 1; pageNum?: number; pageSize?: number } = {}): Promise<{ total: number; rows: AdminAccount[] }> {
+export interface AccountStats { total: number; active: number; disabled: number; todayNew: number; active7d: number; byRole: Record<string, number> }
+
+export async function getAccountStats(): Promise<AccountStats> {
+  const resp = await http.get('/admin/account/stats')
+  return resp.data.data
+}
+
+export async function getAccount(id: number): Promise<AdminAccount> {
+  const resp = await http.get(`/admin/account/${id}`)
+  return resp.data.data
+}
+
+export async function updateAccount(id: number, payload: { realName?: string; orgName?: string }): Promise<void> {
+  await http.put(`/admin/account/${id}`, payload)
+}
+
+export async function batchAccountStatus(ids: number[], status: 0 | 1): Promise<{ updated: number }> {
+  const resp = await http.post('/admin/account/batch-status', { ids, status })
+  return resp.data.data
+}
+
+export async function listAccounts(params: { keyword?: string; role?: AccountRole; status?: 0 | 1; sortBy?: string; sortOrder?: 'asc' | 'desc'; pageNum?: number; pageSize?: number } = {}): Promise<{ total: number; rows: AdminAccount[] }> {
   const resp = await http.get('/admin/account/list', { params: { pageNum: 1, pageSize: 20, ...params } })
   return resp.data.data
 }

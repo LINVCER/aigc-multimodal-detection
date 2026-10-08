@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { listAdminTasks, type AdminTask } from '@/api/admin'
 
 const router = useRouter()
+const route = useRoute()
 
 const filter = reactive<{
   status: string
@@ -60,7 +61,12 @@ function viewDetail(id: number) {
   router.push(`/task/${id}`)
 }
 
-onMounted(load)
+onMounted(() => {
+  // 从账号详情「查看全部」带 userId 进来时预填筛选
+  const uid = Number(route.query.userId)
+  if (uid) filter.userId = uid
+  load()
+})
 </script>
 
 <template>
