@@ -70,24 +70,13 @@ const weekStats = computed(() => {
 /* ---------- 最近 3 条 ---------- */
 const recent = computed(() => tasks.value.slice(0, 3))
 
-/* ---------- 场景快选 ---------- */
-const SCENARIOS = [
-  'academic_bachelor', 'academic_master', 'academic_phd',
-  'job_report', 'self_media', 'other',
-]
+/* ---------- 场景标签（最近检测列表用） ---------- */
 const scenarioOf = (k) => SCENARIO_MAP[k] || SCENARIO_MAP.other
 
 /* ---------- 跳转 ----------
- * A 方案：主 CTA 跳二级模态选择；quick-tile 直连三级（跳过二级）
- * 场景 chip 跳论文三级 + 预选场景（switchTab 不能传参走 storage 兜底）
+ * 主 CTA 与运营轮播跳二级模态选择；助手 / 验真 / 记录直连对应页
  */
 function goModalityPicker() { uni.switchTab({ url: '/pages/upload/upload' }) }
-
-function goText(scenarioKey, mode) {
-  if (scenarioKey) uni.setStorageSync('pending_scenario', scenarioKey)
-  if (mode) uni.setStorageSync('pending_upload_mode', mode)
-  uni.switchTab({ url: '/pages/upload/upload' })
-}
 function goAssistant() { uni.navigateTo({ url: '/pages/assistant/chat' }) }
 function goVerify() { uni.navigateTo({ url: '/pages/verify/verify' }) }
 
@@ -97,6 +86,22 @@ function goDetail(id) { uni.navigateTo({ url: `/pages/task/detail?id=${id}` }) }
 
 function comingSoon(name) {
   uni.showToast({ title: `${name} 即将上线`, icon: 'none' })
+}
+
+/* ---------- 运营轮播 ----------
+ * 大图全部由 CSS 渐变 + SVG 线稿绘制，不引入外部图片；
+ * 三屏各带一个明确落地动作（target 用字符串，避免函数进 data 被序列化丢弃）
+ */
+const promoIndex = ref(0)
+const PROMOS = [
+  { key: 'explain', title: '不只给一个比例', desc: '逐段解释为什么像 AI，定位最可疑的句子', cta: '问小白', target: 'assistant' },
+  { key: 'redline', title: '教育部 2026 新规红线', desc: '本科 20% · 硕士 15% · 博士 10%', cta: '立即检测', target: 'upload' },
+  { key: 'appeal', title: '原创被误判有路可走', desc: '一键整理申诉材料，不推销「降 AI」', cta: '看申诉指引', target: 'assistant' },
+]
+function onPromoChange(e) { promoIndex.value = e.detail.current }
+function onPromoTap(p) {
+  if (p.target === 'assistant') goAssistant()
+  else if (p.target === 'upload') goModalityPicker()
 }
 
 /* ---------- 语义 ---------- */
@@ -117,29 +122,44 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
       <text class="hero-cta-arrow">→</text>
     </view>
 
-    <!-- 快捷入口 2×2 · 直连三级页 -->
-    <view class="quick-grid">
-      <view class="quick-tile" hover-class="quick-tile-hover" @click="goText()">
-        <view class="quick-icon quick-icon-file" />
-        <text class="quick-label">论文文件</text>
-        <text class="quick-desc">PDF / DOC</text>
-      </view>
-      <view class="quick-tile" hover-class="quick-tile-hover" @click="goText(null, 'paste')">
-        <view class="quick-icon quick-icon-paste" />
-        <text class="quick-label">粘贴文本</text>
-        <text class="quick-desc">即时打分</text>
-      </view>
-      <view class="quick-tile" hover-class="quick-tile-hover" @click="goAssistant">
-        <view class="quick-icon quick-icon-assistant" />
-        <text class="quick-label">论文助手</text>
-        <text class="quick-desc">解读 · 答疑</text>
-      </view>
-      <view class="quick-tile" hover-class="quick-tile-hover" @click="goRecords">
-        <view class="quick-icon quick-icon-history" />
-        <text class="quick-label">检测记录</text>
-        <text class="quick-desc">{{ tasks.length ? tasks.length + ' 份' : '暂无' }}</text>
+    <!-- 运营轮播 · 大图自绘（CSS 渐变 + SVG 线稿，不引外部图片） -->
+    <view class="promo">
+      <swiper
+        class="promo-swiper"
+        :current="promoIndex"
+        circular
+        autoplay
+        :interval="3000"
+        :duration="400"
+        @change="onPromoChange"
+      >
+        <swiper-item v-for="p in PROMOS" :key="p.key">
+          <view
+            class="promo-slide"
+            :class="'ps-' + p.key"
+            hover-class="promo-slide-hover"
+            @click="onPromoTap(p)"
+          >
+            <view class="promo-art" :class="'art-' + p.key" />
+            <view class="promo-body">
+              <text class="promo-title">{{ p.title }}</text>
+              <text class="promo-desc">{{ p.desc }}</text>
+              <view class="promo-cta">
+                <text class="promo-cta-text">{{ p.cta }}</text>
+                <text class="promo-cta-arrow">→</text>
+              </view>
+            </view>
+          </view>
+        </swiper-item>
+      </swiper>
+      <view class="promo-dots">
+        <view
+          v-for="(p, i) in PROMOS" :key="p.key"
+          class="promo-dot" :class="{ on: i === promoIndex }"
+        />
       </view>
     </view>
+
     <view class="verify-link" hover-class="verify-link-hover" @click="goVerify"><text class="verify-link-text">收到一份检测报告？输入编号验证真伪</text><text class="verify-link-arrow">›</text></view>
 
     <!-- 本周概览 -->
@@ -164,23 +184,6 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
         <text class="stat-label">达标率</text>
       </view>
     </view>
-
-    <!-- 场景快选 -->
-    <text class="section-label">按场景检测</text>
-    <scroll-view scroll-x class="scenario-scroll" show-scrollbar="false">
-      <view class="scenario-strip">
-        <view
-          v-for="k in SCENARIOS" :key="k"
-          class="scenario-chip"
-          :style="{ background: scenarioOf(k).wash, color: scenarioOf(k).tint }"
-          hover-class="scenario-chip-hover"
-          @click="goText(k)"
-        >
-          <text class="scenario-label">{{ scenarioOf(k).label }}</text>
-          <text class="scenario-th">≤ {{ scenarioOf(k).threshold }}%</text>
-        </view>
-      </view>
-    </scroll-view>
 
     <!-- 最近检测 -->
     <view class="section-label-line">
@@ -261,53 +264,96 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
   margin-left: $sp-3;
 }
 
-/* ---------- 快捷入口 2×2 ---------- */
-.verify-link { margin-top: $sp-2; padding: $sp-2 $sp-3; display: flex; justify-content: space-between; align-items: center; border-radius: $radius-md; background: $brand-primary-wash; }
+/* ---------- 运营轮播 · 大图自绘 ---------- */
+.promo { margin-top: $sp-4; }
+.promo-swiper {
+  height: 400rpx;
+  border-radius: $radius-hero;
+}
+.promo-slide {
+  position: relative;
+  height: 100%;
+  padding: $sp-5;
+  display: flex; align-items: center;
+  border-radius: $radius-hero;
+  overflow: hidden;
+  box-shadow: $shadow-lift;
+  transition: transform $duration-fast $ease-standard;
+}
+.promo-slide-hover { transform: scale(0.985); }
+
+/* 三屏渐变底 · 各带方向感 */
+.ps-explain { background: linear-gradient(135deg, #5E5CE6 0%, #7B7BFF 44%, #64D2FF 100%); }
+.ps-redline { background: linear-gradient(135deg, #FF7A00 0%, #FF5B2E 56%, #FF2D55 100%); }
+.ps-appeal  { background: linear-gradient(135deg, #12B76A 0%, #00C7BE 58%, #22D3EE 100%); }
+
+/* 右侧大图 · 白色线稿（背景层，不挡点击） */
+.promo-art {
+  position: absolute;
+  top: 0; right: 0;
+  width: 360rpx; height: 100%;
+  background-repeat: no-repeat;
+  background-position: right center;
+  background-size: 320rpx 320rpx;
+  pointer-events: none;
+}
+.art-explain {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none' stroke='%23FFFFFF' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><path d='M44 58h84a18 18 0 0 1 18 18v32a18 18 0 0 1-18 18H80l-26 20v-20H44a18 18 0 0 1-18-18V76a18 18 0 0 1 18-18z' opacity='0.55'/><circle cx='68' cy='92' r='5' fill='%23FFFFFF' stroke='none' opacity='0.95'/><circle cx='88' cy='92' r='5' fill='%23FFFFFF' stroke='none' opacity='0.95'/><circle cx='108' cy='92' r='5' fill='%23FFFFFF' stroke='none' opacity='0.95'/><path d='M152 40l6 16 16 6-16 6-6 16-6-16-16-6 16-6z' fill='%23FFFFFF' stroke='none' opacity='0.85'/></svg>");
+}
+.art-redline {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none' stroke='%23FFFFFF' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><path d='M40 142a62 62 0 0 1 124 0' opacity='0.55'/><path d='M100 142l36-44' stroke-width='5'/><circle cx='100' cy='142' r='8' fill='%23FFFFFF' stroke='none'/><path d='M58 100l9 7M100 80v11M142 100l-9 7' opacity='0.75'/><path d='M154 40l30 52h-60z' fill='%23FFFFFF' stroke='none' opacity='0.92'/><path d='M154 56v16M154 82h.1' stroke='%23FF5B2E' stroke-width='5'/></svg>");
+}
+.art-appeal {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' fill='none' stroke='%23FFFFFF' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><path d='M60 34h56l26 26v100a10 10 0 0 1-10 10H60a10 10 0 0 1-10-10V44a10 10 0 0 1 10-10z' opacity='0.5'/><path d='M116 34v26h26' opacity='0.5'/><path d='M78 104l14 14 30-30' stroke-width='6' opacity='0.95'/><path d='M78 138h44' opacity='0.45'/></svg>");
+}
+
+.promo-body { position: relative; z-index: 2; flex: 1; display: flex; flex-direction: column; }
+.promo-title {
+  display: block;
+  font-size: $fs-title-3;
+  font-weight: $fw-bold;
+  color: #FFFFFF;
+  letter-spacing: $tracking-snug;
+}
+.promo-desc {
+  display: block;
+  margin-top: $sp-1;
+  max-width: 360rpx;
+  font-size: $fs-subhead;
+  color: rgba(255, 255, 255, 0.88);
+  line-height: $lh-normal;
+}
+.promo-cta {
+  align-self: flex-start;
+  margin-top: $sp-3;
+  display: inline-flex; align-items: center;
+  height: 56rpx;
+  padding: 0 $sp-3;
+  border-radius: $radius-pill;
+  background: rgba(255, 255, 255, 0.94);
+}
+.promo-cta-text { font-size: $fs-subhead; font-weight: $fw-semibold; color: $label-primary; }
+.promo-cta-arrow { font-size: $fs-subhead; color: $label-primary; margin-left: 6rpx; }
+
+/* 指示点 · 当前项拉长 */
+.promo-dots {
+  margin-top: $sp-3;
+  display: flex; justify-content: center; align-items: center;
+  gap: 10rpx;
+}
+.promo-dot {
+  width: 12rpx; height: 12rpx;
+  border-radius: $radius-pill;
+  background: rgba(60, 60, 67, 0.22);
+  transition: width $duration-fast $ease-standard, background $duration-fast;
+}
+.promo-dot.on { width: 32rpx; background: $brand-primary; }
+
+/* ---------- 报告验真入口 ---------- */
+.verify-link { margin-top: $sp-3; padding: $sp-2 $sp-3; display: flex; justify-content: space-between; align-items: center; border-radius: $radius-md; background: $brand-primary-wash; }
 .verify-link-hover { opacity: 0.7; }
 .verify-link-text { font-size: $fs-footnote; color: $brand-primary; }
 .verify-link-arrow { font-size: $fs-headline; color: $brand-primary; }
-.quick-grid {
-  margin-top: $sp-4;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: $sp-2;
-}
-.quick-tile {
-  @include card;
-  padding: $sp-4;
-  transition: transform $duration-fast $ease-standard;
-}
-.quick-tile-hover { transform: scale(0.97); background: rgba(60, 60, 67, 0.03); }
-.quick-icon {
-  width: 72rpx; height: 72rpx;
-  border-radius: $radius-md;
-  margin-bottom: $sp-2;
-}
-.quick-icon-file {
-  background: $brand-primary-wash url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23007AFF' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z'/><polyline points='14 3 14 8 19 8'/><line x1='8' y1='13' x2='16' y2='13'/><line x1='8' y1='17' x2='13' y2='17'/></svg>") no-repeat center / 44rpx 44rpx;
-}
-.quick-icon-paste {
-  background: rgba(88, 86, 214, 0.10) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235856D6' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><rect x='8' y='2' width='8' height='4' rx='1'/><path d='M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2'/><line x1='9' y1='12' x2='15' y2='12'/><line x1='9' y1='16' x2='13' y2='16'/></svg>") no-repeat center / 44rpx 44rpx;
-}
-.quick-icon-history {
-  background: rgba(0, 199, 190, 0.10) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300C7BE' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M3 12a9 9 0 1 0 3-6.7'/><path d='M3 4v5h5'/><path d='M12 7v5l4 2'/></svg>") no-repeat center / 44rpx 44rpx;
-}
-.quick-icon-assistant {
-  background: rgba(94, 92, 230, 0.10) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235E5CE6' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M21 12a8 8 0 0 1-11.6 7.1L4 20l1.1-4.4A8 8 0 1 1 21 12z'/><circle cx='9' cy='12' r='.8'/><circle cx='12' cy='12' r='.8'/><circle cx='15' cy='12' r='.8'/></svg>") no-repeat center / 44rpx 44rpx;
-}
-.quick-label {
-  display: block;
-  font-size: $fs-headline;
-  font-weight: $fw-semibold;
-  color: $label-primary;
-  letter-spacing: $tracking-snug;
-}
-.quick-desc {
-  display: block;
-  font-size: $fs-caption-1;
-  color: $label-secondary;
-  margin-top: 4rpx;
-}
 
 /* ---------- Section Label ---------- */
 .section-label {
@@ -359,33 +405,6 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
   width: $stroke-hairline;
   background: $separator;
   margin: $sp-1 0;
-}
-
-/* ---------- 场景快选 ---------- */
-.scenario-scroll { white-space: nowrap; }
-.scenario-strip {
-  display: inline-flex; gap: $sp-2;
-  padding: $sp-1 $sp-1;
-}
-.scenario-chip {
-  display: inline-flex; flex-direction: column;
-  padding: $sp-2 $sp-3;
-  border-radius: $radius-lg;
-  min-width: 180rpx;
-  transition: transform $duration-fast $ease-standard;
-}
-.scenario-chip-hover { transform: scale(0.96); }
-.scenario-label {
-  font-size: $fs-subhead;
-  font-weight: $fw-semibold;
-  letter-spacing: $tracking-snug;
-}
-.scenario-th {
-  font-size: $fs-caption-2;
-  opacity: 0.75;
-  font-weight: $fw-medium;
-  margin-top: 4rpx;
-  font-variant-numeric: tabular-nums;
 }
 
 /* ---------- 最近检测 ---------- */
