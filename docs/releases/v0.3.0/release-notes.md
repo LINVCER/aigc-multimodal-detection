@@ -192,6 +192,21 @@ uniapp 与 web 各有一个对话入口。零新服务、零新部署单元，LL
 **RN**
 - 登录页同上：行内校验、显示密码、强度条、协议勾选、记住账号（SecureStore）、验证码三态、键盘避让
 
+### 后台账号管理 + 报告只读分享链接
+
+**账号管理（auth_user）**
+- `GET /admin/account/list`、`POST /admin/account/{id}/status|reset-password|role`、`POST /admin/account` 新建；停用 / 重置密码 / 改角色都会作废该用户在线 token（`IAuthTokenRepository.removeByUser`）
+- 临时密码由服务端生成，只在响应里出现一次；不能停用或改自己的角色
+- `PasswordHasher` 抽出共用（登录 / 注册 / 改密 / 重置）
+- web 后台「用户管理」改两 tab：平台账号（真实凭据）/ 用户画像（原 demo）；重置密码与新建弹出一次性临时密码并可复制
+
+**只读分享**
+- `report_share` 表（V0.3.0.011，patch-schema 同步）：token / 任务 / 有效期 1·7·30 天 / 水印 / 浏览数 / 撤销
+- `POST /api/v1/report/tasks/{id}/share`、`GET …/shares`、`POST /api/v1/report/share/{token}/revoke`；公开 `GET /api/v1/share/{token}` 返不含任务 id / 用户 / 文件信息的只读报告并计浏览
+- 链接 URL 由 `platform.web.base-url`（`WEB_BASE_URL`）拼成 `/s/{token}`
+- web：公开页 `/s/:token`（斜向水印、只读、底部引流），结果页「分享」按钮 → 弹窗选有效期 / 水印、生成即复制、列表可撤销
+- uniapp：结果页「只读链接」→ 底部 sheet 同上，复制到剪贴板（小程序原生 open-type=share 按钮改为此入口）
+
 ## 验证状态
 
 - Python：`compileall` 通过；知识库 32 块可加载。未在本机起服务（无 torch / 无 LLM key / 无 numpy，`surface_facts` 与文档内基线未本机跑过，逻辑复用已有 `extract_surface_features` 与 `SurfaceScaler`）
