@@ -56,6 +56,44 @@ export interface TaskDetail extends DetectTask {
   parentCreatedAt?: string | null
 }
 
+export interface ReportShare {
+  id: number
+  token: string
+  url: string
+  watermark: string | null
+  expiresAt: string
+  viewCount: number
+  revoked: boolean
+  expired: boolean
+  createdAt: string
+}
+
+export interface SharedReport {
+  paperTitle: string
+  scenario: string
+  threshold: number
+  aiRate: number | null
+  modelVersion: string | null
+  wordCount: number | null
+  bodyParagraphCount: number | null
+  excludedParagraphCount: number | null
+  detectedAt: string | null
+  sourceLabels: Record<string, number> | null
+  paragraphs: Array<{
+    paragraphIdx: number
+    text: string
+    excluded: boolean
+    excludeReason: string | null
+    calibratedProb: number | null
+    sourceLabel: string | null
+    sectionName: string | null
+    sentences: Array<{ sentenceIdx: number; text: string; aiProb: number }>
+  }>
+  watermark: string
+  expiresAt: string
+  viewCount: number
+}
+
 export type CompareRowStatus = 'down' | 'up' | 'same' | 'added' | 'removed'
 
 export interface TaskCompareSide {

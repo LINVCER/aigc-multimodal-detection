@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 const routes: RouteRecordRaw[] = [
   { path: '/login', name: 'Login', component: () => import('@/views/Login.vue'), meta: { public: true } },
   { path: '/privacy', name: 'Privacy', component: () => import('@/views/Privacy.vue'), meta: { public: true } },
+  { path: '/s/:token', name: 'SharedReport', component: () => import('@/views/SharedReport.vue'), props: true, meta: { public: true } },
   { path: '/', name: 'Landing', component: () => import('@/views/Landing.vue'), meta: { public: true } },
   { path: '/dashboard', name: 'Dashboard', component: () => import('@/views/Dashboard.vue') },
   { path: '/upload', name: 'Upload', component: () => import('@/views/Upload.vue') },

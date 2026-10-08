@@ -2,11 +2,12 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getTaskDetail, downloadReportPdf, getTaskCompare, retryTask } from '@/api/detect'
+import { useAuthStore } from '@/stores/auth'
+import { getTaskDetail, downloadReportPdf, getTaskCompare, retryTask, createShare, listShares, revokeShare } from '@/api/detect'
 import Skeleton from '@/components/Skeleton.vue'
 import FeedbackDialog from '@/components/FeedbackDialog.vue'
 import AssistantDrawer from '@/components/AssistantDrawer.vue'
-import type { TaskDetail, ParagraphResult, TaskCompare } from '@/api/types'
+import type { TaskDetail, ParagraphResult, TaskCompare, ReportShare } from '@/api/types'
 
 /**
  * 检测报告页（重构版）
@@ -18,6 +19,7 @@ import type { TaskDetail, ParagraphResult, TaskCompare } from '@/api/types'
 
 const props = defineProps<{ id: string }>()
 const router = useRouter()
+const auth = useAuthStore()
 
 const feedbackOpen = ref(false)
 const assistantOpen = ref(false)
@@ -190,6 +192,36 @@ const SEV: Record<string, { fg: string; bg: string }> = {
   success: { fg: 'var(--system-green)', bg: 'rgba(52, 199, 89, 0.08)' }, info: { fg: 'var(--system-blue)', bg: 'rgba(0, 122, 255, 0.06)' },
 }
 
+/* 只读分享 */
+const shareOpen = ref(false)
+const shareDays = ref(7)
+const shareWatermark = ref('')
+const shareCreating = ref(false)
+const shares = ref<ReportShare[]>([])
+const latestShare = ref<ReportShare | null>(null)
+const activeShares = computed(() => shares.value.filter((s) => !s.revoked && !s.expired))
+async function openShare() {
+  shareOpen.value = true
+  latestShare.value = null
+  if (!shareWatermark.value) shareWatermark.value = `仅供查阅 · ${auth.user?.realName || auth.user?.username || ''}`.trim()
+  try { shares.value = await listShares(Number(props.id)) } catch { shares.value = [] }
+}
+async function doCreateShare() {
+  shareCreating.value = true
+  try {
+    latestShare.value = await createShare(Number(props.id), { expireDays: shareDays.value, watermark: shareWatermark.value.trim() || undefined })
+    shares.value = await listShares(Number(props.id))
+    await copyText(latestShare.value.url)
+  } catch { /* 拦截器已 toast */ } finally { shareCreating.value = false }
+}
+async function doRevoke(s: ReportShare) {
+  await revokeShare(s.token)
+  ElMessage.success('已撤销，链接立即失效')
+  if (latestShare.value?.token === s.token) latestShare.value = null
+  shares.value = await listShares(Number(props.id))
+}
+const fmtTime = (s?: string | null) => (s ? String(s).replace('T', ' ').slice(0, 16) : '—')
+
 /* 下载 / 对比 */
 const downloading = ref(false)
 async function onDownloadPdf() {
@@ -231,6 +263,7 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
         <div v-if="detail && detail.status === 'DONE'" class="header-actions">
           <el-button link size="small" @click="openAssistant()">💬 问助手</el-button>
           <el-button link size="small" @click="feedbackOpen = true">🚩 申诉</el-button>
+          <el-button link size="small" @click="openShare">🔗 分享</el-button>
           <el-button type="primary" round size="small" :loading="downloading" @click="onDownloadPdf">⬇ 下载 PDF</el-button>
         </div>
         <span v-else></span>
@@ -424,6 +457,7 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
                   <el-button round @click="router.push('/upload')">↻ 修改后再测一次</el-button>
                   <el-button round @click="feedbackOpen = true">🚩 我觉得判错了</el-button>
                   <el-button round :loading="downloading" @click="onDownloadPdf">⬇ 下载 PDF 报告</el-button>
+                  <el-button round @click="openShare">🔗 生成只读分享链接</el-button>
                 </div>
               </el-card>
               <div class="side-note">助手只讲原则与方向，不代写、不改写原文。</div>
@@ -435,6 +469,38 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
 
     <FeedbackDialog v-model="feedbackOpen" :task-id="Number(id)" default-category="appeal" :paragraphs="detail?.paragraphs" />
     <AssistantDrawer v-model="assistantOpen" :task-id="Number(id)" :paragraph-idx="assistantParagraph" />
+
+    <!-- 只读分享 -->
+    <el-dialog v-model="shareOpen" title="分享只读报告" width="520" align-center destroy-on-close>
+      <div class="share">
+        <div class="share-row"><span class="share-label">有效期</span>
+          <el-radio-group v-model="shareDays" size="small"><el-radio-button :value="1">1 天</el-radio-button><el-radio-button :value="7">7 天</el-radio-button><el-radio-button :value="30">30 天</el-radio-button></el-radio-group>
+        </div>
+        <div class="share-row"><span class="share-label">水印</span><el-input v-model="shareWatermark" maxlength="40" show-word-limit placeholder="如：仅供张老师审阅" /></div>
+        <div class="share-hint">对方打开只能看报告，不能申诉、下载或问助手；页面带斜向水印。随时可撤销。</div>
+        <el-button type="primary" round :loading="shareCreating" @click="doCreateShare">生成链接并复制</el-button>
+        <div v-if="latestShare" class="share-result">
+          <code class="share-url">{{ latestShare.url }}</code>
+          <el-button link type="primary" size="small" @click="copyText(latestShare!.url)">复制</el-button>
+        </div>
+        <template v-if="shares.length">
+          <div class="share-sub">已生成的链接</div>
+          <div v-for="s in shares" :key="s.token" class="share-item" :class="{ dead: s.revoked || s.expired }">
+            <div class="share-item-main">
+              <code>…{{ s.token.slice(-8) }}</code>
+              <span class="muted small">{{ s.watermark || '默认水印' }} · 至 {{ fmtTime(s.expiresAt) }} · 看过 {{ s.viewCount }} 次</span>
+            </div>
+            <el-tag v-if="s.revoked" size="small" type="info">已撤销</el-tag>
+            <el-tag v-else-if="s.expired" size="small" type="info">已过期</el-tag>
+            <template v-else>
+              <el-button link size="small" @click="copyText(s.url)">复制</el-button>
+              <el-button link size="small" type="danger" @click="doRevoke(s)">撤销</el-button>
+            </template>
+          </div>
+        </template>
+        <div v-if="activeShares.length" class="share-hint">当前有 {{ activeShares.length }} 条有效链接。</div>
+      </div>
+    </el-dialog>
 
     <!-- 复测对比 -->
     <el-dialog v-model="compareOpen" width="820" title="与上次检测对比" align-center>
@@ -599,6 +665,17 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
 .side-actions { display: flex; flex-direction: column; gap: 8px; }
 .side-actions .el-button { margin: 0; width: 100%; justify-content: flex-start; }
 .side-note { font-size: 12px; color: var(--label-tertiary); text-align: center; }
+
+/* 分享 */
+.share { display: flex; flex-direction: column; gap: 12px; }
+.share-row { display: flex; align-items: center; gap: 12px; } .share-label { flex: none; width: 48px; color: var(--label-secondary); font-size: 13px; }
+.share-hint { font-size: 12px; color: var(--label-tertiary); line-height: 1.5; }
+.share-result { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px; background: rgba(52, 199, 89, 0.08); }
+.share-url { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; user-select: all; }
+.share-sub { font-size: 12px; color: var(--label-secondary); margin-top: 6px; }
+.share-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--label-quaternary); } .share-item:last-child { border-bottom: none; }
+.share-item.dead { opacity: .55; }
+.share-item-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; } .share-item-main code { font-size: 12px; }
 
 /* 对比 */
 .cmp { display: flex; flex-direction: column; gap: 12px; }

@@ -66,6 +66,44 @@ export async function unbanUser(id: number): Promise<void> {
   await http.post(`/admin/user/${id}/unban`)
 }
 
+/* =========== 平台账号（auth_user） =========== */
+
+export type AccountRole = 'USER' | 'ADMIN' | 'OPS_ADMIN'
+
+export interface AdminAccount {
+  id: number
+  username: string
+  realName: string | null
+  role: AccountRole
+  orgName: string | null
+  status: 0 | 1
+  lastLoginAt: string | null
+  createdAt: string
+}
+
+export async function listAccounts(params: { keyword?: string; role?: AccountRole; status?: 0 | 1; pageNum?: number; pageSize?: number } = {}): Promise<{ total: number; rows: AdminAccount[] }> {
+  const resp = await http.get('/admin/account/list', { params: { pageNum: 1, pageSize: 20, ...params } })
+  return resp.data.data
+}
+
+export async function setAccountStatus(id: number, status: 0 | 1): Promise<void> {
+  await http.post(`/admin/account/${id}/status`, null, { params: { status } })
+}
+
+export async function resetAccountPassword(id: number): Promise<{ tempPassword: string }> {
+  const resp = await http.post(`/admin/account/${id}/reset-password`)
+  return resp.data.data
+}
+
+export async function setAccountRole(id: number, role: AccountRole): Promise<void> {
+  await http.post(`/admin/account/${id}/role`, null, { params: { role } })
+}
+
+export async function createAccount(payload: { username: string; realName?: string; role?: AccountRole; orgName?: string }): Promise<{ tempPassword: string }> {
+  const resp = await http.post('/admin/account', payload)
+  return resp.data.data
+}
+
 /* =========== §3.4 全平台任务列表 =========== */
 
 export interface AdminTask {

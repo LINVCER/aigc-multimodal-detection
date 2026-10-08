@@ -1,5 +1,5 @@
 import { http } from './client'
-import type { TaskCompare, DetectTask, TaskDetail, PageResp, HumanizeResp, SentenceScore, StatisticsResp } from './types'
+import type { TaskCompare, DetectTask, TaskDetail, PageResp, HumanizeResp, SentenceScore, StatisticsResp, ReportShare, SharedReport } from './types'
 
 /** §3.1 提交论文（W3.b · scenario；W3.c 前透传 userId 便于后台 topUsers/userLabel 归属） */
 export async function submitPaper(
@@ -31,6 +31,26 @@ export async function listTasks(params: { pageNum?: number; pageSize?: number; s
 
 /** §3.3 任务详情 */
 /** 复测对比：当前任务 vs parent_task_id（product-feature-plan §2.2） */
+export async function createShare(taskId: number, payload: { expireDays: number; watermark?: string }): Promise<ReportShare> {
+  const resp = await http.post(`/api/v1/report/tasks/${taskId}/share`, payload)
+  return resp.data.data
+}
+
+export async function listShares(taskId: number): Promise<ReportShare[]> {
+  const resp = await http.get(`/api/v1/report/tasks/${taskId}/shares`)
+  return resp.data.data
+}
+
+export async function revokeShare(token: string): Promise<void> {
+  await http.post(`/api/v1/report/share/${token}/revoke`)
+}
+
+/** 公开只读报告（不带 token 也能读；401 拦截器不会触发因为是 200/业务码） */
+export async function getSharedReport(token: string): Promise<SharedReport> {
+  const resp = await http.get(`/api/v1/share/${token}`)
+  return resp.data.data
+}
+
 export async function getTaskCompare(id: number): Promise<TaskCompare> {
   const resp = await http.get(`/api/v1/detect/tasks/${id}/compare`)
   return resp.data.data
