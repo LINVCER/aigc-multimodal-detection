@@ -166,6 +166,12 @@ function copyCred() {
   uni.setClipboardData({ data: `知源检测报告 编号 ${detail.value.reportNo} 验证码 ${detail.value.verifyCode}，验证：知源「验证报告」`, showToast: false, success: () => uni.showToast({ title: '凭证已复制', icon: 'none' }) })
 }
 
+function askRevision() {
+  compareOpen.value = false
+  uni.setStorageSync('pending_assistant_prompt', '我这次改的方向对了吗？哪几段有效、哪几段白改了？')
+  goAssistant()
+}
+
 function goAssistant(paragraphIdx) {
   let url = `/pages/assistant/chat?taskId=${taskId}`
   if (paragraphIdx !== undefined && paragraphIdx !== null) url += `&paragraphIdx=${paragraphIdx}`
@@ -572,6 +578,7 @@ function copyPara(text) { uni.setClipboardData({ data: text, showToast: false, s
           <text class="cmp-arrow">→</text>
           <view class="cmp-side"><text class="cmp-side-label">本次</text><text class="cmp-side-rate" :class="compareData.summary.pass ? 'ok' : 'bad'">{{ compareData.current.aiRate == null ? '—' : compareData.current.aiRate.toFixed(1) + '%' }}</text></view>
         </view>
+        <button class="cmp-ask" @click="askRevision">💬 让小白点评这次修改</button>
         <view class="cmp-stats">
           <text class="cmp-stat down">降 {{ compareData.summary.down }}</text>
           <text class="cmp-stat up">涨 {{ compareData.summary.up }}</text>
@@ -795,6 +802,7 @@ function copyPara(text) { uni.setClipboardData({ data: text, showToast: false, s
 .cmp-side-label { font-size: $fs-caption-1; color: $label-secondary; }
 .cmp-side-rate { font-size: $fs-title-1; font-weight: $fw-bold; letter-spacing: -1rpx; &.ok { color: $success-fg; } &.bad { color: $danger-fg; } }
 .cmp-arrow { font-size: $fs-title-2; color: $label-quaternary; }
+.cmp-ask { margin: 0 0 $sp-3; height: 76rpx; line-height: 76rpx; background: $brand-primary-wash; color: $brand-primary; font-size: $fs-subhead; font-weight: $fw-semibold; border-radius: $radius-pill; &::after { border: none; } }
 .cmp-stats { display: flex; justify-content: center; gap: $sp-2; margin-bottom: $sp-2; }
 .cmp-stat { font-size: $fs-caption-1; font-weight: $fw-semibold; padding: 2rpx $sp-2; border-radius: $radius-xs; &.down { background: $success-bg; color: $success-fg; } &.up { background: $danger-bg; color: $danger-fg; } &.added { background: $warning-bg; color: $warning-fg; } &.removed { background: $neutral-bg; color: $neutral-fg; } }
 .cmp-list { flex: 1; min-height: 0; max-height: 46vh; }

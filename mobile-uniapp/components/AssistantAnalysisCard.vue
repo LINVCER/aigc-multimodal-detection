@@ -102,6 +102,45 @@ const facts = computed(() => {
     </view>
   </view>
 
+  <!-- 修改前后对比卡 -->
+  <view v-else-if="name === 'compare_revision' && data" class="card">
+    <view class="card-head">
+      <text class="card-title">修改前后对比 · {{ data.direction }}</text>
+      <text class="card-tag" :class="data.pass ? 'ok' : 'bad'">{{ data.pass ? '已过线' : '仍超线' }}</text>
+    </view>
+    <view class="rate-row">
+      <text class="rate-big" :class="(data.deltaRate ?? 0) <= 0 ? 'ok' : 'bad'">{{ Number(data.parentAiRate).toFixed(1) }}% → {{ Number(data.aiRate).toFixed(1) }}%</text>
+      <text class="rate-sub">红线 ≤ {{ data.threshold }}%<template v-if="data.modelChanged"> · 模型已更新，不可直接比</template></text>
+    </view>
+    <view class="buckets">
+      <view class="bucket green"><text>有效 {{ data.effectiveParagraphs }}</text></view>
+      <view class="bucket red"><text>反了 {{ data.reversedParagraphs }}</text></view>
+      <view class="bucket yellow"><text>没动但高 {{ data.untouchedHighRisk?.length || 0 }}</text></view>
+    </view>
+    <view v-if="data.overallChanges?.length" class="feat">
+      <text class="feat-title">整体变化</text>
+      <view v-for="c in data.overallChanges" :key="c.feature" class="feat-row">
+        <text class="feat-name">{{ c.feature }}</text>
+        <text class="feat-z" :class="c.direction === '更像人' ? 'neg' : 'pos'">{{ c.direction }}</text>
+        <text class="feat-read">{{ c.reading }}</text>
+      </view>
+    </view>
+    <view v-if="data.paragraphs?.length" class="sents">
+      <text class="feat-title">改动最大的段</text>
+      <view v-for="p in data.paragraphs" :key="p.currIdx" class="sent-row">
+        <text class="sent-prob" :class="(p.delta ?? 0) <= -0.1 ? 'good' : (p.delta ?? 0) >= 0.1 ? '' : 'flat'">段 {{ p.currIdx + 1 }} {{ Math.round((p.parentProb || 0) * 100) }}%→{{ Math.round((p.currProb || 0) * 100) }}% {{ p.verdict }}</text>
+        <text class="sent-text">{{ p.changes?.map((c) => c.feature + c.direction).join(' · ') || p.preview }}</text>
+      </view>
+    </view>
+    <view v-if="data.untouchedHighRisk?.length" class="sents">
+      <text class="feat-title">没改但仍高风险</text>
+      <view v-for="p in data.untouchedHighRisk" :key="p.currIdx" class="sent-row">
+        <text class="sent-prob">段 {{ p.currIdx + 1 }} · {{ Math.round((p.currProb || 0) * 100) }}%</text>
+        <text class="sent-text">{{ p.preview }}…</text>
+      </view>
+    </view>
+  </view>
+
   <!-- 即时检测卡 -->
   <view v-else-if="name === 'detect_text' && data" class="card">
     <view class="card-head">
@@ -161,7 +200,7 @@ const facts = computed(() => {
 .facts { display: block; margin-top: $sp-2; padding-top: $sp-2; border-top: $stroke-hairline dashed $separator; font-size: $fs-caption-2; color: $label-secondary; line-height: 1.5; }
 .sents { margin-top: $sp-2; }
 .sent-row { display: flex; align-items: baseline; gap: $sp-2; padding: 4rpx 0; }
-.sent-prob { flex: none; font-size: $fs-caption-2; font-weight: $fw-semibold; color: $danger-fg; font-variant-numeric: tabular-nums; }
+.sent-prob { flex: none; font-size: $fs-caption-2; font-weight: $fw-semibold; color: $danger-fg; font-variant-numeric: tabular-nums; &.good { color: $success-fg; } &.flat { color: $label-secondary; } }
 .sent-text { flex: 1; font-size: $fs-caption-1; color: $label-secondary; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 
 .rate-row { display: flex; align-items: baseline; gap: $sp-2; }
