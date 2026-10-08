@@ -225,6 +225,15 @@ uniapp 与 web 各有一个对话入口。零新服务、零新部署单元，LL
 - 大盘：用户口径切 auth_user；KPI 新增超线占比、失败任务、排队中、待处理反馈，卡片可点跳转；待处理反馈列表带「处理」
 - 布局：品牌换知源 logo，侧栏「用户反馈」带待处理角标
 
+### 报告溯源凭证与真伪验证（PDF + web + uniapp）
+
+- `detect_task` 新增 `report_no / verify_code / report_sign / signed_at / verify_count`（V0.3.0.012，patch-schema 同步）
+- `ReportCredentialService`：任务完成即签发编号（`ZY-yyyyMMdd-XXXXXX`）+ 8 位验证码 + HMAC-SHA256 签名（覆盖编号 / 任务 / AI 率 / 红线 / 场景 / 模型 / 完成时间 / 字数 / 段落结果摘要）；老任务在打开详情或导出 PDF 时回填；重试后结果变化自动重签；密钥 `platform.report.sign-secret`（`REPORT_SIGN_SECRET`，默认值会打 warn）
+- 公开验证 `GET /api/v1/verify/{reportNo}?code=` / `POST /api/v1/verify`：编号 + 验证码匹配才返回摘要（标题 / AI 率 / 红线 / 达标 / 模型 / 时间 / 签名指纹 / 被验证次数），签名重算不一致提示「内容与签发时不一致」；编号不存在与验证码错误同一句；按 IP 每分钟 30 次
+- PDF：封面下方「报告溯源凭证」块（编号 / 验证码 / 签名指纹 / 验证方式）+ 验证页二维码；页脚改报告编号
+- web：公开页 `/verify/:reportNo?`（表单 + 结果卡，扫码链接直达自动验证），结果页 hero 凭证行（复制 / 验证页 / 被验证次数），落地页导航与我的页入口，只读分享页显示编号
+- uniapp：`pages/verify/verify`（输入 + 小程序扫码直填 + 结果卡），首页与我的页入口，结果页凭证行一键复制
+
 ## 验证状态
 
 - Python：`compileall` 通过；知识库 32 块可加载。未在本机起服务（无 torch / 无 LLM key / 无 numpy，`surface_facts` 与文档内基线未本机跑过，逻辑复用已有 `extract_surface_features` 与 `SurfaceScaler`）
