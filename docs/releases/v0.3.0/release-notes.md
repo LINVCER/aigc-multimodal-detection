@@ -218,6 +218,13 @@ uniapp 与 web 各有一个对话入口。零新服务、零新部署单元，LL
 - 后端：列表改 SQL 分页（count + LIMIT）、排序白名单（最近登录 / 创建时间 / 用户名）、当前页账号一次聚合 detect_task 出检测数与最近检测；新增 `GET /admin/account/stats`（总数 / 正常 / 停用 / 今日新增 / 7 日活跃 / 按角色）、`GET /admin/account/{id}`、`PUT /admin/account/{id}`（姓名 / 组织）、`POST /admin/account/batch-status`（批量停用启用，自动跳过操作者）
 - web：顶部 5 张 KPI 卡 + 角色分布；筛选条 + 排序；多选批量停用 / 启用；表格头像首字母、角色色签、检测数可点、相对时间；账号详情抽屉（可编辑姓名 / 组织、角色、状态、重置密码、最近检测任务列表直达报告）；导出当前筛选结果 CSV；用户画像 demo 退为次 tab
 
+### 后台数据页面完善（任务 / 反馈 / 大盘 / 布局）
+
+- 任务：`AdminTaskServiceImpl` 全部条件下推 SQL（状态 / 场景 / 用户 / 标题 / AI 率区间 / 达标 / 分桶 / 模型 / 日期）+ 排序白名单 + count/LIMIT；用户标识优先 auth_user；`GET /admin/task/stats`、`POST /admin/task/batch-delete|batch-retry`。页面：状态 KPI 可点筛选、超线占比、日期 / 达标 / 模型筛选、服务端排序、多选批量重试 / 删除、行内重试 / 取消 / 删除、详情抽屉、导出 CSV、`?status=` `?userId=` 直达
+- 反馈：查询加分类 / 任务 / 日期；`GET /admin/feedback/stats`、`POST /admin/feedback/batch-handle`。页面：待处理申诉优先 KPI、分类 / 状态 / 日期筛选、多选统一回复 / 置处理中 / 批量忽略、处理抽屉（原文 · 段级复核 · 5 条快捷回复模板 · handledBy 记录操作者）、新增「误判样本池」tab（结论统计 / 筛选 / 行内复核 / 导出 JSONL）
+- 大盘：用户口径切 auth_user；KPI 新增超线占比、失败任务、排队中、待处理反馈，卡片可点跳转；待处理反馈列表带「处理」
+- 布局：品牌换知源 logo，侧栏「用户反馈」带待处理角标
+
 ## 验证状态
 
 - Python：`compileall` 通过；知识库 32 块可加载。未在本机起服务（无 torch / 无 LLM key / 无 numpy，`surface_facts` 与文档内基线未本机跑过，逻辑复用已有 `extract_surface_features` 与 `SurfaceScaler`）
