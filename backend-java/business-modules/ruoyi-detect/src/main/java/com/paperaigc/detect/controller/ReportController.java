@@ -1,7 +1,11 @@
 package com.paperaigc.detect.controller;
 
 import cn.dev33.satoken.annotation.SaIgnore;
+import com.itextpdf.barcodes.BarcodeQRCode;
 import com.itextpdf.io.font.FontProgram;
+import com.itextpdf.kernel.colors.ColorConstants;
+import com.itextpdf.layout.element.Image;
+import com.itextpdf.layout.properties.HorizontalAlignment;
 import com.itextpdf.io.font.FontProgramFactory;
 import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.font.PdfFont;
@@ -24,6 +28,7 @@ import com.paperaigc.detect.common.enums.ErrorCode;
 import com.paperaigc.detect.domain.entity.DetectTask;
 import com.paperaigc.detect.domain.entity.ParagraphResult;
 import com.paperaigc.detect.repository.IDetectTaskRepository;
+import com.paperaigc.detect.service.IReportCredentialService;
 import com.paperaigc.detect.service.IScenarioThresholdService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -55,6 +60,7 @@ public class ReportController {
 
     private final IDetectTaskRepository taskRepository;
     private final IScenarioThresholdService scenarioThresholdService;
+    private final IReportCredentialService credentialService;
 
     private static final DeviceRgb C_PRIMARY = new DeviceRgb(0, 122, 255);
     private static final DeviceRgb C_GREEN   = new DeviceRgb(52, 199, 89);
@@ -70,6 +76,9 @@ public class ReportController {
     @GetMapping("/tasks/{id}/pdf")
     public void downloadPdf(@PathVariable long id, HttpServletResponse response) throws Exception {
         DetectTask task = taskRepository.findById(id).orElse(null);
+        if (task != null && DetectConstants.STATUS_DONE.equals(task.getStatus())) {
+            try { credentialService.ensure(task); } catch (Exception e) { log.warn("issue credential before pdf failed task={}: {}", id, e.toString()); }
+        }
         if (task == null) {
             response.setStatus(404);
             response.setContentType("application/json;charset=UTF-8");
@@ -94,6 +103,7 @@ public class ReportController {
             doc.setFont(cn).setFontSize(11).setFontColor(C_LABEL);
 
             renderCover(doc, task);
+            renderCredential(doc, pdf, task);
             renderSourceLabels(doc, task);
             renderParagraphTable(doc, task);
             renderFooter(doc, id);
@@ -160,6 +170,32 @@ public class ReportController {
         doc.add(new LineSeparator(new SolidLine(0.5f)).setMarginTop(30));
         doc.add(new Paragraph("说明：AI 率仅计算正文段落，已自动排除参考文献、致谢、附录、章节标题、图/表标题。")
                 .setFontSize(8).setFontColor(C_MUTED).setMarginTop(8));
+    }
+
+    /* ==================== 溯源凭证 ==================== */
+
+    /** 封面下方：编号 / 验证码 / 签名指纹 + 验证页二维码；未签发（非完成态）不画 */
+    private void renderCredential(Document doc, PdfDocument pdf, DetectTask task) {
+        if (task.getReportNo() == null || task.getVerifyCode() == null) return;
+        String url = credentialService.verifyUrl(task);
+        Table t = new Table(UnitValue.createPercentArray(new float[]{3, 1})).useAllAvailableWidth()
+                .setMarginLeft(60).setMarginRight(60).setMarginTop(16);
+        Cell left = new Cell().setBorder(null).setPaddingTop(4);
+        left.add(new Paragraph("报告溯源凭证").setFontSize(10).setBold().setFontColor(C_LABEL).setMarginBottom(4));
+        left.add(new Paragraph("报告编号  " + task.getReportNo()).setFontSize(10).setFontColor(C_LABEL).setMarginBottom(2));
+        left.add(new Paragraph("验证码      " + task.getVerifyCode()).setFontSize(10).setFontColor(C_LABEL).setMarginBottom(2));
+        String fp = credentialService.fingerprint(task);
+        left.add(new Paragraph("签名指纹  " + (fp == null ? "-" : fp)).setFontSize(9).setFontColor(C_MUTED).setMarginBottom(2));
+        left.add(new Paragraph("验证方式  扫右侧二维码，或打开知源「验证报告」输入编号与验证码；验证页显示的指纹应与此处一致").setFontSize(8).setFontColor(C_MUTED));
+        Cell right = new Cell().setBorder(null).setPaddingTop(0);
+        if (url != null) {
+            BarcodeQRCode qr = new BarcodeQRCode(url);
+            Image img = new Image(qr.createFormXObject(ColorConstants.BLACK, pdf)).setWidth(84).setHeight(84)
+                    .setHorizontalAlignment(HorizontalAlignment.RIGHT);
+            right.add(img);
+        }
+        t.addCell(left); t.addCell(right);
+        doc.add(t);
     }
 
     private void addMetaRow(Table t, String k, String v) {
@@ -283,9 +319,11 @@ public class ReportController {
     /* ==================== 页脚 ==================== */
 
     private void renderFooter(Document doc, long id) {
+        DetectTask t = taskRepository.findById(id).orElse(null);
+        String no = t == null || t.getReportNo() == null ? "#" + id : t.getReportNo();
         doc.add(new Paragraph("\n"));
         doc.add(new LineSeparator(new SolidLine(0.5f)));
-        doc.add(new Paragraph(new Text("检测编号：#" + id + "  ·  由 paper-aigc-detect 平台生成  ·  报告仅供参考"))
+        doc.add(new Paragraph(new Text("报告编号 " + no + "  ·  由知源签发，可在验证页核对真伪  ·  结果仅供参考，最终以学校规定为准"))
                 .setFontSize(8).setFontColor(C_MUTED)
                 .setTextAlignment(TextAlignment.CENTER).setMarginTop(8));
     }

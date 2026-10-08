@@ -42,6 +42,15 @@ public class DetectTaskDetailVO {
     private List<ParagraphResult> paragraphs;
     private Map<String, Double> sourceLabels;
 
+    /** 报告溯源凭证（Service.detail 填充） */
+    private String reportNo;
+    private String verifyCode;
+    private String reportFingerprint;
+    private String verifyUrl;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime signedAt;
+    private Integer verifyCount;
+
     /** 复测关联：上一次任务（Service.detail 填充；同用户且 DONE 才返回） */
     private Long parentTaskId;
     private Double parentAiRate;
@@ -70,6 +79,10 @@ public class DetectTaskDetailVO {
                 .paragraphs(t.getParagraphs())
                 .sourceLabels(t.getSourceLabels())
                 .parentTaskId(t.getParentTaskId())
+                .reportNo(t.getReportNo())
+                .verifyCode(t.getVerifyCode())
+                .signedAt(t.getSignedAt())
+                .verifyCount(t.getVerifyCount())
                 .build();
     }
 }

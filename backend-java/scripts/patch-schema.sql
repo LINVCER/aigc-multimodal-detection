@@ -308,3 +308,8 @@ CREATE TABLE IF NOT EXISTS report_share (
   UNIQUE KEY uk_token (token),
   KEY idx_task (task_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT '报告只读分享链接';
+
+-- V0.3.0.012 · detect_task 报告溯源凭证
+SET @c1 := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'detect_task' AND COLUMN_NAME = 'report_no');
+SET @sql := IF(@c1 = 0, 'ALTER TABLE detect_task ADD COLUMN report_no VARCHAR(32) NULL, ADD COLUMN verify_code VARCHAR(16) NULL, ADD COLUMN report_sign VARCHAR(64) NULL, ADD COLUMN signed_at DATETIME NULL, ADD COLUMN verify_count INT NOT NULL DEFAULT 0, ADD UNIQUE INDEX uk_report_no (report_no)', 'SELECT 1');
+PREPARE s FROM @sql; EXECUTE s; DEALLOCATE PREPARE s;

@@ -53,6 +53,7 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
     private final com.paperaigc.detect.service.IScenarioThresholdService scenarioThresholdService;
     private final com.paperaigc.detect.service.INotifyService notifyService;
     private final com.paperaigc.detect.service.IDetectAnalyticsService analyticsService;
+    private final com.paperaigc.detect.service.IReportCredentialService credentialService;
 
     /* ==================== §3.1 提交 ==================== */
 
@@ -129,6 +130,7 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
 
         runInference(task, metas);
         taskRepository.update(task);
+        issueCredential(task);
         return task;
     }
 
@@ -193,7 +195,8 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
         // 尝试了推理但一段都没成功 → 视为整体失败（避免展示"完成但无结果"）
         boolean allFailed = attemptedCount > 0 && rateCount == 0;
         task.setStatus(allFailed ? DetectConstants.STATUS_FAILED : DetectConstants.STATUS_DONE);
-        task.setFinishedAt(LocalDateTime.now());
+        // 秒级精度：MySQL DATETIME 会对毫秒四舍五入，签名覆盖完成时间时内存值必须与落库值一致
+        task.setFinishedAt(LocalDateTime.now().withNano(0));
         // 物化统计：终态计入当天分片（detect-analytics-plan §4 方案 B）；失败不影响任务
         try {
             analyticsService.record(task);
@@ -258,7 +261,10 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
     public DetectTaskDetailVO detail(Long id) {
         DetectTask t = taskRepository.findById(id)
                 .orElseThrow(() -> new BizException(ErrorCode.DETECT_TASK_NOT_FOUND));
+        issueCredential(t);   // 老任务回填凭证
         DetectTaskDetailVO vo = DetectTaskDetailVO.from(t);
+        vo.setReportFingerprint(credentialService.fingerprint(t));
+        vo.setVerifyUrl(credentialService.verifyUrl(t));
         // 复测对比：带上上一次的 AI 率与模型版本；版本不同页面要明示「不可直接比较」
         if (t.getParentTaskId() != null) {
             taskRepository.findById(t.getParentTaskId()).ifPresent(p -> {
@@ -269,6 +275,13 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
             });
         }
         return vo;
+    }
+
+    /** 完成态签发报告凭证；签发失败不影响任务本身 */
+    private void issueCredential(DetectTask task) {
+        if (task == null || !DetectConstants.STATUS_DONE.equals(task.getStatus())) return;
+        try { credentialService.ensure(task); }
+        catch (Exception e) { log.warn("issue report credential failed task={}: {}", task.getId(), e.toString()); }
     }
 
     /* ==================== §3.4 重试 ==================== */

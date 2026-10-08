@@ -33,6 +33,7 @@ public class SharedReportVO {
     private Map<String, Double> sourceLabels;
     private List<Paragraph> paragraphs;
 
+    private String reportNo;
     private String watermark;
     private LocalDateTime expiresAt;
     private Integer viewCount;
@@ -76,6 +77,7 @@ public class SharedReportVO {
                 .detectedAt(t.getFinishedAt() != null ? t.getFinishedAt() : t.getCreatedAt())
                 .sourceLabels(t.getSourceLabels())
                 .paragraphs(paras)
+                .reportNo(t.getReportNo())
                 .watermark(s.getWatermark() == null || s.getWatermark().isBlank() ? defaultWatermark : s.getWatermark())
                 .expiresAt(s.getExpiresAt())
                 .viewCount(s.getViewCount())

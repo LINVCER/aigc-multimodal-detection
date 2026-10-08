@@ -50,6 +50,14 @@ platform:
   web:
     base-url: ${WEB_BASE_URL:http://localhost:5173}
 
+  # ---------- 报告溯源 ----------
+  # ReportCredentialServiceImpl / ReportVerifyController 读取
+  report:
+    # HMAC-SHA256 签名密钥；生产必须覆盖，否则报告签名可伪造
+    sign-secret: ${REPORT_SIGN_SECRET:zhiyuan-dev-secret-change-me}
+    # 验证接口按 IP 每分钟上限（防爆破验证码）
+    verify-per-minute: ${REPORT_VERIFY_PER_MINUTE:30}
+
   # ---------- 登录 / 注册 ----------
   # AuthServiceImpl / LoginAttemptGuard / InMemoryAuthTokenRepository 读取
   auth:

@@ -63,6 +63,13 @@ public class DetectTask {
     private LocalDateTime createdAt;
     private LocalDateTime finishedAt;
 
+    /** 报告溯源凭证（V0.3.0.012）：完成后签发，验证页凭编号 + 验证码核对签名 */
+    private String reportNo;
+    private String verifyCode;
+    private String reportSign;
+    private LocalDateTime signedAt;
+    private Integer verifyCount;
+
     /** 段落级明细 · 独立子表 detect_paragraph_result；不映射到主表列 */
     @TableField(exist = false)
     private List<ParagraphResult> paragraphs;
