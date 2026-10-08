@@ -58,6 +58,23 @@ page {
 }
 view, text, button, input { box-sizing: border-box; }
 
+/* ========== H5 浏览器自动填充 ==========
+ * Chrome 对自动填充过的 input 会强制加 #E8F0FE 蓝底 + 黑字，普通 background 覆盖不掉。
+ * 组合拳：① background-clip:text 把底色裁进文字字形（框就没了）
+ *        ② text-fill-color 固定字色 ③ 超长 transition 延迟底色上色。
+ * 必须放全局样式：页面里的 scoped / 普通 <style> 都会被 uni 处理，命中不到内部 input。
+ */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: $label-primary;
+  caret-color: $label-primary;
+  transition: background-color 9999s ease-in-out 0s, color 9999s ease-in-out 0s;
+}
+
 /* uni-app / 微信小程序默认按钮边框清除 */
 button { border: none; }
 button::after { border: none; }

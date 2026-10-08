@@ -59,7 +59,6 @@ public class AuthServiceImpl implements IAuthService {
 
         long locked = attemptGuard.lockedSeconds(username);
         if (locked > 0) throw new BizException(ErrorCode.LOGIN_LOCKED, lockedMessage(locked));
-        verifyCaptcha(dto.getCaptchaId(), dto.getCaptchaCode());
 
         UserAccount account = findByUsername(username);
         if (account == null) {

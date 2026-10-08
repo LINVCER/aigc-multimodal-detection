@@ -7,7 +7,7 @@ import { http, MOCK_MODE } from '@/utils/request'
 /*
  * 登录 / 注册页
  *   逻辑：已登录直跳 · 验证码 5 分钟过期禁提交 · 失败换图 · 锁定倒计时 · 注册用户名查重 · 规则逐条勾选 · 来源页回跳只接受 /pages/ 路径 · 防重复提交
- *   视觉：渐变头图 + 白卡表单 + 分段滑块 + 规则勾选 + 行内错误 + 错误提示条
+ *   视觉：近白画布 + 极淡色晕 + 毛玻璃白卡 + 单色 accent（system-blue）
  */
 const auth = useAuth()
 const REMEMBER_KEY = 'remember_username'
@@ -24,6 +24,10 @@ const agreed = ref(false)
 const touched = ref({})
 const submitting = ref(false)
 const serverError = ref('')
+const focusField = ref('')
+
+function onFocus(f) { focusField.value = f }
+function onBlur(f) { touched.value[f] = true; focusField.value = '' }
 
 /* 验证码 */
 const captchaId = ref('')
@@ -124,14 +128,14 @@ const confirmError = computed(() => {
   return ''
 })
 const captchaError = computed(() => {
-  if (MOCK_MODE || !touched.value.captcha) return ''
+  if (MOCK_MODE || mode.value !== 'register' || !touched.value.captcha) return ''
   if (!captchaReady.value) return captchaExpired.value ? '验证码已过期，点击图片刷新' : '验证码未加载，点击右侧获取'
   if (!captchaCode.value.trim()) return '请输入验证码'
   return ''
 })
 const formValid = computed(() => {
   if (!username.value.trim() || !password.value) return false
-  if (!MOCK_MODE && (!captchaReady.value || !captchaCode.value.trim())) return false
+  if (mode.value === 'register' && !MOCK_MODE && (!captchaReady.value || !captchaCode.value.trim())) return false
   if (mode.value === 'register') {
     if (!USERNAME_RE.test(username.value.trim()) || usernameTaken.value) return false
     if (!pwdRulesOk.value || confirmPassword.value !== password.value || !agreed.value) return false
@@ -156,7 +160,7 @@ onLoad((q) => {
   const saved = uni.getStorageSync(REMEMBER_KEY)
   if (saved) { username.value = saved; remember.value = true }
   tick = setInterval(() => { now.value = Date.now() }, 1000)
-  loadCaptcha()
+  if (mode.value === 'register') loadCaptcha()
 })
 onUnload(() => {
   if (tick) clearInterval(tick)
@@ -167,7 +171,7 @@ watch(mode, () => {
   serverError.value = ''
   touched.value = {}
   confirmPassword.value = ''
-  if (!captchaReady.value) loadCaptcha()
+  if (mode.value === 'register' && !captchaReady.value) loadCaptcha()
 })
 
 function afterLogin() {
@@ -192,7 +196,7 @@ async function onSubmit() {
       await auth.register(u, password.value, confirmPassword.value, captchaId.value, captchaCode.value)
       uni.showToast({ title: '注册成功', icon: 'success' })
     } else {
-      await auth.login(u, password.value, captchaId.value, captchaCode.value)
+      await auth.login(u, password.value)
     }
     afterLogin()
   } catch (e) {
@@ -201,7 +205,7 @@ async function onSubmit() {
     applyLockFromMessage(msg)
     if (/已被注册/.test(msg)) usernameTaken.value = true
     if (/密码错误/.test(msg)) password.value = ''
-    loadCaptcha()
+    if (mode.value === 'register') loadCaptcha()
   } finally {
     submitting.value = false
   }
@@ -228,32 +232,28 @@ function onWechatLogin() {
 
 <template>
   <view class="page">
-    <!-- 渐变头图 -->
-    <view class="hero">
-      <view class="orb o1" /><view class="orb o2" />
-      <view class="hero-row">
-        <image class="logo" src="/static/logo.png" mode="aspectFill" />
-        <view class="hero-text">
+    <!-- 头部：轻量，无重色 hero -->
+    <view class="head">
+      <view class="head-row">
+        <image class="logo" src="/static/logo-mark.png" mode="aspectFit" />
+        <view class="head-text">
           <text class="brand">知源</text>
           <text class="tagline">看得懂的论文 AI 率检测</text>
         </view>
       </view>
-      <text class="hero-line">不只告诉你 AI 率，还告诉你为什么、哪一段、怎么改</text>
-      <view class="chips"><text class="chip">逐段解释</text><text class="chip">溯源哪家大模型</text><text class="chip">误判可申诉</text></view>
     </view>
 
-    <!-- 表单卡 -->
+    <!-- 表单卡：纯白圆角卡（参考 Sign in 版式） -->
     <view class="card">
-      <view class="seg">
-        <view class="seg-thumb" :class="mode" />
-        <text class="seg-item" :class="{ active: mode === 'login' }" @click="mode = 'login'">登录</text>
-        <text class="seg-item" :class="{ active: mode === 'register' }" @click="mode = 'register'">注册</text>
+      <view class="card-head">
+        <text class="card-title">{{ mode === 'login' ? '登录' : '注册' }}</text>
+        <text class="card-sub">{{ mode === 'login' ? '登录后即可检测报告、问小白~' : '一分钟注册，课题阶段免费使用' }}</text>
       </view>
 
       <view class="fld">
-        <text class="fld-label">账号</text>
-        <view class="ctl" :class="{ error: usernameError, ok: mode === 'register' && usernameTaken === false && !usernameError }">
-          <input v-model="username" class="inp" placeholder="学号 / 工号 / 邮箱" placeholder-style="color: rgba(60,60,67,0.30)" :cursor-spacing="24" :adjust-position="true" @blur="touched.username = true" />
+        <view class="ctl" :class="{ focus: focusField === 'username', error: usernameError, ok: mode === 'register' && usernameTaken === false && !usernameError }">
+          <view class="lead lead-user" />
+          <input v-model="username" class="inp" placeholder="账号/邮箱" placeholder-style="color: #6E6E73" :cursor-spacing="24" :adjust-position="true" @focus="onFocus('username')" @blur="onBlur('username')" />
           <text v-if="mode === 'register' && checkingName" class="ctl-side muted">查重中…</text>
           <text v-else-if="mode === 'register' && usernameTaken === false && USERNAME_RE.test(username.trim())" class="ctl-side okmark">可用</text>
         </view>
@@ -261,10 +261,10 @@ function onWechatLogin() {
       </view>
 
       <view class="fld">
-        <text class="fld-label">密码</text>
-        <view class="ctl" :class="{ error: passwordError }">
-          <input v-model="password" class="inp" :placeholder="mode === 'register' ? '设置密码' : '请输入密码'" :password="!showPwd" placeholder-style="color: rgba(60,60,67,0.30)" :cursor-spacing="24" :adjust-position="true" @blur="touched.password = true" />
-          <text class="eye" @click="showPwd = !showPwd">{{ showPwd ? '隐藏' : '显示' }}</text>
+        <view class="ctl" :class="{ focus: focusField === 'password', error: passwordError }">
+          <view class="lead lead-lock" />
+          <input v-model="password" class="inp" :placeholder="mode === 'register' ? '设置密码' : '请输入密码'" :password="!showPwd" placeholder-style="color: #6E6E73" :cursor-spacing="24" :adjust-position="true" @focus="onFocus('password')" @blur="onBlur('password')" />
+          <view class="eye" :class="{ slash: !showPwd }" hover-class="eye-hover" @click="showPwd = !showPwd" />
         </view>
         <text v-if="passwordError" class="err">{{ passwordError }}</text>
         <view v-if="mode === 'register' && password" class="rules">
@@ -272,20 +272,21 @@ function onWechatLogin() {
         </view>
       </view>
 
+      <text v-if="mode === 'login'" class="forgot">忘记密码？联系管理员重置</text>
+
       <view v-if="mode === 'register'" class="fld">
-        <text class="fld-label">确认密码</text>
-        <view class="ctl" :class="{ error: confirmError, ok: confirmPassword && confirmPassword === password }">
-          <input v-model="confirmPassword" class="inp" placeholder="再次输入密码" :password="!showPwd" placeholder-style="color: rgba(60,60,67,0.30)" :cursor-spacing="24" :adjust-position="true" @blur="touched.confirm = true" />
+        <view class="ctl" :class="{ focus: focusField === 'confirm', error: confirmError, ok: confirmPassword && confirmPassword === password }">
+          <view class="lead lead-lock" />
+          <input v-model="confirmPassword" class="inp" placeholder="再次输入密码" :password="!showPwd" placeholder-style="color: #6E6E73" :cursor-spacing="24" :adjust-position="true" @focus="onFocus('confirm')" @blur="onBlur('confirm')" />
           <text v-if="confirmPassword && confirmPassword === password" class="ctl-side okmark">一致</text>
         </view>
         <text v-if="confirmError" class="err">{{ confirmError }}</text>
       </view>
 
-      <view v-if="!MOCK_MODE" class="fld">
-        <text class="fld-label">验证码</text>
+      <view v-if="!MOCK_MODE && mode === 'register'" class="fld">
         <view class="cap-row">
-          <view class="ctl cap-ctl" :class="{ error: captchaError }">
-            <input v-model="captchaCode" class="inp" placeholder="4 位字符，不区分大小写" maxlength="6" placeholder-style="color: rgba(60,60,67,0.30)" :cursor-spacing="24" :adjust-position="true" @blur="touched.captcha = true" />
+          <view class="ctl cap-ctl" :class="{ focus: focusField === 'captcha', error: captchaError }">
+            <input v-model="captchaCode" class="inp" placeholder="4 位字符，不区分大小写" maxlength="6" placeholder-style="color: #6E6E73" :cursor-spacing="24" :adjust-position="true" @focus="onFocus('captcha')" @blur="onBlur('captcha')" />
           </view>
           <view class="cap" :class="{ stale: captchaExpired || captchaFailed }" hover-class="cap-hover" @click="loadCaptcha">
             <image v-if="captchaImg && !captchaLoading && !captchaExpired" class="cap-img" :src="captchaImg" mode="aspectFill" />
@@ -304,7 +305,6 @@ function onWechatLogin() {
           <view class="box" :class="{ on: agreed }"><text v-if="agreed">✓</text></view>
           <text class="chk-text">同意</text><text class="link" @click.stop="goPrivacy">《隐私政策》</text>
         </view>
-        <text v-else class="muted">忘记密码请联系管理员</text>
       </view>
 
       <view v-if="serverError || lockLeft > 0" class="alert">
@@ -316,123 +316,163 @@ function onWechatLogin() {
         {{ lockLeft > 0 ? `已锁定 ${lockText}` : mode === 'login' ? '登 录' : '注册并登录' }}
       </button>
 
-      <!-- #ifdef MP-WEIXIN -->
       <view class="divider"><text class="divider-text">或</text></view>
-      <button class="wechat-btn" :disabled="submitting" @click="onWechatLogin">
-        <view class="wechat-icon" />
-        <text class="wechat-text">微信一键登录</text>
-      </button>
-      <!-- #endif -->
+      <text class="social-label">使用微信快捷登录</text>
+      <view class="social-row">
+        <view class="social-btn" hover-class="social-hover" @click="onWechatLogin">
+          <view class="wechat-icon" />
+        </view>
+      </view>
 
       <view class="foot">
-        <text class="foot-text">{{ mode === 'login' ? '还没有账号？' : '已有账号？' }}<text class="link" @click="mode = mode === 'login' ? 'register' : 'login'">{{ mode === 'login' ? '立即注册' : '去登录' }}</text></text>
+        <text class="foot-label">{{ mode === 'login' ? '还没有账号？' : '已有账号？' }}</text>
+        <text class="foot-action" @click="mode = mode === 'login' ? 'register' : 'login'">{{ mode === 'login' ? '立即注册' : '去登录' }}</text>
       </view>
-    </view>
 
-    <text class="foot-note">课题阶段免费 · 不代写、不改写 · 结果仅供参考</text>
+      <text class="terms">登录即表示你已阅读并同意<text class="terms-link" @click="goPrivacy">《隐私政策》</text></text>
+    </view>
   </view>
 </template>
 
 <style lang="scss" scoped>
-.page { min-height: 100vh; background: $bg-grouped-primary; padding-bottom: #{"calc(60rpx + env(safe-area-inset-bottom))"}; }
+/* ============================================================
+ * Sign in 版式 · 白卡 + 灰色填充输入框 + 黑色胶囊按钮
+ *   画布 = 浅灰；卡片 = 纯白；输入 = 灰色填充；主色 = 近黑（单色）
+ * ============================================================ */
+$si-canvas:    #F2F2F7;
+$si-card:      #FFFFFF;
+$si-field:     #F2F2F4;
+$si-ink:       #0A0A0A;
+$si-ink-soft:  #6E6E73;
+$si-ink-faint: #8E8E93;
+$si-line:      #E5E5EA;
+$si-ring:      rgba(10, 10, 10, 0.08);
 
-/* 头图 */
-.hero {
-  position: relative; overflow: hidden; color: #fff;
-  padding: #{"calc(120rpx + env(safe-area-inset-top))"} $sp-5 140rpx;
-  background: linear-gradient(160deg, #0B1F3A 0%, #10355E 55%, #0D9488 130%);
-}
-.orb { position: absolute; border-radius: 50%; filter: blur(60rpx); opacity: 0.5; }
-.o1 { width: 420rpx; height: 420rpx; background: #2563EB; top: -160rpx; right: -120rpx; }
-.o2 { width: 300rpx; height: 300rpx; background: #14B8A6; bottom: -120rpx; left: -60rpx; opacity: 0.35; }
-.hero-row { position: relative; display: flex; align-items: center; gap: $sp-3; }
-.logo { width: 88rpx; height: 88rpx; border-radius: 24rpx; box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.25); flex: none; }
-.hero-text { display: flex; flex-direction: column; }
-.brand { font-size: $fs-title-1; font-weight: $fw-bold; letter-spacing: $tracking-tight; line-height: 1.1; }
-.tagline { font-size: $fs-footnote; opacity: 0.7; margin-top: 6rpx; }
-.hero-line { position: relative; display: block; margin-top: $sp-5; font-size: $fs-headline; font-weight: $fw-semibold; line-height: $lh-normal; }
-.chips { position: relative; display: flex; flex-wrap: wrap; gap: $sp-2; margin-top: $sp-3; }
-.chip { font-size: $fs-caption-1; padding: 6rpx $sp-3; border-radius: $radius-pill; background: rgba(255, 255, 255, 0.14); }
-
-/* 表单卡 */
-.card {
-  margin: -88rpx $sp-4 0; padding: $sp-5 $sp-4 $sp-4;
-  background: $bg-primary; border-radius: $radius-xl;
-  box-shadow: 0 24rpx 64rpx rgba(15, 23, 42, 0.10);
+/* 页面：纯浅灰画布 */
+.page {
   position: relative;
+  min-height: 100vh;
+  background: $si-canvas;
+  padding-bottom: #{"calc(64rpx + env(safe-area-inset-bottom))"};
 }
-.seg { position: relative; display: flex; background: $fill-tertiary; border-radius: 20rpx; padding: 6rpx; margin-bottom: $sp-4; }
-.seg-thumb { position: absolute; top: 6rpx; bottom: 6rpx; left: 6rpx; width: calc(50% - 6rpx); background: $bg-primary; border-radius: 16rpx; box-shadow: $shadow-card; transition: transform $duration-base $ease-standard; &.register { transform: translateX(100%); } }
-.seg-item { position: relative; flex: 1; text-align: center; padding: 14rpx 0; font-size: $fs-subhead; color: $label-secondary; &.active { color: $label-primary; font-weight: $fw-semibold; } }
 
+/* 头部 */
+.head { padding: #{"calc(88rpx + env(safe-area-inset-top))"} $sp-6 0; }
+.head-row { display: flex; align-items: center; gap: $sp-3; }
+.logo { width: 76rpx; height: 76rpx; flex: none; }
+.head-text { display: flex; flex-direction: column; }
+.brand { font-size: $fs-title-3; font-weight: $fw-bold; color: $si-ink; letter-spacing: $tracking-tight; line-height: 1.15; }
+.tagline { font-size: $fs-footnote; color: $si-ink-soft; margin-top: 4rpx; }
+
+/* 表单卡：纯白圆角卡 */
+.card {
+  margin: $sp-6 $sp-4 0;
+  padding: $sp-6 $sp-5 $sp-5;
+  border-radius: $radius-xl;
+  background: $si-card;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04), 0 20rpx 48rpx rgba(0, 0, 0, 0.06);
+}
+.card-head { margin-bottom: $sp-5; }
+.card-title { display: block; font-size: $fs-title-2; font-weight: $fw-bold; color: $si-ink; letter-spacing: $tracking-tight; }
+.card-sub { display: block; margin-top: 10rpx; font-size: $fs-footnote; color: $si-ink-soft; line-height: $lh-normal; }
+
+/* 字段：灰色填充输入框（无边框，聚焦才出黑描边） */
 .fld { margin-bottom: $sp-3; }
-.fld-label { display: block; font-size: $fs-caption-1; font-weight: $fw-medium; color: $label-secondary; margin-bottom: 8rpx; }
 .ctl {
-  display: flex; align-items: center; gap: $sp-2; height: 92rpx; padding: 0 $sp-3;
-  border-radius: $radius-lg; background: #FAFBFC; border: $stroke-hairline solid #E3E7EC;
+  display: flex; align-items: center; gap: $sp-2;
+  height: $size-input-h; padding: 0 $sp-3;
+  border-radius: $radius-lg;
+  background: $si-field;
+  border: $stroke-thin solid transparent;
+  transition: background $duration-fast $ease-standard, border-color $duration-fast $ease-standard, box-shadow $duration-fast $ease-standard;
+  &.focus { border-color: $si-ink; box-shadow: 0 0 0 6rpx $si-ring; }
   &.error { border-color: $danger-solid; }
   &.ok { border-color: rgba(52, 199, 89, 0.6); }
 }
-.inp { flex: 1; min-width: 0; height: 100%; font-size: $fs-body; color: $label-primary; }
-.ctl-side { flex: none; font-size: $fs-caption-1; } .okmark { color: $success-fg; font-weight: $fw-semibold; }
-.eye { flex: none; font-size: $fs-footnote; color: $brand-primary; padding-left: $sp-2; }
+.lead {
+  flex: none; width: 36rpx; height: 36rpx;
+  background-repeat: no-repeat; background-position: center; background-size: contain;
+}
+.lead-user { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6E73' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='4'/><path d='M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6'/></svg>"); }
+.lead-lock { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6E73' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><rect x='4' y='10' width='16' height='11' rx='3'/><path d='M8 10V7a4 4 0 0 1 8 0v3'/></svg>"); }
+.inp { flex: 1; min-width: 0; height: 100%; font-size: $fs-body; color: $si-ink; }
+.ctl-side { flex: none; font-size: $fs-caption-1; }
+.okmark { color: $success-fg; font-weight: $fw-semibold; }
+.eye {
+  flex: none; width: 40rpx; height: 40rpx; margin-left: $sp-1;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6E73' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z'/><circle cx='12' cy='12' r='3'/></svg>") no-repeat center / contain;
+  &.slash { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6E73' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><path d='M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24'/><line x1='1' y1='1' x2='23' y2='23'/></svg>"); }
+}
+.eye-hover { opacity: 0.55; }
 .err { display: block; margin-top: 6rpx; font-size: $fs-caption-1; color: $danger-fg; }
+.forgot { display: block; margin: -8rpx 0 $sp-3; font-size: $fs-footnote; color: $si-ink-soft; }
 .rules { display: flex; flex-wrap: wrap; gap: 6rpx $sp-3; margin-top: 8rpx; }
-.rule { font-size: $fs-caption-1; color: $label-tertiary; &.ok { color: $success-fg; } }
+.rule { font-size: $fs-caption-1; color: $si-ink-faint; &.ok { color: $success-fg; } }
 
+/* 验证码 */
 .cap-row { display: flex; gap: $sp-2; }
 .cap-ctl { flex: 1; }
 .cap {
-  flex: none; width: 220rpx; height: 92rpx; border-radius: $radius-lg; overflow: hidden;
-  border: $stroke-hairline solid #E3E7EC; background: $bg-primary;
+  flex: none; width: 220rpx; height: $size-input-h; border-radius: $radius-lg; overflow: hidden;
+  background: $si-field; border: $stroke-thin solid transparent;
   display: flex; align-items: center; justify-content: center;
   &.stale { border-color: $warning-solid; }
 }
 .cap-hover { opacity: 0.7; }
 .cap-img { width: 100%; height: 100%; }
-.cap-hint { font-size: $fs-caption-1; color: $brand-primary; text-align: center; line-height: 1.3; white-space: pre-line; }
+.cap-hint { font-size: $fs-caption-1; color: $si-ink-soft; text-align: center; line-height: 1.3; white-space: pre-line; }
 
-.opts { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: $sp-2; margin: $sp-1 0 0; }
+/* 勾选项 */
+.opts { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: $sp-2; margin: $sp-2 0 0; }
 .chk { display: flex; align-items: center; gap: 10rpx; }
 .box {
-  width: 34rpx; height: 34rpx; border-radius: 10rpx; border: 2rpx solid #C7CCD3;
+  width: 34rpx; height: 34rpx; border-radius: 10rpx; border: 2rpx solid $si-ink-faint;
   display: flex; align-items: center; justify-content: center;
-  &.on { background: $brand-primary; border-color: $brand-primary; }
+  &.on { background: $si-ink; border-color: $si-ink; }
   text { color: #fff; font-size: 22rpx; line-height: 1; }
 }
-.chk-text { font-size: $fs-footnote; color: $label-secondary; }
-.link { font-size: $fs-footnote; color: $brand-primary; }
-.muted { font-size: $fs-caption-1; color: $label-tertiary; }
+.chk-text { font-size: $fs-footnote; color: $si-ink-soft; }
+.link { font-size: $fs-footnote; color: $si-ink; font-weight: $fw-medium; text-decoration: underline; }
+.muted { font-size: $fs-caption-1; color: $si-ink-faint; }
 
-.alert { margin-top: $sp-3; padding: $sp-2 $sp-3; border-radius: $radius-md; background: $danger-bg; display: flex; flex-direction: column; gap: 4rpx; }
+/* 错误 / 锁定提示 */
+.alert { margin-top: $sp-3; padding: $sp-3; border-radius: $radius-md; background: $danger-bg; display: flex; flex-direction: column; gap: 4rpx; }
 .alert-text { font-size: $fs-footnote; color: $danger-fg; line-height: $lh-normal; }
 .alert-lock { font-size: $fs-footnote; color: $danger-fg; font-weight: $fw-semibold; }
 
+/* 主按钮：黑色胶囊 */
 .submit {
-  margin-top: $sp-4; height: $size-btn-h-lg; line-height: $size-btn-h-lg;
-  background: linear-gradient(135deg, #0A84FF 0%, #2563EB 100%); color: #fff;
-  font-size: $fs-headline; font-weight: $fw-semibold; border-radius: 28rpx; letter-spacing: 2rpx;
-  box-shadow: 0 16rpx 40rpx rgba(37, 99, 235, 0.25);
+  margin-top: $sp-5; height: $size-btn-h-lg; line-height: $size-btn-h-lg;
+  background: $si-ink; color: #fff;
+  font-size: $fs-headline; font-weight: $fw-semibold;
+  border-radius: $radius-pill; letter-spacing: $tracking-normal;
   transition: transform $duration-fast $ease-standard, opacity $duration-fast;
   &::after { border: none; }
-  &:active { transform: scale(#{$tap-scale}); opacity: 0.9; }
-  &.disabled { opacity: 0.45; box-shadow: none; }
+  &:active { transform: scale(#{$tap-scale}); opacity: 0.88; }
+  &.disabled { opacity: 0.35; }
 }
 
-.divider { display: flex; align-items: center; margin: $sp-4 0 $sp-3; &::before, &::after { content: ''; flex: 1; height: $stroke-hairline; background: $separator; } }
-.divider-text { padding: 0 $sp-3; font-size: $fs-caption-1; color: $label-secondary; }
-.wechat-btn {
-  height: $size-btn-h-lg; line-height: $size-btn-h-lg; background: #07C160; color: #fff;
-  font-size: $fs-headline; font-weight: $fw-semibold; border-radius: 28rpx;
-  display: flex; align-items: center; justify-content: center; gap: $sp-2;
-  &::after { border: none; }
+/* 微信快捷登录 */
+.divider { display: flex; align-items: center; margin: $sp-5 0 $sp-3; &::before, &::after { content: ''; flex: 1; height: $stroke-hairline; background: $si-line; } }
+.divider-text { padding: 0 $sp-3; font-size: $fs-caption-1; color: $si-ink-faint; }
+.social-label { display: block; text-align: center; font-size: $fs-footnote; color: $si-ink-soft; margin-bottom: $sp-3; }
+.social-row { display: flex; justify-content: center; gap: $sp-3; }
+.social-btn {
+  width: 96rpx; height: 96rpx; border-radius: $radius-lg;
+  background: $si-field;
+  display: flex; align-items: center; justify-content: center;
+  transition: background $duration-fast $ease-standard;
 }
+.social-hover { background: rgba(116, 116, 128, 0.16); }
 .wechat-icon {
-  width: 40rpx; height: 40rpx;
-  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23FFFFFF'><path d='M9.5 4C5.4 4 2 6.6 2 10c0 1.8 1 3.5 2.6 4.6L4 17l2.7-1.4c.9.2 1.8.3 2.8.3.3 0 .6 0 .9-.1-.2-.6-.4-1.3-.4-2 0-3.3 3.3-6 7.5-6 .3 0 .6 0 .9.1C17.7 5.6 13.9 4 9.5 4zm-3 3.6c.6 0 1 .4 1 1s-.4 1-1 1-1-.4-1-1 .4-1 1-1zm5.5 0c.6 0 1 .4 1 1s-.4 1-1 1-1-.4-1-1 .4-1 1-1z'/><path d='M22 14c0-2.8-2.9-5-6.5-5S9 11.2 9 14s2.9 5 6.5 5c.8 0 1.6-.1 2.3-.3l2 1-.5-2C21 16.7 22 15.4 22 14zm-9-1.4c.4 0 .8.3.8.8 0 .4-.3.8-.8.8-.4 0-.8-.3-.8-.8 0-.4.4-.8.8-.8zm4.5 0c.4 0 .8.3.8.8 0 .4-.3.8-.8.8-.4 0-.8-.3-.8-.8 0-.4.3-.8.8-.8z'/></svg>") no-repeat center / contain;
+  width: 44rpx; height: 44rpx;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230A0A0A'><path d='M9.5 4C5.4 4 2 6.6 2 10c0 1.8 1 3.5 2.6 4.6L4 17l2.7-1.4c.9.2 1.8.3 2.8.3.3 0 .6 0 .9-.1-.2-.6-.4-1.3-.4-2 0-3.3 3.3-6 7.5-6 .3 0 .6 0 .9.1C17.7 5.6 13.9 4 9.5 4zm-3 3.6c.6 0 1 .4 1 1s-.4 1-1 1-1-.4-1-1 .4-1 1-1zm5.5 0c.6 0 1 .4 1 1s-.4 1-1 1-1-.4-1-1 .4-1 1-1z'/><path d='M22 14c0-2.8-2.9-5-6.5-5S9 11.2 9 14s2.9 5 6.5 5c.8 0 1.6-.1 2.3-.3l2 1-.5-2C21 16.7 22 15.4 22 14zm-9-1.4c.4 0 .8.3.8.8 0 .4-.3.8-.8.8-.4 0-.8-.3-.8-.8 0-.4.4-.8.8-.8zm4.5 0c.4 0 .8.3.8.8 0 .4-.3.8-.8.8-.4 0-.8-.3-.8-.8 0-.4.3-.8.8-.8z'/></svg>") no-repeat center / contain;
 }
 
-.foot { margin-top: $sp-4; text-align: center; }
-.foot-text { font-size: $fs-caption-1; color: $label-secondary; }
-.foot-note { display: block; margin-top: $sp-4; font-size: $fs-caption-2; color: $label-tertiary; text-align: center; }
+/* 底部切换（方案 A）：分隔线 + 放大跳转字号；再下一行是条款小字 */
+.foot { margin-top: $sp-5; padding-top: $sp-4; border-top: $stroke-hairline solid $si-line; display: flex; align-items: center; justify-content: center; gap: $sp-2; }
+.foot-label { font-size: $fs-footnote; color: $si-ink-soft; }
+.foot-action { font-size: $fs-subhead; font-weight: $fw-semibold; color: $si-ink; text-decoration: underline; }
+.terms { display: block; margin-top: $sp-3; text-align: center; font-size: $fs-caption-1; color: $si-ink-soft; line-height: $lh-normal; }
+.terms-link { color: $si-ink; text-decoration: underline; }
 </style>

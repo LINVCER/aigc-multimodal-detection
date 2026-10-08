@@ -150,14 +150,14 @@ const confirmError = computed(() => {
   return ''
 })
 const captchaError = computed(() => {
-  if (!touched.value.captcha) return ''
+  if (mode.value !== 'register' || !touched.value.captcha) return ''
   if (!captchaReady.value) return captchaExpired.value ? '验证码已过期，点击图片刷新' : '验证码未加载，点击右侧获取'
   if (!captchaCode.value.trim()) return '请输入验证码'
   return ''
 })
 const formValid = computed(() => {
   if (!username.value.trim() || !password.value) return false
-  if (!captchaReady.value || !captchaCode.value.trim()) return false
+  if (mode.value === 'register' && (!captchaReady.value || !captchaCode.value.trim())) return false
   if (mode.value === 'register') {
     if (!USERNAME_RE.test(username.value.trim()) || usernameTaken.value) return false
     if (!pwdRulesOk.value || confirmPassword.value !== password.value || !agreed.value) return false
@@ -174,7 +174,7 @@ onMounted(() => {
     if (saved) { username.value = saved; remember.value = true }
   } catch { /* ignore */ }
   tick = setInterval(() => { now.value = Date.now() }, 1000)
-  loadCaptcha()
+  if (mode.value === 'register') loadCaptcha()
   nextTick(() => (username.value ? passwordInput.value : usernameInput.value)?.focus())
 })
 onUnmounted(() => {
@@ -188,7 +188,7 @@ watch(mode, (m) => {
   touched.value = {}
   confirmPassword.value = ''
   router.replace({ query: { ...route.query, mode: m === 'register' ? 'register' : undefined } })
-  if (!captchaReady.value) loadCaptcha()
+  if (m === 'register' && !captchaReady.value) loadCaptcha()
 })
 
 function onPwdKey(e: KeyboardEvent) {
@@ -213,7 +213,7 @@ async function onSubmit() {
       await auth.register(u, password.value, confirmPassword.value, captchaId.value, captchaCode.value)
       ElMessage.success('注册成功，已自动登录')
     } else {
-      await auth.login(u, password.value, captchaId.value, captchaCode.value)
+      await auth.login(u, password.value)
     }
     try {
       if (remember.value) localStorage.setItem(REMEMBER_KEY, u)
@@ -227,7 +227,7 @@ async function onSubmit() {
     if (/已被注册/.test(msg)) usernameTaken.value = true
     // 验证码一次性，失败后必须换一张；密码错则清空密码重输
     if (/密码错误/.test(msg)) { password.value = ''; nextTick(() => passwordInput.value?.focus()) }
-    loadCaptcha(!/密码错误/.test(msg))
+    if (mode.value === 'register') loadCaptcha(!/密码错误/.test(msg))
   } finally {
     submitting.value = false
   }
@@ -237,12 +237,11 @@ async function onSubmit() {
 <template>
   <div class="login-page">
     <aside class="side">
-      <i class="orb o1" /><i class="orb o2" /><i class="orb o3" />
-      <router-link to="/" class="side-brand"><img src="/logo.png" alt="" class="side-logo" /><span>知源</span><small>看得懂的 AI 率检测</small></router-link>
+      <router-link to="/" class="side-brand"><img src="/logo-mark.png" alt="" class="side-logo" /><span>知源</span><small>看得懂的 AI 率检测</small></router-link>
       <div class="side-body">
         <h1 class="side-title">不只告诉你 AI 率，<br />还告诉你为什么、哪一段、怎么改。</h1>
         <div class="props">
-          <div v-for="p in VALUE_PROPS" :key="p.t" class="prop"><span class="prop-icon">{{ p.icon }}</span><div><b>{{ p.t }}</b><span>{{ p.d }}</span></div></div>
+          <div v-for="p in VALUE_PROPS" :key="p.t" class="prop"><span class="prop-icon">{{ p.icon }}</span><div class="prop-text"><b>{{ p.t }}</b><span>{{ p.d }}</span></div></div>
         </div>
         <div class="lines"><span class="lines-label">教育部 2026 新规红线</span><span v-for="l in LINES" :key="l" class="line-chip">{{ l }}</span></div>
       </div>
@@ -255,58 +254,54 @@ async function onSubmit() {
     <main class="panel">
       <div class="card">
         <div class="card-head">
-          <div class="card-title">{{ mode === 'login' ? '欢迎回来' : '创建账号' }}</div>
-          <div class="card-sub">{{ mode === 'login' ? '登录后查看报告、问小白、提交申诉' : '一分钟注册，课题阶段免费使用' }}</div>
-        </div>
-
-        <div class="seg" role="tablist">
-          <button type="button" class="seg-btn" :class="{ active: mode === 'login' }" role="tab" :aria-selected="mode === 'login'" @click="mode = 'login'">登录</button>
-          <button type="button" class="seg-btn" :class="{ active: mode === 'register' }" role="tab" :aria-selected="mode === 'register'" @click="mode = 'register'">注册</button>
-          <i class="seg-thumb" :class="mode" />
+          <div class="card-title">{{ mode === 'login' ? '登录' : '注册' }}</div>
+          <div class="card-sub">{{ mode === 'login' ? '登录后即可检测报告、问小白~' : '一分钟注册，课题阶段免费使用' }}</div>
         </div>
 
         <form class="form" novalidate @submit.prevent="onSubmit">
-          <label class="fld">
-            <span class="fld-label">账号</span>
+          <div class="fld">
             <span class="ctl" :class="{ error: usernameError, ok: mode === 'register' && usernameTaken === false && !usernameError }">
-              <input ref="usernameInput" v-model="username" class="inp" placeholder="学号 / 工号 / 邮箱" autocomplete="username" :aria-invalid="!!usernameError" @blur="touched.username = true" />
+              <span class="lead lead-user" aria-hidden="true" />
+              <input ref="usernameInput" v-model="username" class="inp" placeholder="账号/邮箱" aria-label="账号" autocomplete="username" :aria-invalid="!!usernameError" @blur="touched.username = true" />
               <span v-if="mode === 'register' && checkingName" class="ctl-side muted">查重中…</span>
               <span v-else-if="mode === 'register' && usernameTaken === false && USERNAME_RE.test(username.trim())" class="ctl-side okmark">可用</span>
             </span>
             <span v-if="usernameError" class="err">{{ usernameError }}</span>
-          </label>
+          </div>
 
-          <label class="fld">
-            <span class="fld-label">密码<em v-if="capsLock" class="caps">大写锁定已开启</em></span>
+          <div class="fld">
             <span class="ctl" :class="{ error: passwordError }">
-              <input ref="passwordInput" v-model="password" class="inp" :type="showPwd ? 'text' : 'password'" :placeholder="mode === 'register' ? '设置密码' : '请输入密码'" :autocomplete="mode === 'register' ? 'new-password' : 'current-password'" :aria-invalid="!!passwordError" @blur="touched.password = true" @keyup="onPwdKey" @keydown="onPwdKey" />
+              <span class="lead lead-lock" aria-hidden="true" />
+              <input ref="passwordInput" v-model="password" class="inp" :type="showPwd ? 'text' : 'password'" :placeholder="mode === 'register' ? '设置密码' : '请输入密码'" aria-label="密码" :autocomplete="mode === 'register' ? 'new-password' : 'current-password'" :aria-invalid="!!passwordError" @blur="touched.password = true" @keyup="onPwdKey" @keydown="onPwdKey" />
               <button type="button" class="eye" :aria-label="showPwd ? '隐藏密码' : '显示密码'" @click="showPwd = !showPwd">
-                <svg v-if="!showPwd" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></svg>
+                <svg v-if="showPwd" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></svg>
                 <svg v-else viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3l18 18M10.6 10.6a3 3 0 0 0 4.2 4.2M9.9 5.1A10.4 10.4 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.3 6.3C3.6 8.3 2 12 2 12s3.5 7 10 7c1.4 0 2.7-.3 3.8-.7" /></svg>
               </button>
             </span>
             <span v-if="passwordError" class="err">{{ passwordError }}</span>
+            <span v-if="capsLock" class="caps">大写锁定已开启</span>
             <span v-if="mode === 'register' && password" class="rules">
               <span v-for="r in PWD_RULES" :key="r.t" class="rule" :class="{ ok: r.ok }"><i>{{ r.ok ? '✓' : '·' }}</i>{{ r.t }}</span>
             </span>
-          </label>
+          </div>
+
+          <span v-if="mode === 'login'" class="forgot">忘记密码？联系管理员重置</span>
 
           <transition name="drop">
-            <label v-if="mode === 'register'" class="fld">
-              <span class="fld-label">确认密码</span>
+            <div v-if="mode === 'register'" class="fld">
               <span class="ctl" :class="{ error: confirmError, ok: confirmPassword && confirmPassword === password }">
-                <input v-model="confirmPassword" class="inp" :type="showPwd ? 'text' : 'password'" placeholder="再次输入密码" autocomplete="new-password" :aria-invalid="!!confirmError" @blur="touched.confirm = true" />
+                <span class="lead lead-lock" aria-hidden="true" />
+                <input v-model="confirmPassword" class="inp" :type="showPwd ? 'text' : 'password'" placeholder="再次输入密码" aria-label="确认密码" autocomplete="new-password" :aria-invalid="!!confirmError" @blur="touched.confirm = true" />
                 <span v-if="confirmPassword && confirmPassword === password" class="ctl-side okmark">一致</span>
               </span>
               <span v-if="confirmError" class="err">{{ confirmError }}</span>
-            </label>
+            </div>
           </transition>
 
-          <div class="fld">
-            <span class="fld-label">验证码</span>
+          <div v-if="mode === 'register'" class="fld">
             <div class="cap-row">
               <span class="ctl cap-ctl" :class="{ error: captchaError }">
-                <input ref="captchaInput" v-model="captchaCode" class="inp" placeholder="右侧 4 位字符，不区分大小写" maxlength="6" autocomplete="off" :aria-invalid="!!captchaError" @blur="touched.captcha = true" />
+                <input ref="captchaInput" v-model="captchaCode" class="inp" placeholder="4 位字符，不区分大小写" aria-label="验证码" maxlength="6" autocomplete="off" :aria-invalid="!!captchaError" @blur="touched.captcha = true" />
               </span>
               <button type="button" class="cap" :class="{ stale: captchaExpired || captchaFailed }" :disabled="captchaLoading" title="看不清？点击换一张" @click="loadCaptcha(true)">
                 <img v-if="captchaImg && !captchaLoading" :src="captchaImg" alt="验证码" />
@@ -319,7 +314,6 @@ async function onSubmit() {
           <div class="opts">
             <label class="chk"><input v-model="remember" type="checkbox" /><i /> 记住账号</label>
             <label v-if="mode === 'register'" class="chk"><input v-model="agreed" type="checkbox" /><i /> 同意<router-link to="/privacy" target="_blank" class="link">《隐私政策》</router-link></label>
-            <span v-else class="muted small">忘记密码？联系管理员重置</span>
           </div>
 
           <transition name="drop">
@@ -335,104 +329,157 @@ async function onSubmit() {
           </button>
 
           <div class="foot">
-            <span>{{ mode === 'login' ? '还没有账号？' : '已有账号？' }}<a class="link" @click="mode = mode === 'login' ? 'register' : 'login'">{{ mode === 'login' ? '立即注册' : '去登录' }}</a></span>
-            <router-link to="/" class="muted small">返回首页</router-link>
+            <span class="foot-label">{{ mode === 'login' ? '还没有账号？' : '已有账号？' }}</span>
+            <a class="foot-action" @click="mode = mode === 'login' ? 'register' : 'login'">{{ mode === 'login' ? '立即注册' : '去登录' }}</a>
           </div>
+
+          <span class="terms">登录即表示你已阅读并同意<router-link to="/privacy" target="_blank" class="terms-link">《隐私政策》</router-link></span>
         </form>
       </div>
-      <div class="panel-note">课题阶段免费 · 不代写、不改写 · 结果仅供参考</div>
+      <router-link to="/" class="back-home">返回首页</router-link>
     </main>
   </div>
 </template>
 
 <style scoped>
-.login-page { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 11fr) minmax(0, 13fr); }
+/* ============================================================
+ * Sign in 版式 · 白卡 + 灰色填充输入框 + 黑色胶囊按钮
+ *   画布 = 浅灰；卡片 = 纯白；输入 = 灰色填充；主色 = 近黑（单色）
+ * ============================================================ */
+.login-page {
+  --si-canvas: #F2F2F7;
+  --si-card: #FFFFFF;
+  --si-field: #F2F2F4;
+  --si-ink: #0A0A0A;
+  --si-ink-soft: #6E6E73;
+  --si-ink-faint: #8E8E93;
+  --si-line: #E5E5EA;
+  --si-ring: rgba(10, 10, 10, .08);
 
-/* ---------- 左栏 ---------- */
-.side { position: relative; overflow: hidden; color: #fff; padding: 44px 56px; display: flex; flex-direction: column; background: linear-gradient(160deg, #0B1F3A 0%, #10355E 52%, #0D9488 125%); }
-.orb { position: absolute; border-radius: 50%; filter: blur(60px); opacity: .55; pointer-events: none; }
-.o1 { width: 420px; height: 420px; background: #2563EB; top: -140px; right: -120px; }
-.o2 { width: 320px; height: 320px; background: #14B8A6; bottom: -100px; left: -80px; opacity: .4; }
-.o3 { width: 200px; height: 200px; background: #A78BFA; top: 45%; left: 55%; opacity: .25; }
-.side-brand { position: relative; display: inline-flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; }
+  position: relative;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 11fr) minmax(0, 13fr);
+  background: var(--si-canvas);
+  color: var(--si-ink);
+}
+
+/* ---------- 左栏：品牌与价值主张（平面，无玻璃/无光晕） ---------- */
+.side { position: relative; padding: 44px 56px; display: flex; flex-direction: column; }
+.side-brand { display: inline-flex; align-items: center; gap: 10px; color: var(--si-ink); text-decoration: none; }
 .side-brand span { font-weight: 700; font-size: 20px; letter-spacing: -0.3px; }
-.side-brand small { font-size: 12px; opacity: .65; padding-left: 10px; border-left: 1px solid rgba(255, 255, 255, .25); }
-.side-logo { width: 34px; height: 34px; border-radius: 10px; object-fit: cover; box-shadow: 0 4px 14px rgba(0, 0, 0, .25); }
-.side-body { position: relative; margin: auto 0; padding: 48px 0; }
-.side-title { font-size: 34px; line-height: 1.25; letter-spacing: -0.8px; margin: 0 0 32px; font-weight: 700; }
-.props { display: flex; flex-direction: column; gap: 12px; }
-.prop { display: flex; gap: 14px; align-items: flex-start; padding: 14px 16px; border-radius: 14px; background: rgba(255, 255, 255, .07); border: 1px solid rgba(255, 255, 255, .12); backdrop-filter: blur(8px); }
-.prop-icon { font-size: 20px; line-height: 1.2; }
-.prop b { display: block; font-size: 15px; margin-bottom: 2px; } .prop span { font-size: 13px; color: rgba(255, 255, 255, .72); line-height: 1.5; }
-.lines { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 24px; }
-.lines-label { font-size: 12px; color: rgba(255, 255, 255, .6); margin-right: 4px; }
-.line-chip { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 99px; background: rgba(255, 255, 255, .12); }
-.side-foot { position: relative; display: flex; align-items: center; gap: 12px; }
+.side-brand small { font-size: 12px; color: var(--si-ink-soft); padding-left: 10px; border-left: 1px solid var(--si-line); }
+.side-logo { width: 34px; height: 34px; object-fit: contain; }
+
+.side-body { margin: auto 0; padding: 48px 0; }
+.side-title { font-size: 32px; line-height: 1.28; letter-spacing: -0.8px; margin: 0 0 32px; font-weight: 700; color: var(--si-ink); }
+
+.props { display: flex; flex-direction: column; gap: 18px; }
+.prop { display: flex; gap: 14px; align-items: flex-start; }
+.prop-icon { flex: none; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; border-radius: 10px; background: #fff; }
+.prop-text b { display: block; font-size: 15px; font-weight: 600; margin-bottom: 3px; color: var(--si-ink); }
+.prop-text span { font-size: 13px; color: var(--si-ink-soft); line-height: 1.55; }
+
+.lines { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 30px; }
+.lines-label { font-size: 12px; color: var(--si-ink-soft); margin-right: 2px; }
+.line-chip { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 9999px; background: #fff; color: var(--si-ink-soft); }
+
+.side-foot { display: flex; align-items: center; gap: 12px; }
 .xb { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #fff; flex: none; }
-.bubble { position: relative; font-size: 13px; line-height: 1.5; padding: 10px 14px; border-radius: 14px; background: rgba(255, 255, 255, .12); }
-.bubble i { display: block; font-style: normal; font-size: 11px; opacity: .6; margin-top: 2px; }
-.bubble::before { content: ''; position: absolute; left: -6px; top: 14px; border: 6px solid transparent; border-right-color: rgba(255, 255, 255, .12); border-left: 0; }
+.bubble { position: relative; font-size: 13px; line-height: 1.5; padding: 10px 14px; border-radius: 14px; color: var(--si-ink-soft); background: #fff; }
+.bubble i { display: block; font-style: normal; font-size: 11px; color: var(--si-ink-faint); margin-top: 2px; }
+.bubble::before { content: ''; position: absolute; left: -6px; top: 14px; border: 6px solid transparent; border-right-color: #fff; border-left: 0; }
 
-/* ---------- 右栏 ---------- */
-.panel { background: #F5F7FA; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 24px; gap: 18px; }
-.card { width: 100%; max-width: 420px; background: #fff; border-radius: 20px; padding: 32px 32px 28px; box-shadow: 0 20px 60px rgba(15, 23, 42, .08), 0 1px 2px rgba(15, 23, 42, .04); }
-.card-head { margin-bottom: 20px; }
-.card-title { font-size: 26px; font-weight: 700; letter-spacing: -0.6px; color: var(--label); }
-.card-sub { font-size: 14px; color: var(--label-secondary); margin-top: 6px; }
+/* ---------- 右栏：纯白卡片 ---------- */
+.panel { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 24px; gap: 16px; }
+.card {
+  width: 100%; max-width: 420px;
+  padding: 36px 32px 30px;
+  border-radius: 20px;
+  background: var(--si-card);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 12px 32px rgba(0, 0, 0, .06);
+}
+.card-head { margin-bottom: 26px; }
+.card-title { font-size: 26px; font-weight: 700; letter-spacing: -0.6px; color: var(--si-ink); }
+.card-sub { font-size: 14px; color: var(--si-ink-soft); margin-top: 6px; }
 
-.seg { position: relative; display: grid; grid-template-columns: 1fr 1fr; background: #EEF1F5; border-radius: 12px; padding: 4px; margin-bottom: 22px; }
-.seg-btn { position: relative; z-index: 1; border: none; background: transparent; padding: 9px 0; font-size: 14px; font-weight: 500; color: var(--label-secondary); cursor: pointer; font-family: inherit; border-radius: 9px; transition: color .2s; }
-.seg-btn.active { color: var(--label); font-weight: 600; }
-.seg-thumb { position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); background: #fff; border-radius: 9px; box-shadow: 0 1px 4px rgba(0, 0, 0, .08); transition: transform .25s cubic-bezier(.32, .72, 0, 1); }
-.seg-thumb.register { transform: translateX(100%); }
-
+/* ---------- 表单 ---------- */
 .form { display: flex; flex-direction: column; gap: 14px; }
 .fld { display: flex; flex-direction: column; gap: 6px; }
-.fld-label { font-size: 13px; font-weight: 500; color: var(--label-secondary); display: flex; align-items: center; gap: 8px; }
-.caps { font-style: normal; font-size: 11px; color: var(--system-orange); padding: 1px 6px; border-radius: 4px; background: rgba(255, 149, 0, .12); }
-.ctl { display: flex; align-items: center; gap: 8px; height: 48px; padding: 0 14px; border-radius: 12px; background: #FAFBFC; border: 1px solid #E3E7EC; transition: border-color .2s, box-shadow .2s, background .2s; }
-.ctl:focus-within { background: #fff; border-color: var(--system-blue); box-shadow: 0 0 0 3px rgba(0, 122, 255, .14); }
-.ctl.error { border-color: var(--system-red); } .ctl.error:focus-within { box-shadow: 0 0 0 3px rgba(255, 59, 48, .14); }
+.caps { font-size: 12px; color: #B26200; }
+
+/* 输入框：灰色填充，默认无边框，聚焦出黑描边 */
+.ctl { display: flex; align-items: center; gap: 10px; box-sizing: border-box; height: 48px; padding: 0 14px; border-radius: 12px; background: var(--si-field); border: 1.5px solid transparent; transition: border-color .2s, box-shadow .2s; }
+.ctl:focus-within { border-color: var(--si-ink); box-shadow: 0 0 0 3px var(--si-ring); }
+.ctl.error { border-color: var(--system-red); }
 .ctl.ok { border-color: rgba(52, 199, 89, .6); }
-.inp { flex: 1; min-width: 0; border: none; background: transparent; outline: none; font-size: 15px; color: var(--label); font-family: inherit; height: 100%; }
-.inp::placeholder { color: var(--label-tertiary); }
-.ctl-side { flex: none; font-size: 12px; } .okmark { color: #1B7F3E; font-weight: 600; }
-.eye { flex: none; border: none; background: transparent; color: var(--label-tertiary); cursor: pointer; padding: 4px; display: inline-flex; border-radius: 6px; } .eye:hover { color: var(--label); background: rgba(120, 120, 128, .1); }
+
+.lead { flex: none; width: 18px; height: 18px; background-repeat: no-repeat; background-position: center; background-size: contain; }
+.lead-user { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6E73' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='4'/><path d='M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6'/></svg>"); }
+.lead-lock { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6E73' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><rect x='4' y='10' width='16' height='11' rx='3'/><path d='M8 10V7a4 4 0 0 1 8 0v3'/></svg>"); }
+
+/* 去掉浏览器自动填充的蓝底（#E8F0FE）：裁进文字字形 + 超长 transition 延迟上色 */
+.inp:-webkit-autofill,
+.inp:-webkit-autofill:hover,
+.inp:-webkit-autofill:focus,
+.inp:-webkit-autofill:active {
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: var(--si-ink);
+  caret-color: var(--si-ink);
+  transition: background-color 9999s ease-in-out 0s, color 9999s ease-in-out 0s;
+}
+.inp { flex: 1; min-width: 0; border: none; background: transparent; outline: none; font-size: 15px; color: var(--si-ink); font-family: inherit; height: 100%; }
+.inp::placeholder { color: var(--si-ink-soft); }
+.ctl-side { flex: none; font-size: 12px; }
+.okmark { color: #1B7F3E; font-weight: 600; }
+.eye { flex: none; border: none; background: transparent; color: var(--si-ink-soft); cursor: pointer; padding: 4px; display: inline-flex; border-radius: 6px; }
+.eye:hover { color: var(--si-ink); }
 .err { font-size: 12px; color: var(--system-red); }
+.forgot { font-size: 13px; color: var(--si-ink-soft); }
 .rules { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 2px; }
-.rule { font-size: 12px; color: var(--label-tertiary); display: inline-flex; align-items: center; gap: 4px; }
-.rule i { font-style: normal; width: 14px; text-align: center; } .rule.ok { color: #1B7F3E; }
+.rule { font-size: 12px; color: var(--si-ink-faint); display: inline-flex; align-items: center; gap: 4px; }
+.rule i { font-style: normal; width: 14px; text-align: center; }
+.rule.ok { color: #1B7F3E; }
 
 .cap-row { display: flex; gap: 10px; }
 .cap-ctl { flex: 1; }
-.cap { position: relative; flex: none; width: 118px; height: 48px; border-radius: 12px; border: 1px solid #E3E7EC; background: #fff; padding: 0; overflow: hidden; cursor: pointer; }
+.cap { position: relative; flex: none; width: 118px; height: 48px; border-radius: 12px; border: 1.5px solid transparent; background: var(--si-field); padding: 0; overflow: hidden; cursor: pointer; }
 .cap img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.cap-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--system-blue); background: rgba(255, 255, 255, .92); opacity: 0; transition: opacity .15s; padding: 0 6px; text-align: center; line-height: 1.3; }
+.cap-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--si-ink); background: rgba(255, 255, 255, .92); opacity: 0; transition: opacity .15s; padding: 0 6px; text-align: center; line-height: 1.3; }
 .cap:hover .cap-overlay, .cap.stale .cap-overlay, .cap:not(:has(img)) .cap-overlay { opacity: 1; }
-.cap.stale { border-color: var(--system-orange); } .cap.stale .cap-overlay { color: #B26200; }
+.cap.stale { border-color: var(--system-orange); }
 
 .opts { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 13px; }
-.chk { display: inline-flex; align-items: center; gap: 6px; color: var(--label-secondary); cursor: pointer; user-select: none; }
+.chk { display: inline-flex; align-items: center; gap: 6px; color: var(--si-ink-soft); cursor: pointer; user-select: none; }
 .chk input { position: absolute; opacity: 0; width: 0; height: 0; }
-.chk i { width: 16px; height: 16px; border-radius: 5px; border: 1.5px solid #C7CCD3; display: inline-flex; align-items: center; justify-content: center; transition: all .15s; }
-.chk input:checked + i { background: var(--system-blue); border-color: var(--system-blue); }
+.chk i { width: 16px; height: 16px; border-radius: 5px; border: 1.5px solid var(--si-ink-faint); display: inline-flex; align-items: center; justify-content: center; transition: all .15s; }
+.chk input:checked + i { background: var(--si-ink); border-color: var(--si-ink); }
 .chk input:checked + i::after { content: ''; width: 4px; height: 8px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg) translate(-1px, -1px); }
-.link { color: var(--system-blue); text-decoration: none; cursor: pointer; margin-left: 2px; }
-.muted { color: var(--label-tertiary); } .small { font-size: 12px; }
+.link { color: var(--si-ink); text-decoration: underline; cursor: pointer; margin-left: 2px; }
+.muted { color: var(--si-ink-faint); }
 
 .alert { display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; border-radius: 10px; background: rgba(255, 59, 48, .08); color: #C62A22; font-size: 13px; line-height: 1.5; }
 .alert svg { flex: none; margin-top: 2px; }
 .lock { display: block; font-weight: 600; margin-top: 2px; }
 
-.primary { position: relative; height: 50px; border: none; border-radius: 14px; color: #fff; font-size: 16px; font-weight: 600; font-family: inherit; cursor: pointer; background: linear-gradient(135deg, #0A84FF 0%, #2563EB 100%); box-shadow: 0 10px 24px rgba(37, 99, 235, .25); transition: transform .15s, box-shadow .2s, opacity .2s; margin-top: 4px; }
-.primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 14px 28px rgba(37, 99, 235, .3); }
-.primary:active:not(:disabled) { transform: translateY(0) scale(.99); }
-.primary:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+/* 主按钮：黑色胶囊 */
+.primary { position: relative; height: 50px; border: none; border-radius: 9999px; color: #fff; font-size: 16px; font-weight: 600; font-family: inherit; cursor: pointer; background: var(--si-ink); transition: background .2s, transform .15s, opacity .2s; margin-top: 6px; }
+.primary:hover:not(:disabled) { background: #262626; }
+.primary:active:not(:disabled) { transform: scale(.985); }
+.primary:disabled { opacity: .35; cursor: not-allowed; }
 .spin { display: inline-block; width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .4); border-top-color: #fff; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.foot { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--label-secondary); margin-top: 4px; }
-.panel-note { font-size: 12px; color: var(--label-tertiary); }
+/* 底部：切换（分隔线 + 放大字号）与条款小字 */
+.foot { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 14px; padding-top: 16px; border-top: 1px solid var(--si-line); }
+.foot-label { font-size: 13px; color: var(--si-ink-soft); }
+.foot-action { font-size: 15px; font-weight: 600; color: var(--si-ink); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.terms { display: block; margin-top: 12px; text-align: center; font-size: 12px; color: var(--si-ink-soft); line-height: 1.5; }
+.terms-link { color: var(--si-ink); text-decoration: underline; }
+
+.back-home { font-size: 13px; color: var(--si-ink-soft); text-decoration: none; transition: color .15s; }
+.back-home:hover { color: var(--si-ink); }
 
 .drop-enter-active, .drop-leave-active { transition: all .22s ease; }
 .drop-enter-from, .drop-leave-to { opacity: 0; transform: translateY(-6px); }
