@@ -116,18 +116,23 @@ type Filter = 'all' | 'high' | 'mid' | 'low' | 'excluded'
 const paraFilter = ref<Filter>('all')
 const paragraphView = ref<'paragraph' | 'section' | 'annotate'>('paragraph')
 /* 全文标注：按原文顺序连续排版，句子按 AI 概率着色（紫 = 高度疑似，蓝 = 中度），非正文灰显 */
-const annotBreaks = computed(() => {
-  const set = new Set<number>()
-  let prev = ''
-  for (const p of detail.value?.paragraphs || []) { const s = p.sectionName || ''; if (s && s !== prev) set.add(p.paragraphIdx); prev = s }
-  return set
-})
 const annotStats = computed(() => {
   let total = 0, suspect = 0, high = 0
   for (const p of bodyParas.value) for (const s of p.sentences || []) { total++; if (s.aiProb >= 0.4) suspect++; if (s.aiProb >= 0.7) high++ }
   return { total, suspect, high }
 })
 const annotClass = (prob: number) => (prob >= 0.7 ? 'high' : prob >= 0.4 ? 'mid' : '')
+/* 版式：原文空格与换行用 pre-wrap 原样保留；只有长正文段且原文没有自带缩进时才加首行缩进；
+ * 短行（标题 / 签名 / 日期 / 关键词）靠左原样，章节标题加粗，不做两端对齐，避免把论文版式排乱 */
+function annotKind(p: ParagraphResult): 'title' | 'short' | 'body' {
+  const t = (p.text || '').replace(/\s+$/, '')
+  if (p.excludeReason === 'sectionTitle') return 'title'
+  const trimmed = t.trim()
+  if (trimmed.length <= 40 && !/[。！？；，,.!?;:：]$/.test(trimmed) && !/^\s/.test(t) && !p.excluded) return 'title'
+  if (trimmed.length <= 60) return 'short'
+  return 'body'
+}
+const annotIndent = (p: ParagraphResult) => annotKind(p) === 'body' && !/^[\s　]/.test(p.text || '')
 const expandedMap = ref<Record<number, boolean>>({})
 const allExpanded = ref(true)
 const filteredParas = computed(() => {
@@ -436,8 +441,7 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
                 </div>
                 <article class="annot-doc">
                   <template v-for="p in detail.paragraphs" :key="p.paragraphIdx">
-                    <h4 v-if="annotBreaks.has(p.paragraphIdx)" class="annot-h">{{ p.sectionName }}</h4>
-                    <p :id="'annot-' + p.paragraphIdx" class="annot-p" :class="{ ex: p.excluded }" :title="p.excluded ? '未参与计算 · ' + (EXCLUDE_REASON_LABEL[p.excludeReason || ''] || '非正文') : '段 ' + (p.paragraphIdx + 1) + ' · AI 概率 ' + Math.round((p.calibratedProb || 0) * 100) + '%'">
+                    <p :id="'annot-' + p.paragraphIdx" class="annot-p" :class="[annotKind(p), { ex: p.excluded, indent: annotIndent(p) }]" :title="p.excluded ? '未参与计算 · ' + (EXCLUDE_REASON_LABEL[p.excludeReason || ''] || '非正文') : '段 ' + (p.paragraphIdx + 1) + ' · AI 概率 ' + Math.round((p.calibratedProb || 0) * 100) + '%'">
                       <template v-if="p.excluded">{{ p.text }}</template>
                       <template v-else-if="p.sentences?.length"><span v-for="s in p.sentences" :key="s.sentenceIdx" class="annot-s" :class="annotClass(s.aiProb)" :title="'句 AI 概率 ' + Math.round(s.aiProb * 100) + '%'" @click="openAssistant(p.paragraphIdx)">{{ s.text }}</span></template>
                       <template v-else><span class="annot-s" :class="annotClass(p.calibratedProb || 0)" @click="openAssistant(p.paragraphIdx)">{{ p.text }}</span></template>
@@ -694,7 +698,10 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
 .annot-doc { padding: 28px 44px 20px; font-family: 'Noto Serif SC', 'Songti SC', 'STSong', SimSun, serif; font-size: 15.5px; line-height: 2; color: var(--label); }
 .annot-h { font-family: inherit; font-size: 17px; font-weight: 700; margin: 22px 0 8px; text-align: center; }
 .annot-h:first-child { margin-top: 0; }
-.annot-p { margin: 0 0 4px; text-indent: 2em; text-align: justify; }
+.annot-p { margin: 0; text-indent: 0; text-align: left; white-space: pre-wrap; word-break: break-word; }
+.annot-p.indent { text-indent: 2em; }
+.annot-p.title { font-weight: 700; margin-top: 10px; }
+.annot-p.short { line-height: 1.9; }
 .annot-p.ex { color: var(--label-tertiary); }
 .annot-s { cursor: pointer; border-radius: 2px; transition: background .15s; } .annot-s:hover { background: rgba(0, 122, 255, 0.08); }
 .annot-s.high { color: #7C3AED; } .annot-s.mid { color: #3B82F6; }

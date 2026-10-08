@@ -63,6 +63,16 @@ const fmtTime = (s) => (s ? String(s).replace('T', ' ').slice(0, 16) : '—')
 const paraFilter = ref('all')       // all | high | mid | low | excluded
 const paraView = ref('cards')       // cards | annotate（全文标注：按原文顺序连续排版，句子按概率着色）
 const annotClass = (prob) => (prob >= 0.7 ? 'high' : prob >= 0.4 ? 'mid' : '')
+// 版式：原文空格 / 换行原样保留；只有长正文段且原文无自带缩进才加首行缩进；短行靠左原样，章节标题加粗
+function annotKind(p) {
+  const t = (p.text || '').replace(/\s+$/, '')
+  if (p.excludeReason === 'sectionTitle') return 'title'
+  const trimmed = t.trim()
+  if (trimmed.length <= 40 && !/[。！？；，,.!?;:：]$/.test(trimmed) && !/^\s/.test(t) && !p.excluded) return 'title'
+  if (trimmed.length <= 60) return 'short'
+  return 'body'
+}
+const annotIndent = (p) => annotKind(p) === 'body' && !/^[\s　]/.test(p.text || '')
 const allExpanded = ref(false)
 let pollTimer = null
 let taskId = null
@@ -235,12 +245,6 @@ const filteredParas = computed(() => {
     case 'excluded': return all.filter((p) => p.excluded)
     default: return all
   }
-})
-const annotBreaks = computed(() => {
-  const set = new Set()
-  let prev = ''
-  for (const p of detail.value?.paragraphs || []) { const s = p.sectionName || ''; if (s && s !== prev) set.add(p.paragraphIdx); prev = s }
-  return set
 })
 const annotStats = computed(() => {
   let total = 0, suspect = 0
@@ -518,8 +522,7 @@ function copyPara(text) { uni.setClipboardData({ data: text, showToast: false, s
             </view>
             <view class="annot-doc">
               <template v-for="p in detail.paragraphs" :key="p.paragraphIdx">
-                <text v-if="annotBreaks.has(p.paragraphIdx)" class="annot-h">{{ p.sectionName }}</text>
-                <view class="annot-p" :class="{ ex: p.excluded }" @click="!p.excluded && goAssistant(p.paragraphIdx)">
+                <view class="annot-p" :class="[annotKind(p), { ex: p.excluded, indent: annotIndent(p) }]" @click="!p.excluded && goAssistant(p.paragraphIdx)">
                   <text v-if="p.excluded" class="annot-t ex">{{ p.text }}</text>
                   <text v-else-if="p.sentences?.length" class="annot-t"><text v-for="s in p.sentences" :key="s.sentenceIdx" :class="annotClass(s.aiProb)">{{ s.text }}</text></text>
                   <text v-else class="annot-t" :class="annotClass(p.calibratedProb || 0)">{{ p.text }}</text>
@@ -765,7 +768,9 @@ function copyPara(text) { uni.setClipboardData({ data: text, showToast: false, s
 .annot-doc { padding: $sp-4 $sp-4 $sp-2; }
 .annot-h { display: block; text-align: center; font-size: $fs-headline; font-weight: $fw-bold; color: $label-primary; margin: $sp-3 0 $sp-2; }
 .annot-p { margin-bottom: 6rpx; &.ex .annot-t { color: $label-tertiary; } }
-.annot-t { display: block; font-size: $fs-subhead; line-height: 1.9; color: $label-primary; text-indent: 2em; text-align: justify; font-family: 'Noto Serif SC', 'Songti SC', serif; }
+.annot-t { display: block; font-size: $fs-subhead; line-height: 1.9; color: $label-primary; text-indent: 0; text-align: left; white-space: pre-wrap; word-break: break-word; font-family: 'Noto Serif SC', 'Songti SC', serif; }
+.annot-p.indent .annot-t { text-indent: 2em; }
+.annot-p.title .annot-t { font-weight: $fw-bold; margin-top: $sp-2; }
 .annot-t .high, .annot-t.high { color: #7C3AED; } .annot-t .mid, .annot-t.mid { color: #3B82F6; }
 .annot-foot { display: block; padding: $sp-2 $sp-3 $sp-3; font-size: $fs-caption-2; color: $label-tertiary; border-top: $stroke-hairline solid $separator; }
 .filters { white-space: nowrap; margin: 0 0 $sp-2; }
