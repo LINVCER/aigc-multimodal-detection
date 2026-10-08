@@ -11,7 +11,7 @@ import AssistantFab from '@/components/AssistantFab.vue'
  * 论文检测（tab「上传」）· 只做论文，音频 / 图像入口已移除
  *
  * 结构：大标题 + 文件 / 粘贴分段 → 场景横滑 chips → 文件投放卡 / 粘贴区 → 修改稿对比 → 最近检测 → 底部固定 CTA
- * 入口参数：首页 quick-tile 通过 storage 传 pending_scenario / pending_upload_mode（switchTab 不能带参）
+ * 入口参数：首页 quick-tile 通过 storage 传 pending_upload_mode（switchTab 不能带参）
  */
 
 // Wave 3.3 · 微信订阅消息模板 ID（占位 · 上线前替换）
@@ -23,8 +23,6 @@ const auth = useAuth()
 
 onShareAppMessage(() => ({ title: '论文 AI 率检测 · 段落热力 + 疑似来源分布', path: '/pages/upload/upload' }))
 onShareTimeline(() => ({ title: '论文 AI 率检测' }))
-
-const SCENARIOS = Object.entries(SCENARIO_MAP).map(([key, v]) => ({ key, ...v }))
 
 const mode = ref('file')            // file | paste
 const scenario = ref('academic_bachelor')
@@ -53,9 +51,6 @@ async function loadTasks() {
 
 onShow(() => {
   loadTasks()
-  const pendingScenario = uni.getStorageSync('pending_scenario')
-  if (pendingScenario && SCENARIO_MAP[pendingScenario]) { scenario.value = pendingScenario; mode.value = 'file' }
-  uni.removeStorageSync('pending_scenario')
   const pendingMode = uni.getStorageSync('pending_upload_mode')
   if (pendingMode === 'paste' || pendingMode === 'file') mode.value = pendingMode
   uni.removeStorageSync('pending_upload_mode')
@@ -172,25 +167,6 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
 
     <!-- ===================== 文件模式 ===================== -->
     <template v-if="mode === 'file'">
-      <view class="group-head">
-        <text class="group-label">使用场景</text>
-        <text class="group-hint">红线 <text class="strong" :style="{ color: sc.tint }">≤ {{ sc.threshold }}%</text></text>
-      </view>
-      <scroll-view class="sc-strip" scroll-x :show-scrollbar="false">
-        <view class="sc-inner">
-          <view
-            v-for="s in SCENARIOS" :key="s.key"
-            class="sc-chip" :class="{ active: scenario === s.key }"
-            :style="scenario === s.key ? { background: s.wash, borderColor: s.tint, color: s.tint } : {}"
-            hover-class="sc-chip--hover" @click="scenario = s.key"
-          >
-            <text class="sc-label">{{ s.label }}</text>
-            <text class="sc-th">≤ {{ s.threshold }}%</text>
-          </view>
-        </view>
-      </scroll-view>
-      <text class="sc-desc">{{ sc.desc }} · 场景只影响红线，不影响检测本身</text>
-
       <!-- 投放卡 -->
       <view v-if="!file" class="drop" hover-class="drop--hover" @click="pickFile">
         <view class="drop-icon"><view class="drop-doc" /><text class="drop-plus">+</text></view>
@@ -333,19 +309,6 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
 .group-label { font-size: $fs-footnote; font-weight: $fw-medium; color: $label-secondary; text-transform: uppercase; letter-spacing: $tracking-wide; }
 .group-hint { font-size: $fs-caption-1; color: $label-secondary; font-variant-numeric: tabular-nums; &.over { color: $danger-solid; } }
 .strong { font-weight: $fw-bold; }
-
-/* 场景 chips */
-.sc-strip { white-space: nowrap; margin: 0 (-$sp-4); padding: 0 $sp-4; }
-.sc-inner { display: inline-flex; gap: $sp-2; padding-bottom: 4rpx; }
-.sc-chip {
-  display: inline-flex; flex-direction: column; align-items: center; flex: none;
-  padding: $sp-2 $sp-4; border-radius: $radius-lg;
-  background: $bg-primary; border: 2rpx solid transparent; color: $label-primary; box-shadow: $shadow-card;
-  &--hover { opacity: 0.7; }
-}
-.sc-label { font-size: $fs-footnote; font-weight: $fw-semibold; }
-.sc-th { font-size: $fs-caption-2; opacity: 0.75; margin-top: 2rpx; font-variant-numeric: tabular-nums; }
-.sc-desc { display: block; font-size: $fs-caption-1; color: $label-secondary; padding: $sp-2 $sp-2 0; }
 
 /* 投放卡 */
 .drop {
