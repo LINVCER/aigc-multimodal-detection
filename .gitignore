@@ -4,6 +4,7 @@
 # ======== Playwright CLI ========
 .playwright-cli/
 backend/.playwright-cli/
+web/.playwright-browsers/
 
 # ======== 环境变量和敏感文件 ========
 .env
