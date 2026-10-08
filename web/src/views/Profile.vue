@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import FeedbackDialog from '@/components/FeedbackDialog.vue'
 
@@ -9,6 +9,26 @@ const auth = useAuthStore()
 const router = useRouter()
 
 const feedbackOpen = ref(false)
+const pwdOpen = ref(false)
+const pwd = ref({ oldPassword: '', newPassword: '', confirmPassword: '' })
+const pwdError = computed(() => {
+  const p = pwd.value
+  if (!p.oldPassword) return '请输入原密码'
+  if (p.newPassword.length < 6 || p.newPassword.length > 32) return '新密码长度 6-32 位'
+  if (!/[A-Za-z]/.test(p.newPassword) || !/[0-9]/.test(p.newPassword)) return '新密码需同时包含字母和数字'
+  if (p.newPassword === p.oldPassword) return '新密码不能与原密码相同'
+  if (p.confirmPassword !== p.newPassword) return '两次输入的新密码不一致'
+  return ''
+})
+async function submitPassword() {
+  if (pwdError.value) { ElMessage.warning(pwdError.value); return }
+  try {
+    await auth.changePassword(pwd.value.oldPassword, pwd.value.newPassword, pwd.value.confirmPassword)
+    pwdOpen.value = false
+    ElMessage.success('密码已修改，请重新登录')
+    router.replace('/login')
+  } catch { /* 拦截器已 toast */ }
+}
 
 const avatarLetter = computed(() => (auth.user?.realName || auth.user?.username || 'U').charAt(0).toUpperCase())
 
@@ -62,8 +82,13 @@ async function logout() {
             <span class="row-value muted">接入后端后展示</span>
           </div>
           <div class="separator"></div>
-          <div class="row clickable">
+          <div class="row clickable" @click="router.push('/dashboard')">
             <span class="row-title">历史报告</span>
+            <span class="chevron">›</span>
+          </div>
+          <div class="separator"></div>
+          <div class="row clickable" @click="pwdOpen = true">
+            <span class="row-title">修改密码</span>
             <span class="chevron">›</span>
           </div>
         </el-card>
@@ -76,7 +101,7 @@ async function logout() {
             <span class="chevron">›</span>
           </div>
           <div class="separator"></div>
-          <div class="row clickable">
+          <div class="row clickable" @click="router.push('/privacy')">
             <span class="row-title">隐私政策</span>
             <span class="chevron">›</span>
           </div>
@@ -97,6 +122,19 @@ async function logout() {
     </el-main>
 
     <FeedbackDialog v-model="feedbackOpen" default-category="suggestion" />
+
+    <el-dialog v-model="pwdOpen" title="修改密码" width="420" align-center destroy-on-close>
+      <el-form label-position="top" @submit.prevent="submitPassword">
+        <el-form-item label="原密码"><el-input v-model="pwd.oldPassword" type="password" show-password autocomplete="current-password" /></el-form-item>
+        <el-form-item label="新密码（6-32 位，含字母和数字）"><el-input v-model="pwd.newPassword" type="password" show-password autocomplete="new-password" /></el-form-item>
+        <el-form-item label="确认新密码"><el-input v-model="pwd.confirmPassword" type="password" show-password autocomplete="new-password" /></el-form-item>
+        <div class="pwd-hint">修改成功后所有设备需重新登录</div>
+      </el-form>
+      <template #footer>
+        <el-button round @click="pwdOpen = false">取消</el-button>
+        <el-button type="primary" round :loading="auth.loading" :disabled="!!pwdError" @click="submitPassword">确认修改</el-button>
+      </template>
+    </el-dialog>
   </el-container>
 </template>
 
@@ -142,6 +180,7 @@ async function logout() {
 .separator { height: 1px; background: var(--label-quaternary); margin-left: 20px; }
 
 .danger-card { margin-top: 32px; cursor: pointer; }
+.pwd-hint { font-size: 12px; color: var(--label-tertiary); }
 .danger { justify-content: center; padding: 16px 20px; }
 .danger-text { color: var(--system-red); font-size: var(--fs-body); font-weight: var(--fw-medium); }
 </style>

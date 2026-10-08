@@ -28,8 +28,12 @@ http.interceptors.response.use(
   (err) => {
     if (err.response?.status === 401) {
       localStorage.removeItem('access_token')
-      // 简单粗暴：跳登录（history 路由）
-      if (window.location.pathname !== '/login') window.location.assign('/login')
+      localStorage.removeItem('user_info')
+      // 跳登录并记住来源页，登录后回到原处
+      if (window.location.pathname !== '/login') {
+        const back = window.location.pathname + window.location.search
+        window.location.assign('/login?redirect=' + encodeURIComponent(back))
+      }
       return Promise.reject(err)
     }
     ElMessage.error(err.message || '网络异常')

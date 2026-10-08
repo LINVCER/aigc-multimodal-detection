@@ -3,7 +3,10 @@ import { onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
-onMounted(() => auth.restore())
+onMounted(() => {
+  auth.restore()
+  if (auth.token) auth.validate()
+})
 </script>
 
 <template>

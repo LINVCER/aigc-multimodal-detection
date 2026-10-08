@@ -26,6 +26,10 @@ export async function getCaptcha(): Promise<{ captchaId: string; imageBase64: st
   return resp.data.data
 }
 
+export async function changePassword(oldPassword: string, newPassword: string, confirmPassword: string): Promise<void> {
+  await http.post('/api/v1/auth/password', { oldPassword, newPassword, confirmPassword })
+}
+
 export async function logout(): Promise<void> {
   await http.post('/api/v1/auth/logout')
 }
