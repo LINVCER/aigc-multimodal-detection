@@ -8,6 +8,27 @@ import AssistantFab from '@/components/AssistantFab.vue'
 
 const auth = useAuth()
 const feedbackOpen = ref(false)
+const pwdOpen = ref(false)
+const pwd = ref({ oldPassword: '', newPassword: '', confirmPassword: '' })
+const pwdError = computed(() => {
+  const p = pwd.value
+  if (!p.oldPassword) return '请输入原密码'
+  if (p.newPassword.length < 6 || p.newPassword.length > 32) return '新密码长度 6-32 位'
+  if (!/[A-Za-z]/.test(p.newPassword) || !/[0-9]/.test(p.newPassword)) return '新密码需同时包含字母和数字'
+  if (p.newPassword === p.oldPassword) return '新密码不能与原密码相同'
+  if (p.confirmPassword !== p.newPassword) return '两次输入的新密码不一致'
+  return ''
+})
+function openPwd() { pwd.value = { oldPassword: '', newPassword: '', confirmPassword: '' }; pwdOpen.value = true }
+async function submitPassword() {
+  if (pwdError.value) { uni.showToast({ title: pwdError.value, icon: 'none' }); return }
+  try {
+    await auth.changePassword(pwd.value.oldPassword, pwd.value.newPassword, pwd.value.confirmPassword)
+    pwdOpen.value = false
+    uni.showToast({ title: '密码已修改，请重新登录', icon: 'none' })
+    setTimeout(() => uni.reLaunch({ url: '/pages/login/login' }), 800)
+  } catch (e) { /* request 已 toast */ }
+}
 const stats = ref(null)   // { total, avgAiRate, passRate, done, thisMonth, today }
 
 const avatarLetter = computed(() => (auth.username || 'U')[0].toUpperCase())
@@ -107,6 +128,11 @@ onShow(() => {
         <text class="row-title">历史报告</text>
         <text class="chevron">›</text>
       </view>
+      <view class="separator" />
+      <view class="row" hover-class="row-hover" @click="openPwd">
+        <text class="row-title">修改密码</text>
+        <text class="chevron">›</text>
+      </view>
     </view>
 
     <!-- 反馈 -->
@@ -157,6 +183,17 @@ onShow(() => {
     </view>
 
     <FeedbackSheet v-model="feedbackOpen" default-category="suggestion" />
+
+    <!-- 修改密码 -->
+    <view v-if="pwdOpen" class="mask" @click="pwdOpen = false" />
+    <view class="sheet" :class="{ open: pwdOpen }">
+      <view class="sheet-head"><text class="sheet-title">修改密码</text><text class="sheet-close" @click="pwdOpen = false">✕</text></view>
+      <view class="sheet-field"><input v-model="pwd.oldPassword" class="sheet-input" password placeholder="原密码" placeholder-style="color: rgba(60,60,67,0.30)" :adjust-position="true" :cursor-spacing="24" /></view>
+      <view class="sheet-field"><input v-model="pwd.newPassword" class="sheet-input" password placeholder="新密码（6-32 位，含字母和数字）" placeholder-style="color: rgba(60,60,67,0.30)" :adjust-position="true" :cursor-spacing="24" /></view>
+      <view class="sheet-field"><input v-model="pwd.confirmPassword" class="sheet-input" password placeholder="确认新密码" placeholder-style="color: rgba(60,60,67,0.30)" :adjust-position="true" :cursor-spacing="24" /></view>
+      <text class="sheet-hint">{{ pwdError && (pwd.oldPassword || pwd.newPassword) ? pwdError : '修改成功后所有设备需重新登录' }}</text>
+      <button class="sheet-submit" :class="{ disabled: !!pwdError }" :disabled="!!pwdError" :loading="auth.loading" @click="submitPassword">确认修改</button>
+    </view>
 
     <!-- 论文检测助手入口 -->
     <AssistantFab />
@@ -279,6 +316,27 @@ onShow(() => {
   height: $stroke-hairline;
   background: $separator;
   margin-left: $sp-4;
+}
+
+/* 修改密码 sheet */
+.mask { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.35); z-index: $z-sheet; }
+.sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: #{$z-sheet + 1};
+  background: $bg-primary; border-radius: $radius-xl $radius-xl 0 0;
+  padding: $sp-4 $sp-4 #{"calc(#{$sp-6} + env(safe-area-inset-bottom))"};
+  transform: translateY(100%); transition: transform $duration-base $ease-standard;
+  &.open { transform: translateY(0); }
+}
+.sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: $sp-4; }
+.sheet-title { font-size: $fs-headline; font-weight: $fw-semibold; color: $label-primary; }
+.sheet-close { font-size: $fs-headline; color: $label-tertiary; padding: $sp-1; }
+.sheet-field { background: $bg-grouped-primary; border-radius: $radius-card; padding: 4rpx $sp-4; margin-bottom: $sp-3; }
+.sheet-input { height: $size-input-h; font-size: $fs-body; color: $label-primary; }
+.sheet-hint { display: block; font-size: $fs-caption-1; color: $label-tertiary; margin: 0 $sp-1 $sp-3; }
+.sheet-submit {
+  height: $size-btn-h-lg; line-height: $size-btn-h-lg; background: $brand-primary; color: #fff;
+  font-size: $fs-headline; font-weight: $fw-semibold; border-radius: $radius-pill;
+  &.disabled { opacity: 0.45; }
 }
 
 /* 危险卡 · 单独按钮式卡片 */

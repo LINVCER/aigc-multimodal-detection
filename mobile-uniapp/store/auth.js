@@ -110,8 +110,33 @@ export const useAuth = defineStore('auth', {
       }
     },
 
-    /** 退出登录 */
-    logout() {
+    /** 启动时用 /me 校验本地 token；服务端明确说无效才清，网络异常保留本地态 */
+    async validate() {
+      if (!this.token || MOCK_MODE) return !!this.token
+      try {
+        const user = await http({ url: '/api/v1/auth/me', method: 'GET', silent: true })
+        if (user && user.username) this._applyLogin(this.token, user, this.username)
+        return true
+      } catch (e) {
+        if (/token|失效|未登录/.test(e?.message || '')) { this._clearLocal(); return false }
+        return true
+      }
+    },
+
+    /** 修改密码；成功后服务端作废 token，需重新登录 */
+    async changePassword(oldPassword, newPassword, confirmPassword) {
+      this.loading = true
+      try {
+        if (!MOCK_MODE) {
+          await http({ url: '/api/v1/auth/password', method: 'POST', data: { oldPassword, newPassword, confirmPassword } })
+        }
+      } finally {
+        this.loading = false
+      }
+      this._clearLocal()
+    },
+
+    _clearLocal() {
       uni.removeStorageSync('access_token')
       uni.removeStorageSync('username')
       uni.removeStorageSync('user_id')
@@ -120,6 +145,12 @@ export const useAuth = defineStore('auth', {
       this.username = ''
       this.userId = ''
       this.role = ''
+    },
+
+    /** 退出登录 */
+    logout() {
+      if (!MOCK_MODE && this.token) http({ url: '/api/v1/auth/logout', method: 'POST', silent: true }).catch(() => {})
+      this._clearLocal()
       uni.reLaunch({ url: '/pages/login/login' })
     },
   },

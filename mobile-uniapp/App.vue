@@ -37,6 +37,8 @@ onLaunch(() => {
   bindNetworkWatcher()
   if (!auth.token) {
     uni.reLaunch({ url: '/pages/login/login' })
+  } else {
+    auth.validate().then((ok) => { if (!ok) uni.reLaunch({ url: '/pages/login/login' }) })
   }
 })
 onShow(() => { /* 前台恢复时重探测（用户可能切换系统主题） */ detectTheme() })

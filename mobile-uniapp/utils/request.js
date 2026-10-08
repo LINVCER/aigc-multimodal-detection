@@ -36,6 +36,25 @@ function classifyFailMsg(err) {
   return raw
 }
 
+let redirecting = false
+/** token 失效：清本地态、记住当前页，跳登录；并发多个 401 只跳一次 */
+function redirectToLogin() {
+  if (redirecting) return
+  redirecting = true
+  uni.removeStorageSync('access_token')
+  try {
+    const pages = getCurrentPages()
+    const cur = pages[pages.length - 1]
+    if (cur && cur.route && !cur.route.startsWith('pages/login/')) {
+      const q = cur.options && Object.keys(cur.options).length
+        ? '?' + Object.entries(cur.options).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&') : ''
+      uni.setStorageSync('pending_login_redirect', '/' + cur.route + q)
+    }
+  } catch (e) { /* ignore */ }
+  uni.showToast({ title: '登录已失效，请重新登录', icon: 'none' })
+  setTimeout(() => { redirecting = false; uni.reLaunch({ url: '/pages/login/login' }) }, 600)
+}
+
 /**
  * 统一 HTTP 请求
  * @param {object} opts uni.request 原参数 + { auth: 是否携带 token, silent: 是否静默失败 }
@@ -59,6 +78,11 @@ export function http(opts) {
       success: (res) => {
         // 若依 R 结构：{ code, msg, data }；code=200 或 0 为成功
         const body = res.data
+        if (auth && (res.statusCode === 401 || body?.code === 1401 || body?.code === 2401)) {
+          redirectToLogin()
+          reject(new Error(body?.msg || '登录已失效'))
+          return
+        }
         if (body && typeof body.code === 'number' && body.code !== 0 && body.code !== 200) {
           if (!silent) uni.showToast({ title: body.msg || '请求失败', icon: 'none' })
           reject(new Error(body.msg || 'request failed'))
