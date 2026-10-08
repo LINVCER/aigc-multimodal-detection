@@ -5,6 +5,8 @@
 .playwright-cli/
 backend/.playwright-cli/
 web/.playwright-browsers/
+web/test-results/
+web/e2e-report/
 
 # ======== 环境变量和敏感文件 ========
 .env
