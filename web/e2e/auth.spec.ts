@@ -51,6 +51,9 @@ test.describe('登录 / 注册 · 认证', () => {
     await mockApi(page)
     await page.goto('/login')
 
+    // 先填充账号：账号框自动聚焦，若为空则 blur 会插入错误文案导致布局位移，
+    // 使「立即注册」的 mousedown/mouseup 落在不同元素上而点击落空。
+    await page.getByPlaceholder('账号/邮箱').fill('zhangsan')
     await page.locator('.foot-action').click()
     await expect(page).toHaveURL(/mode=register/)
     await expect(page.getByPlaceholder('再次输入密码')).toBeVisible()
@@ -77,7 +80,8 @@ test.describe('登录 / 注册 · 认证', () => {
     await page.getByPlaceholder('设置密码').fill('abc123')
     await page.getByPlaceholder('再次输入密码').fill('abc123')
     await page.getByPlaceholder('4 位字符，不区分大小写').fill('AB12')
-    await page.locator('.opts input[type=checkbox]').last().check()
+    // 勾选框本体 opacity:0 不可见，点击其可见的样式元素 <i>
+    await page.locator('.chk', { hasText: '同意' }).locator('i').click()
 
     await page.locator('button.primary').click()
     await expect(page).toHaveURL(/\/dashboard/)
