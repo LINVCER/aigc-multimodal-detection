@@ -2,7 +2,7 @@
 import { ref, computed, onUnmounted } from 'vue'
 import { onLoad, onShareAppMessage } from '@dcloudio/uni-app'
 import { getTaskDetail, retryTask, cancelTask, getTaskCompare } from '@/api/detect'
-import { downloadReportPdf } from '@/api/report'
+import { downloadReportPdf, createShare, listShares, revokeShare } from '@/api/report'
 import { SOURCE_MAP, COLOR, paragraphRisk, aiRateColor } from '@/utils/constants'
 import Skeleton from '@/components/Skeleton.vue'
 import FeedbackSheet from '@/components/FeedbackSheet.vue'
@@ -28,6 +28,38 @@ const downloading = ref(false)
 const expandedMap = ref({})
 const scrollIntoId = ref('')
 const compact = ref(false)
+
+/* 只读分享 */
+const shareOpen = ref(false)
+const shareDays = ref(7)
+const shareWatermark = ref('')
+const shareCreating = ref(false)
+const shares = ref([])
+const latestShare = ref(null)
+async function openShare() {
+  shareOpen.value = true
+  latestShare.value = null
+  if (!shareWatermark.value) shareWatermark.value = '仅供查阅'
+  try { shares.value = (await listShares(taskId)) || [] } catch (e) { shares.value = [] }
+}
+async function doCreateShare() {
+  shareCreating.value = true
+  try {
+    latestShare.value = await createShare(taskId, shareDays.value, shareWatermark.value.trim())
+    shares.value = (await listShares(taskId)) || []
+    uni.setClipboardData({ data: latestShare.value.url, showToast: false, success: () => uni.showToast({ title: '链接已复制', icon: 'none' }) })
+  } catch (e) { /* request 已 toast */ } finally { shareCreating.value = false }
+}
+function copyShare(url) { uni.setClipboardData({ data: url, showToast: false, success: () => uni.showToast({ title: '已复制', icon: 'none' }) }) }
+async function doRevoke(s) {
+  try {
+    await revokeShare(s.token)
+    uni.showToast({ title: '已撤销', icon: 'none' })
+    if (latestShare.value?.token === s.token) latestShare.value = null
+    shares.value = (await listShares(taskId)) || []
+  } catch (e) { /* toast */ }
+}
+const fmtTime = (s) => (s ? String(s).replace('T', ' ').slice(0, 16) : '—')
 const paraFilter = ref('all')       // all | high | mid | low | excluded
 const allExpanded = ref(false)
 let pollTimer = null
@@ -349,9 +381,7 @@ function copyPara(text) { uni.setClipboardData({ data: text, showToast: false, s
           <view class="report-actions">
             <button class="btn-tinted" @click="goAssistant()">问助手</button>
             <button class="btn-tinted" :loading="downloading" :disabled="downloading" @click="onDownload">下载 PDF</button>
-            <!-- #ifdef MP-WEIXIN -->
-            <button class="btn-tinted" open-type="share">分享</button>
-            <!-- #endif -->
+            <button class="btn-tinted" @click="openShare">只读链接</button>
           </view>
         </view>
 
@@ -480,6 +510,45 @@ function copyPara(text) { uni.setClipboardData({ data: text, showToast: false, s
   </template>
 
   <FeedbackSheet v-model="feedbackOpen" :task-id="Number(taskId) || 0" default-category="appeal" :paragraphs="detail?.paragraphs || []" />
+
+  <!-- 只读分享 sheet -->
+  <view v-if="shareOpen" class="cmp-mask" @click="shareOpen = false">
+    <view class="cmp-sheet" @click.stop>
+      <view class="cmp-handle" />
+      <view class="cmp-head"><text class="cmp-title">分享只读报告</text><text class="cmp-close" @click="shareOpen = false">✕</text></view>
+      <view class="share-row">
+        <text class="share-label">有效期</text>
+        <view class="share-chips">
+          <text v-for="d in [1, 7, 30]" :key="d" class="share-chip" :class="{ on: shareDays === d }" @click="shareDays = d">{{ d }} 天</text>
+        </view>
+      </view>
+      <view class="share-row">
+        <text class="share-label">水印</text>
+        <input v-model="shareWatermark" class="share-input" maxlength="40" placeholder="如：仅供张老师审阅" placeholder-style="color: rgba(60,60,67,0.30)" />
+      </view>
+      <text class="share-hint">对方只能看报告，不能申诉、下载或问助手；页面带水印，随时可撤销。</text>
+      <button class="share-submit" :loading="shareCreating" :disabled="shareCreating" @click="doCreateShare">生成链接并复制</button>
+      <view v-if="latestShare" class="share-result" @click="copyShare(latestShare.url)">
+        <text class="share-url">{{ latestShare.url }}</text>
+        <text class="share-copy">复制</text>
+      </view>
+      <scroll-view v-if="shares.length" scroll-y class="share-list">
+        <text class="share-sub">已生成的链接</text>
+        <view v-for="s in shares" :key="s.token" class="share-item" :class="{ dead: s.revoked || s.expired }">
+          <view class="share-item-main">
+            <text class="share-item-token">…{{ s.token.slice(-8) }}</text>
+            <text class="share-item-meta">{{ s.watermark || '默认水印' }} · 至 {{ fmtTime(s.expiresAt) }} · 看过 {{ s.viewCount }} 次</text>
+          </view>
+          <text v-if="s.revoked" class="share-item-tag">已撤销</text>
+          <text v-else-if="s.expired" class="share-item-tag">已过期</text>
+          <template v-else>
+            <text class="share-item-act" @click="copyShare(s.url)">复制</text>
+            <text class="share-item-act danger" @click="doRevoke(s)">撤销</text>
+          </template>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
 
   <!-- 复测对比 sheet -->
   <view v-if="compareOpen" class="cmp-mask" @click="compareOpen = false">
@@ -678,6 +747,26 @@ function copyPara(text) { uni.setClipboardData({ data: text, showToast: false, s
 .appeal-sub { display: block; font-size: $fs-caption-1; color: $label-secondary; margin-top: 6rpx; }
 .appeal-chevron { color: $label-tertiary; font-size: 36rpx; margin-left: $sp-2; }
 .meta-line { margin-top: $sp-4; text-align: center; font-size: $fs-caption-2; color: $label-tertiary; }
+
+/* 只读分享 sheet */
+.share-row { display: flex; align-items: center; gap: $sp-3; margin-top: $sp-3; }
+.share-label { flex: none; width: 96rpx; font-size: $fs-footnote; color: $label-secondary; }
+.share-chips { display: flex; gap: $sp-2; }
+.share-chip { padding: 10rpx $sp-3; border-radius: $radius-pill; background: $fill-tertiary; font-size: $fs-footnote; color: $label-primary; &.on { background: $brand-primary; color: #fff; font-weight: $fw-semibold; } }
+.share-input { flex: 1; height: 72rpx; padding: 0 $sp-3; border-radius: $radius-md; background: $bg-grouped-primary; font-size: $fs-footnote; color: $label-primary; }
+.share-hint { display: block; margin-top: $sp-3; font-size: $fs-caption-2; color: $label-tertiary; line-height: $lh-normal; }
+.share-submit { margin-top: $sp-3; height: $size-btn-h-lg; line-height: $size-btn-h-lg; background: $brand-primary; color: #fff; font-size: $fs-headline; font-weight: $fw-semibold; border-radius: $radius-pill; &::after { border: none; } }
+.share-result { margin-top: $sp-3; padding: $sp-2 $sp-3; border-radius: $radius-md; background: $success-bg; display: flex; align-items: center; gap: $sp-2; }
+.share-url { flex: 1; min-width: 0; font-size: $fs-caption-1; color: $success-fg; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.share-copy { flex: none; font-size: $fs-footnote; color: $brand-primary; font-weight: $fw-semibold; }
+.share-list { max-height: 40vh; margin-top: $sp-3; }
+.share-sub { display: block; font-size: $fs-caption-1; color: $label-secondary; margin-bottom: $sp-1; }
+.share-item { display: flex; align-items: center; gap: $sp-2; padding: $sp-2 0; border-bottom: $stroke-hairline solid $separator; &.dead { opacity: 0.55; } }
+.share-item-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.share-item-token { font-size: $fs-footnote; color: $label-primary; }
+.share-item-meta { font-size: $fs-caption-2; color: $label-tertiary; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.share-item-tag { flex: none; font-size: $fs-caption-2; color: $label-tertiary; }
+.share-item-act { flex: none; font-size: $fs-footnote; color: $brand-primary; padding: 0 $sp-1; &.danger { color: $danger-fg; } }
 
 /* 复测对比 sheet */
 .cmp-mask { position: fixed; left: 0; right: 0; top: 0; bottom: 0; background: rgba(0, 0, 0, 0.35); z-index: $z-sheet; display: flex; align-items: flex-end; }

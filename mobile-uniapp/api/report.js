@@ -1,4 +1,22 @@
-import { API_BASE, MOCK_MODE } from '@/utils/request'
+import { API_BASE, MOCK_MODE, http } from '@/utils/request'
+
+/** 生成只读分享链接 · POST /api/v1/report/tasks/{id}/share → { token, url, expiresAt, ... } */
+export function createShare(taskId, expireDays = 7, watermark = '') {
+  if (MOCK_MODE) return Promise.resolve({ token: 'mocktoken', url: 'https://example.com/s/mocktoken', expiresAt: '', viewCount: 0, revoked: false, expired: false })
+  return http({ url: `/api/v1/report/tasks/${taskId}/share`, method: 'POST', data: { expireDays, watermark: watermark || undefined } })
+}
+
+/** 该任务的分享链接列表 */
+export function listShares(taskId) {
+  if (MOCK_MODE) return Promise.resolve([])
+  return http({ url: `/api/v1/report/tasks/${taskId}/shares` })
+}
+
+/** 撤销分享链接 */
+export function revokeShare(token) {
+  if (MOCK_MODE) return Promise.resolve()
+  return http({ url: `/api/v1/report/share/${token}/revoke`, method: 'POST' })
+}
 
 /**
  * 下载检测报告 PDF · 后端 GET /api/v1/report/tasks/{id}/pdf 返 PDF binary
