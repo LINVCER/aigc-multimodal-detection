@@ -61,6 +61,8 @@ async function doRevoke(s) {
 }
 const fmtTime = (s) => (s ? String(s).replace('T', ' ').slice(0, 16) : '—')
 const paraFilter = ref('all')       // all | high | mid | low | excluded
+const paraView = ref('cards')       // cards | annotate（全文标注：按原文顺序连续排版，句子按概率着色）
+const annotClass = (prob) => (prob >= 0.7 ? 'high' : prob >= 0.4 ? 'mid' : '')
 const allExpanded = ref(false)
 let pollTimer = null
 let taskId = null
@@ -234,6 +236,18 @@ const filteredParas = computed(() => {
     default: return all
   }
 })
+const annotBreaks = computed(() => {
+  const set = new Set()
+  let prev = ''
+  for (const p of detail.value?.paragraphs || []) { const s = p.sectionName || ''; if (s && s !== prev) set.add(p.paragraphIdx); prev = s }
+  return set
+})
+const annotStats = computed(() => {
+  let total = 0, suspect = 0
+  for (const p of bodyParas.value) for (const s of p.sentences || []) { total++; if (s.aiProb >= 0.4) suspect++ }
+  return { total, suspect }
+})
+
 const FILTERS = computed(() => [
   { key: 'all', label: '全部', n: (detail.value?.paragraphs || []).length },
   { key: 'high', label: '高', n: dist.value.high, cls: 'high' },
@@ -444,8 +458,13 @@ function copyPara(text) { uni.setClipboardData({ data: text, showToast: false, s
         <view id="sec-paras" class="section">
           <view class="section-head-line">
             <text class="section-header no-pad">段落分析</text>
-            <text class="section-link" @click="toggleAll">{{ allExpanded ? '全部收起' : '全部展开' }}</text>
+            <view class="view-seg">
+              <text class="view-seg-item" :class="{ on: paraView === 'cards' }" @click="paraView = 'cards'">段落</text>
+              <text class="view-seg-item" :class="{ on: paraView === 'annotate' }" @click="paraView = 'annotate'">全文标注</text>
+              <text v-if="paraView === 'cards'" class="section-link" @click="toggleAll">{{ allExpanded ? '全部收起' : '全部展开' }}</text>
+            </view>
           </view>
+          <template v-if="paraView === 'cards'">
           <scroll-view class="filters" scroll-x :show-scrollbar="false">
             <view class="filters-inner">
               <view v-for="f in FILTERS" :key="f.key" class="filter" :class="[{ active: paraFilter === f.key }, f.cls]" hover-class="filter--hover" @click="paraFilter = f.key">
@@ -489,6 +508,26 @@ function copyPara(text) { uni.setClipboardData({ data: text, showToast: false, s
             </view>
           </view>
           <view class="legend-row"><view class="sw high" /><text>高 ≥70%</text><view class="sw mid" /><text>中 40–70%</text><text class="legend-note">句子按概率着色</text></view>
+          </template>
+
+          <!-- 全文标注 -->
+          <view v-else class="annot">
+            <view class="annot-bar">
+              <view class="annot-legend"><view class="a high" /><text>高度疑似</text><view class="a mid" /><text>中度疑似</text><view class="a ex" /><text>未参与计算</text></view>
+              <text class="annot-count">疑似句 {{ annotStats.suspect }} / {{ annotStats.total }}</text>
+            </view>
+            <view class="annot-doc">
+              <template v-for="p in detail.paragraphs" :key="p.paragraphIdx">
+                <text v-if="annotBreaks.has(p.paragraphIdx)" class="annot-h">{{ p.sectionName }}</text>
+                <view class="annot-p" :class="{ ex: p.excluded }" @click="!p.excluded && goAssistant(p.paragraphIdx)">
+                  <text v-if="p.excluded" class="annot-t ex">{{ p.text }}</text>
+                  <text v-else-if="p.sentences?.length" class="annot-t"><text v-for="s in p.sentences" :key="s.sentenceIdx" :class="annotClass(s.aiProb)">{{ s.text }}</text></text>
+                  <text v-else class="annot-t" :class="annotClass(p.calibratedProb || 0)">{{ p.text }}</text>
+                </view>
+              </template>
+            </view>
+            <text class="annot-foot">着色依据为句级 AI 概率，只表示「像」的程度，不是判定结论；点段落可问小白。</text>
+          </view>
         </view>
 
         <!-- 来源 -->
@@ -715,6 +754,20 @@ function copyPara(text) { uni.setClipboardData({ data: text, showToast: false, s
 .sug-text { display: block; font-size: $fs-subhead; color: $label-primary; opacity: 0.85; line-height: $lh-normal; }
 
 /* 筛选 */
+/* 全文标注 */
+.view-seg { display: flex; align-items: center; gap: $sp-3; }
+.view-seg-item { font-size: $fs-footnote; color: $label-secondary; padding: 4rpx 0; &.on { color: $label-primary; font-weight: $fw-semibold; border-bottom: 3rpx solid $brand-primary; } }
+.annot { @include card-flush; overflow: hidden; }
+.annot-bar { display: flex; justify-content: space-between; align-items: center; gap: $sp-2; flex-wrap: wrap; padding: $sp-2 $sp-3; background: $bg-grouped-primary; border-bottom: $stroke-hairline solid $separator; }
+.annot-legend { display: flex; align-items: center; gap: 6rpx; font-size: $fs-caption-2; color: $label-secondary; }
+.a { width: 20rpx; height: 20rpx; border-radius: 4rpx; margin-left: 10rpx; &.high { background: #7C3AED; } &.mid { background: #3B82F6; } &.ex { background: rgba(120, 120, 128, 0.35); } }
+.annot-count { font-size: $fs-caption-2; color: $label-tertiary; }
+.annot-doc { padding: $sp-4 $sp-4 $sp-2; }
+.annot-h { display: block; text-align: center; font-size: $fs-headline; font-weight: $fw-bold; color: $label-primary; margin: $sp-3 0 $sp-2; }
+.annot-p { margin-bottom: 6rpx; &.ex .annot-t { color: $label-tertiary; } }
+.annot-t { display: block; font-size: $fs-subhead; line-height: 1.9; color: $label-primary; text-indent: 2em; text-align: justify; font-family: 'Noto Serif SC', 'Songti SC', serif; }
+.annot-t .high, .annot-t.high { color: #7C3AED; } .annot-t .mid, .annot-t.mid { color: #3B82F6; }
+.annot-foot { display: block; padding: $sp-2 $sp-3 $sp-3; font-size: $fs-caption-2; color: $label-tertiary; border-top: $stroke-hairline solid $separator; }
 .filters { white-space: nowrap; margin: 0 0 $sp-2; }
 .filters-inner { display: inline-flex; gap: $sp-2; padding: 0 $sp-1 4rpx; }
 .filter { display: inline-flex; align-items: center; gap: 6rpx; flex: none; padding: 8rpx $sp-3; border-radius: $radius-pill; background: $bg-primary; border: $stroke-hairline solid $separator; font-size: $fs-footnote; color: $label-primary; &--hover { opacity: 0.7; }
