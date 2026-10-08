@@ -24,6 +24,26 @@ backend-java/
 
 ## 启动步骤（手动 · 三端独立不共脚本）
 
+### 方式一：standalone-app 独立启动（推荐，最快上手）
+
+**不依赖若依基座**，clone 后直接跑：
+
+```bash
+cd backend-java/standalone-app
+mvn spring-boot:run            # 端口 8080
+```
+
+- 业务代码由 `standalone-app/pom.xml` 的 `build-helper-maven-plugin` 自动挂载 `../business-modules/ruoyi-detect`；
+- `PaperAigcApplication` 直接扫描 `com.paperaigc`，若依依赖的两个类（`R` / `ServiceException`）在 standalone-app 内备了副本；
+- 数据库默认连 `ry-vue`（`root/root`，环境变量 `MYSQL_HOST` / `MYSQL_PORT` / `MYSQL_USER` / `MYSQL_PASSWORD` / `MYSQL_DATABASE` 可覆盖）；
+- 首次先初始化数据库（见下方「初始化数据库」）。
+
+> 依赖 JDK 21（若依 5.x 要求）；本机若只有 JDK 17，编译加 `-Dmaven.compiler.release=17` 亦可。
+
+### 方式二：若依基座挂载（完整若依，可选）
+
+需要跑在完整若依基座里（含 sys_* 全套 + 若依后台）时走下面的步骤。
+
 ### 1. 准备若依基座（一次性）
 
 任选国内 / GitHub 源 clone 到本机任意目录（**不入本仓库**）：
