@@ -35,6 +35,12 @@ public enum ErrorCode {
     REGISTER_USERNAME_EXISTS (2004, "该用户名已被注册"),
     REGISTER_PASSWORD_MISMATCH (2005, "两次输入的密码不一致"),
     CAPTCHA_INVALID        (2006, "验证码错误或已过期"),
+    LOGIN_LOCKED           (2007, "登录失败次数过多，请稍后再试"),
+    ACCOUNT_DISABLED       (2008, "账号已停用，请联系管理员"),
+    PASSWORD_WEAK          (2009, "密码需同时包含字母和数字"),
+    OLD_PASSWORD_WRONG     (2010, "原密码错误"),
+    CAPTCHA_REQUIRED       (2011, "请输入验证码"),
+    REGISTER_USERNAME_INVALID (2012, "用户名只能包含字母、数字、_ . @ -，长度 2-64 位"),
     LOGIN_TOKEN_INVALID    (2401, "token 无效或已过期"),
 
     /* ========== 3xxx 检测任务 ========== */

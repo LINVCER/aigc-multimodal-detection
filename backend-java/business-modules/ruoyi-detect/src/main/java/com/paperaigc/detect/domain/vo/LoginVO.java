@@ -17,5 +17,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class LoginVO {
     private String accessToken;
+    /** token 有效期（秒），闲置超时失效 */
+    private Long expiresIn;
     private AuthUser user;
 }

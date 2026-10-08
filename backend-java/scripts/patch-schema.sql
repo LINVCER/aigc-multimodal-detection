@@ -276,9 +276,19 @@ CREATE TABLE IF NOT EXISTS auth_user (
   real_name     VARCHAR(64)  NULL,
   role          VARCHAR(32)  NOT NULL DEFAULT 'USER' COMMENT 'USER / ADMIN / OPS_ADMIN',
   org_name      VARCHAR(128) NULL,
+  status        TINYINT NOT NULL DEFAULT 1 COMMENT '1 正常 / 0 停用',
+  last_login_at DATETIME NULL,
   created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uk_username (username)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT '平台账号';
+
+-- V0.3.0.010 · 存量 auth_user 补 status / last_login_at
+SET @c1 := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'auth_user' AND COLUMN_NAME = 'status');
+SET @sql := IF(@c1 = 0, 'ALTER TABLE auth_user ADD COLUMN status TINYINT NOT NULL DEFAULT 1 COMMENT ''1 正常 / 0 停用'' AFTER org_name', 'SELECT 1');
+PREPARE s FROM @sql; EXECUTE s; DEALLOCATE PREPARE s;
+SET @c2 := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'auth_user' AND COLUMN_NAME = 'last_login_at');
+SET @sql := IF(@c2 = 0, 'ALTER TABLE auth_user ADD COLUMN last_login_at DATETIME NULL AFTER status', 'SELECT 1');
+PREPARE s FROM @sql; EXECUTE s; DEALLOCATE PREPARE s;
 
 

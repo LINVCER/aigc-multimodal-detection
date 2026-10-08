@@ -2,6 +2,7 @@ package com.paperaigc.detect.controller;
 
 import cn.dev33.satoken.annotation.SaIgnore;
 import com.paperaigc.detect.common.constant.AuthConstants;
+import com.paperaigc.detect.domain.dto.ChangePasswordDTO;
 import com.paperaigc.detect.domain.dto.LoginDTO;
 import com.paperaigc.detect.domain.dto.RegisterDTO;
 import com.paperaigc.detect.domain.entity.AuthUser;
@@ -70,6 +71,14 @@ public class PaperAigcAuthController {
                                    @RequestHeader(value = AuthConstants.HEADER_AUTHORIZATION, required = false) String auth) {
         Object tmplIds = body.get("tmplIds");
         log.info("wechat subscribe saved: user={} tmplIds={}", auth == null ? "-" : "bearer", tmplIds);
+        return R.ok();
+    }
+
+    /** 修改密码（已登录）；成功后当前 token 作废，前端需重新登录 */
+    @PostMapping("/password")
+    public R<Void> changePassword(@Valid @RequestBody ChangePasswordDTO dto,
+                                  @RequestHeader(value = AuthConstants.HEADER_AUTHORIZATION, required = false) String auth) {
+        authService.changePassword(auth, dto);
         return R.ok();
     }
 

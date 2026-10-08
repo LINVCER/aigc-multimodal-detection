@@ -27,12 +27,15 @@ public class UserAccount {
 
     /** 登录名（学号 / 工号 / 邮箱） */
     private String username;
-    /** BCrypt hash */
+    /** salt:SHA-256 hash */
     private String passwordHash;
     private String realName;
     /** USER / ADMIN / OPS_ADMIN */
     private String role;
     private String orgName;
+    /** 1 正常 / 0 停用 */
+    private Integer status;
+    private LocalDateTime lastLoginAt;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

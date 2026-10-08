@@ -45,6 +45,17 @@ platform:
     rate-per-day: ${ASSISTANT_RATE_PER_DAY:100}
     stream-timeout-seconds: ${ASSISTANT_STREAM_TIMEOUT_SECONDS:120}
 
+  # ---------- 登录 / 注册 ----------
+  # AuthServiceImpl / LoginAttemptGuard / InMemoryAuthTokenRepository 读取
+  auth:
+    # 登录与注册是否必须带图形验证码；前端拿不到验证码时服务端会返回 2011 提示刷新
+    captcha-required: ${AUTH_CAPTCHA_REQUIRED:true}
+    # 连续失败 N 次锁定（按用户名、进程内存）
+    lock-max-failures: ${AUTH_LOCK_MAX_FAILURES:5}
+    lock-minutes: ${AUTH_LOCK_MINUTES:15}
+    # token 闲置多久失效（有访问即续期）
+    token-ttl-days: ${AUTH_TOKEN_TTL_DAYS:7}
+
   # ---------- 事务通知（订阅消息）· 增长闭环 §5 ----------
   # LogNotifyServiceImpl 读取；模板 id 在微信公众平台申请后注入。当前实现只记日志（微信登录 mock 无 openid）
   notify:
