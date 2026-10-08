@@ -4,7 +4,9 @@ import cn.dev33.satoken.annotation.SaIgnore;
 import com.paperaigc.detect.common.constant.AuthConstants;
 import com.paperaigc.detect.domain.dto.AdminAccountCreateDTO;
 import com.paperaigc.detect.domain.dto.AdminAccountQueryDTO;
+import com.paperaigc.detect.domain.dto.AdminAccountUpdateDTO;
 import com.paperaigc.detect.domain.entity.AuthUser;
+import com.paperaigc.detect.domain.vo.AdminAccountStatsVO;
 import com.paperaigc.detect.domain.vo.AdminAccountVO;
 import com.paperaigc.detect.domain.vo.PageVO;
 import com.paperaigc.detect.service.IAdminAccountService;
@@ -15,12 +17,14 @@ import org.dromara.common.core.domain.R;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -40,12 +44,39 @@ public class AdminAccountController {
         return R.ok(accountService.page(query));
     }
 
+    @GetMapping("/stats")
+    public R<AdminAccountStatsVO> stats() {
+        return R.ok(accountService.stats());
+    }
+
+    @GetMapping("/{id}")
+    public R<AdminAccountVO> detail(@PathVariable Long id) {
+        return R.ok(accountService.detail(id));
+    }
+
+    /** 修改姓名 / 组织 */
+    @PutMapping("/{id}")
+    public R<Void> update(@PathVariable Long id, @Valid @RequestBody AdminAccountUpdateDTO dto) {
+        accountService.updateProfile(id, dto);
+        return R.ok();
+    }
+
     /** 停用 / 启用：status=0 / 1 */
     @PostMapping("/{id}/status")
     public R<Void> setStatus(@PathVariable Long id, @RequestParam int status,
                              @RequestHeader(value = AuthConstants.HEADER_AUTHORIZATION, required = false) String auth) {
         accountService.setStatus(id, status, operatorId(auth));
         return R.ok();
+    }
+
+    /** 批量停用 / 启用：body { ids: [...], status: 0|1 } */
+    @PostMapping("/batch-status")
+    public R<Map<String, Integer>> batchStatus(@RequestBody Map<String, Object> body,
+                                               @RequestHeader(value = AuthConstants.HEADER_AUTHORIZATION, required = false) String auth) {
+        Object rawIds = body.get("ids");
+        List<Long> ids = rawIds instanceof List<?> l ? l.stream().filter(Number.class::isInstance).map(x -> ((Number) x).longValue()).toList() : List.of();
+        int status = body.get("status") instanceof Number n ? n.intValue() : 1;
+        return R.ok(Map.of("updated", accountService.batchStatus(ids, status, operatorId(auth))));
     }
 
     /** 重置密码，临时密码只在本次响应里返回 */

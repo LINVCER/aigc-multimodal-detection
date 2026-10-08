@@ -25,6 +25,9 @@ public class AdminAccountVO {
     private Integer status;
     private LocalDateTime lastLoginAt;
     private LocalDateTime createdAt;
+    /** 累计检测任务数（detect_task.user_id 聚合） */
+    private Integer detectCount;
+    private LocalDateTime lastDetectAt;
 
     public static AdminAccountVO from(UserAccount a) {
         return AdminAccountVO.builder()
