@@ -6,6 +6,7 @@ import com.paperaigc.detect.common.constant.AuthConstants;
 import com.paperaigc.detect.common.enums.ErrorCode;
 import com.paperaigc.detect.common.exception.BizException;
 import com.paperaigc.detect.common.util.ParamUtils;
+import com.paperaigc.detect.common.util.PasswordHasher;
 import com.paperaigc.detect.domain.dto.ChangePasswordDTO;
 import com.paperaigc.detect.domain.dto.LoginDTO;
 import com.paperaigc.detect.domain.dto.RegisterDTO;
@@ -20,11 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
-import java.util.Locale;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -72,7 +69,7 @@ public class AuthServiceImpl implements IAuthService {
             } else {
                 throw failed(username);
             }
-        } else if (!verifyPassword(dto.getPassword(), account.getPasswordHash())) {
+        } else if (!PasswordHasher.verify(dto.getPassword(), account.getPasswordHash())) {
             throw failed(username);
         }
         if (account.getStatus() != null && account.getStatus() == 0) {
@@ -111,7 +108,7 @@ public class AuthServiceImpl implements IAuthService {
         }
         UserAccount account = accountMapper.selectById(current.getId());
         if (account == null) throw new BizException(ErrorCode.USER_NOT_FOUND);
-        if (!verifyPassword(dto.getOldPassword(), account.getPasswordHash())) {
+        if (!PasswordHasher.verify(dto.getOldPassword(), account.getPasswordHash())) {
             throw new BizException(ErrorCode.OLD_PASSWORD_WRONG);
         }
         if (dto.getOldPassword().equals(dto.getNewPassword())) {
@@ -120,7 +117,7 @@ public class AuthServiceImpl implements IAuthService {
         checkPasswordPolicy(dto.getNewPassword(), account.getUsername());
         accountMapper.update(null, new LambdaUpdateWrapper<UserAccount>()
                 .eq(UserAccount::getId, account.getId())
-                .set(UserAccount::getPasswordHash, hashPassword(dto.getNewPassword())));
+                .set(UserAccount::getPasswordHash, PasswordHasher.hash(dto.getNewPassword())));
         // 改密后旧 token 作废，让所有端重新登录
         String token = AuthConstants.stripBearer(bearerToken);
         if (token != null) tokenRepository.remove(token);
@@ -205,30 +202,6 @@ public class AuthServiceImpl implements IAuthService {
         }
     }
 
-    /** 密码 hash：salt + SHA-256（课题期无 spring-security-crypto 依赖，够用；生产切 BCrypt） */
-    private String hashPassword(String raw) {
-        String salt = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
-        return salt + ":" + sha256(salt + raw);
-    }
-
-    private boolean verifyPassword(String raw, String stored) {
-        if (raw == null || stored == null || !stored.contains(":")) return false;
-        String[] parts = stored.split(":", 2);
-        return parts.length == 2 && sha256(parts[0] + raw).equals(parts[1]);
-    }
-
-    private String sha256(String s) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] hash = md.digest(s.getBytes(StandardCharsets.UTF_8));
-            StringBuilder sb = new StringBuilder();
-            for (byte b : hash) sb.append(String.format(Locale.ROOT, "%02x", b));
-            return sb.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 不可用", e);
-        }
-    }
-
     private UserAccount findByUsername(String username) {
         return accountMapper.selectOne(new LambdaQueryWrapper<UserAccount>().eq(UserAccount::getUsername, username));
     }
@@ -236,7 +209,7 @@ public class AuthServiceImpl implements IAuthService {
     private UserAccount createAccount(String username, String rawPassword, String realName, String role, String orgName) {
         UserAccount a = UserAccount.builder()
                 .username(username)
-                .passwordHash(hashPassword(rawPassword))
+                .passwordHash(PasswordHasher.hash(rawPassword))
                 .realName(realName)
                 .role(role)
                 .orgName(orgName)

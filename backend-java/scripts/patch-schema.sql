@@ -292,3 +292,19 @@ SET @sql := IF(@c2 = 0, 'ALTER TABLE auth_user ADD COLUMN last_login_at DATETIME
 PREPARE s FROM @sql; EXECUTE s; DEALLOCATE PREPARE s;
 
 
+
+-- V0.3.0.011 · 报告只读分享链接
+CREATE TABLE IF NOT EXISTS report_share (
+  id             BIGINT PRIMARY KEY AUTO_INCREMENT,
+  token          VARCHAR(64)  NOT NULL,
+  task_id        BIGINT       NOT NULL,
+  owner_user_id  BIGINT       NULL,
+  watermark      VARCHAR(40)  NULL,
+  expires_at     DATETIME     NOT NULL,
+  view_count     INT          NOT NULL DEFAULT 0,
+  revoked        TINYINT      NOT NULL DEFAULT 0,
+  last_viewed_at DATETIME     NULL,
+  created_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_token (token),
+  KEY idx_task (task_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT '报告只读分享链接';

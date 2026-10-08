@@ -49,6 +49,9 @@ public enum ErrorCode {
     DETECT_EXTRACT_FAILED  (3002, "文档解析失败"),
     DETECT_TASK_NOT_FOUND  (3003, "任务不存在"),
     DETECT_INFERENCE_ERROR (3004, "推理服务暂时不可用"),
+    SHARE_NOT_FOUND        (3405, "分享链接不存在或已撤销"),
+    SHARE_EXPIRED          (3406, "分享链接已过期"),
+    SHARE_TASK_NOT_DONE    (3407, "检测未完成，暂不能分享"),
 
     /* ========== 4xxx 反馈 ========== */
     FEEDBACK_CATEGORY_INVALID (4001, "反馈分类必须是 bug / suggestion / appeal"),

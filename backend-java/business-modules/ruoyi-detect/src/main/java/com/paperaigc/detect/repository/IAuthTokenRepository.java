@@ -13,4 +13,7 @@ public interface IAuthTokenRepository {
     void put(String token, AuthUser user);
     Optional<AuthUser> get(String token);
     void remove(String token);
+
+    /** 作废某用户的全部在线 token（停用 / 重置密码 / 改角色时） */
+    void removeByUser(Long userId);
 }

@@ -45,6 +45,11 @@ platform:
     rate-per-day: ${ASSISTANT_RATE_PER_DAY:100}
     stream-timeout-seconds: ${ASSISTANT_STREAM_TIMEOUT_SECONDS:120}
 
+  # ---------- Web 前端地址 ----------
+  # ReportShareServiceImpl 拼分享链接 {base-url}/s/{token}；部署时填对外域名
+  web:
+    base-url: ${WEB_BASE_URL:http://localhost:5173}
+
   # ---------- 登录 / 注册 ----------
   # AuthServiceImpl / LoginAttemptGuard / InMemoryAuthTokenRepository 读取
   auth:

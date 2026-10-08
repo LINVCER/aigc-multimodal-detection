@@ -39,4 +39,10 @@ public class InMemoryAuthTokenRepository implements IAuthTokenRepository {
     public void remove(String token) {
         if (token != null) store.invalidate(token);
     }
+
+    @Override
+    public void removeByUser(Long userId) {
+        if (userId == null) return;
+        store.asMap().entrySet().removeIf(e -> e.getValue() != null && userId.equals(e.getValue().getId()));
+    }
 }
