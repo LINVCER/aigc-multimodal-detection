@@ -74,6 +74,7 @@ function comingSoon(name) {
 function goMyFeedback() { uni.navigateTo({ url: '/pages/feedback/mine' }) }
 
 function goPrivacy() { uni.navigateTo({ url: '/pages/about/privacy' }) }
+function goVerify() { uni.navigateTo({ url: '/pages/verify/verify' }) }
 
 function goHistory() { uni.switchTab({ url: '/pages/index/index' }) }
 
@@ -166,6 +167,11 @@ onShow(() => {
       </button>
       <view class="separator" />
       <!-- #endif -->
+      <view class="row" hover-class="row-hover" @click="goVerify">
+        <text class="row-title">验证报告真伪</text>
+        <text class="chevron">›</text>
+      </view>
+      <view class="separator" />
       <view class="row" hover-class="row-hover" @click="goPrivacy">
         <text class="row-title">隐私政策</text>
         <text class="chevron">›</text>

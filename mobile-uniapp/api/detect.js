@@ -45,6 +45,12 @@ export function listTasks() {
 }
 
 /** 复测对比：当前任务 vs 上一次（product-feature-plan §2.2） */
+/** 公开验证报告真伪 · POST /api/v1/verify { reportNo, code } */
+export function verifyReport(reportNo, code) {
+  if (MOCK_MODE) return Promise.resolve({ valid: true, signatureValid: true, message: '离线 mock', reportNo, paperTitle: '示例论文', aiRate: 12.3, threshold: 20, pass: true, modelVersion: 'mock', detectedAt: '', fingerprint: 'MOCK', verifyCount: 1 })
+  return http({ url: '/api/v1/verify', method: 'POST', data: { reportNo, code }, auth: false })
+}
+
 export function getTaskCompare(id) {
   return http({ url: `/api/v1/detect/tasks/${id}/compare` })
 }

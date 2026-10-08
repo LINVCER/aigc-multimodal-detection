@@ -70,6 +70,14 @@
       }
     },
     {
+      "path": "pages/verify/verify",
+      "style": {
+        "navigationBarTitleText": "验证报告",
+        "navigationStyle": "custom",
+        "backgroundColor": "#F2F2F7"
+      }
+    },
+    {
       "path": "pages/assistant/chat",
       "style": {
         "navigationBarTitleText": "小白",

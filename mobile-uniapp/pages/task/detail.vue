@@ -161,6 +161,11 @@ async function onDownload() {
   try { await downloadReportPdf(taskId, detail.value?.paperTitle) }
   finally { downloading.value = false }
 }
+function copyCred() {
+  if (!detail.value?.reportNo) return
+  uni.setClipboardData({ data: `知源检测报告 编号 ${detail.value.reportNo} 验证码 ${detail.value.verifyCode}，验证：知源「验证报告」`, showToast: false, success: () => uni.showToast({ title: '凭证已复制', icon: 'none' }) })
+}
+
 function goAssistant(paragraphIdx) {
   let url = `/pages/assistant/chat?taskId=${taskId}`
   if (paragraphIdx !== undefined && paragraphIdx !== null) url += `&paragraphIdx=${paragraphIdx}`
@@ -378,6 +383,10 @@ function copyPara(text) { uni.setClipboardData({ data: text, showToast: false, s
             <text class="assist-tip-close" @click.stop="dismissAssistantTip(false)">✕</text>
           </view>
 
+          <view v-if="detail.reportNo" class="cred" @click="copyCred">
+            <view class="cred-main"><text class="cred-k">报告编号 </text><text class="cred-v">{{ detail.reportNo }}</text><text class="cred-k"> · 验证码 </text><text class="cred-v">{{ detail.verifyCode }}</text></view>
+            <text class="cred-act">复制</text>
+          </view>
           <view class="report-actions">
             <button class="btn-tinted" @click="goAssistant()">问助手</button>
             <button class="btn-tinted" :loading="downloading" :disabled="downloading" @click="onDownload">下载 PDF</button>
@@ -659,6 +668,10 @@ function copyPara(text) { uni.setClipboardData({ data: text, showToast: false, s
 .assist-tip-text { display: block; font-size: $fs-footnote; color: $label-primary; line-height: $lh-normal; }
 .assist-tip-cta { display: block; margin-top: $sp-1; font-size: $fs-footnote; font-weight: $fw-semibold; color: $brand-primary; }
 .assist-tip-close { flex: none; color: $label-tertiary; font-size: $fs-footnote; padding: 0 $sp-1; }
+.cred { width: 100%; margin-top: $sp-3; padding: $sp-2 $sp-3; border-radius: $radius-md; background: $success-bg; display: flex; align-items: center; gap: $sp-2; }
+.cred-main { flex: 1; min-width: 0; font-size: $fs-caption-1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.cred-k { color: $label-secondary; } .cred-v { color: $success-fg; font-weight: $fw-semibold; letter-spacing: 1rpx; }
+.cred-act { flex: none; font-size: $fs-footnote; color: $brand-primary; font-weight: $fw-semibold; }
 .report-actions { width: 100%; margin-top: $sp-3; display: flex; gap: $sp-2; }
 
 /* 锚点 tabs */

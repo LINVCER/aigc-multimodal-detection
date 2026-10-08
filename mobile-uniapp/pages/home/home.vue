@@ -89,6 +89,7 @@ function goText(scenarioKey, mode) {
   uni.switchTab({ url: '/pages/upload/upload' })
 }
 function goAssistant() { uni.navigateTo({ url: '/pages/assistant/chat' }) }
+function goVerify() { uni.navigateTo({ url: '/pages/verify/verify' }) }
 
 function goRecords() { uni.switchTab({ url: '/pages/index/index' }) }
 function goProfile() { uni.switchTab({ url: '/pages/profile/profile' }) }
@@ -139,6 +140,7 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
         <text class="quick-desc">{{ tasks.length ? tasks.length + ' 份' : '暂无' }}</text>
       </view>
     </view>
+    <view class="verify-link" hover-class="verify-link-hover" @click="goVerify"><text class="verify-link-text">收到一份检测报告？输入编号验证真伪</text><text class="verify-link-arrow">›</text></view>
 
     <!-- 本周概览 -->
     <text class="section-label">本周概览</text>
@@ -260,6 +262,10 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
 }
 
 /* ---------- 快捷入口 2×2 ---------- */
+.verify-link { margin-top: $sp-2; padding: $sp-2 $sp-3; display: flex; justify-content: space-between; align-items: center; border-radius: $radius-md; background: $brand-primary-wash; }
+.verify-link-hover { opacity: 0.7; }
+.verify-link-text { font-size: $fs-footnote; color: $brand-primary; }
+.verify-link-arrow { font-size: $fs-headline; color: $brand-primary; }
 .quick-grid {
   margin-top: $sp-4;
   display: grid;
