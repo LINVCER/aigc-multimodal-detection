@@ -63,6 +63,24 @@ const facts = computed<string>(() => {
     </div>
   </div>
 
+  <div v-else-if="name === 'compare_revision' && data" class="card">
+    <div class="head"><span class="title">修改前后对比 · {{ data.direction }}</span><span class="tag" :class="data.pass ? 'ok' : 'bad'">{{ data.pass ? '已过线' : '仍超线' }}</span></div>
+    <div class="rate"><b :class="(data.deltaRate ?? 0) <= 0 ? 'ok' : 'bad'">{{ data.parentAiRate?.toFixed?.(1) ?? data.parentAiRate }}% → {{ data.aiRate?.toFixed?.(1) ?? data.aiRate }}%</b><span class="sub">红线 ≤ {{ data.threshold }}%<template v-if="data.modelChanged"> · 模型已更新，不可直接比</template></span></div>
+    <div class="buckets"><span class="green">有效 {{ data.effectiveParagraphs }}</span><span class="red">反了 {{ data.reversedParagraphs }}</span><span class="yellow">没动但高 {{ data.untouchedHighRisk?.length || 0 }}</span></div>
+    <div v-if="data.overallChanges?.length" class="feat">
+      <div class="sub">整体变化</div>
+      <div v-for="c in data.overallChanges" :key="c.feature" class="row"><span class="name">{{ c.feature }}</span><code :class="c.direction === '更像人' ? 'neg' : 'pos'">{{ c.direction }}</code><span class="read">{{ c.reading }}</span></div>
+    </div>
+    <div v-if="data.paragraphs?.length" class="feat">
+      <div class="sub">改动最大的段</div>
+      <div v-for="p in data.paragraphs" :key="p.currIdx" class="row"><b class="sp" :style="{ color: (p.delta ?? 0) <= -0.1 ? 'var(--el-color-success-dark-2)' : (p.delta ?? 0) >= 0.1 ? 'var(--el-color-danger)' : 'var(--el-text-color-secondary)' }">段 {{ p.currIdx + 1 }} {{ Math.round((p.parentProb || 0) * 100) }}%→{{ Math.round((p.currProb || 0) * 100) }}% {{ p.verdict }}</b><span class="read ellipsis">{{ p.changes?.map((c: any) => c.feature + c.direction).join(' · ') || p.preview }}</span></div>
+    </div>
+    <div v-if="data.untouchedHighRisk?.length" class="feat">
+      <div class="sub">没改但仍高风险</div>
+      <div v-for="p in data.untouchedHighRisk" :key="p.currIdx" class="row"><b class="sp">段 {{ p.currIdx + 1 }} · {{ Math.round((p.currProb || 0) * 100) }}%</b><span class="read ellipsis">{{ p.preview }}…</span></div>
+    </div>
+  </div>
+
   <div v-else-if="name === 'detect_text' && data" class="card">
     <div class="head"><span class="title">即时检测 · {{ data.verdict }}</span><span class="sub">{{ data.chars }} 字</span></div>
     <div class="prob"><span class="sub">校准概率</span><div class="bar"><div class="fill" :class="level" :style="{ width: (prob || 0) + '%' }" /></div><b :class="level">{{ prob == null ? '—' : prob + '%' }}</b></div>

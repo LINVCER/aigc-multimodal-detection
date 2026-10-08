@@ -45,8 +45,10 @@ const props = defineProps<{
   taskId?: number
   /** 打开时自动追问的段落（「为什么这段像 AI」直达） */
   paragraphIdx?: number | null
+  /** 打开时直接发出的首问（如「我这次改的方向对了吗」），发出后 emit prompt-consumed */
+  initialPrompt?: string | null
 }>()
-const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void }>()
+const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void; (e: 'prompt-consumed'): void }>()
 
 const visible = computed({
   get: () => props.modelValue,
@@ -191,6 +193,12 @@ watch(() => props.modelValue, async (open) => {
   if (props.paragraphIdx != null && !restored) {
     pendingParagraph = props.paragraphIdx
     send(`第 ${props.paragraphIdx + 1} 段为什么会被判成像 AI？`)
+  }
+  // 5) 显式首问（修改稿点评等）：有历史会话也追加发出，发完通知父组件清空避免重复
+  if (props.initialPrompt) {
+    const q = props.initialPrompt
+    emit('prompt-consumed')
+    if (!streaming.value) send(q)
   }
 })
 

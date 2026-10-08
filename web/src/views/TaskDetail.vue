@@ -24,7 +24,9 @@ const auth = useAuthStore()
 const feedbackOpen = ref(false)
 const assistantOpen = ref(false)
 const assistantParagraph = ref<number | null>(null)
+const assistantPrompt = ref<string | null>(null)
 function openAssistant(paragraphIdx?: number) { assistantParagraph.value = paragraphIdx ?? null; assistantOpen.value = true }
+function askRevision() { compareOpen.value = false; assistantParagraph.value = null; assistantPrompt.value = '我这次改的方向对了吗？哪几段有效、哪几段白改了？'; assistantOpen.value = true }
 const assistantTipDismissed = ref<boolean>(!!localStorage.getItem('assistant_tip_shown'))
 const showAssistantTip = computed(() => detail.value?.status === 'DONE' && !assistantTipDismissed.value)
 function dismissAssistantTip(go: boolean) {
@@ -324,6 +326,7 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
                     <b :class="detail.aiRate <= detail.parentAiRate ? 'down' : 'up'">比上次 {{ detail.aiRate <= detail.parentAiRate ? '−' : '+' }}{{ Math.abs(detail.aiRate - detail.parentAiRate).toFixed(1) }}%</b>
                     <span class="muted">上次 {{ detail.parentAiRate.toFixed(1) }}%<template v-if="detail.parentModelVersion && detail.parentModelVersion !== detail.modelVersion"> · 模型已更新，不可直接比较</template></span>
                     <span class="link">逐段对比 ›</span>
+                    <el-button link type="primary" size="small" @click.stop="askRevision">问小白方向对不对</el-button>
                   </div>
                   <div v-if="detail.reportNo" class="cred">
                     <span class="cred-k">报告编号</span><code>{{ detail.reportNo }}</code>
@@ -475,7 +478,7 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
     </el-main>
 
     <FeedbackDialog v-model="feedbackOpen" :task-id="Number(id)" default-category="appeal" :paragraphs="detail?.paragraphs" />
-    <AssistantDrawer v-model="assistantOpen" :task-id="Number(id)" :paragraph-idx="assistantParagraph" />
+    <AssistantDrawer v-model="assistantOpen" :task-id="Number(id)" :paragraph-idx="assistantParagraph" :initial-prompt="assistantPrompt" @prompt-consumed="assistantPrompt = null" />
 
     <!-- 只读分享 -->
     <el-dialog v-model="shareOpen" title="分享只读报告" width="520" align-center destroy-on-close>
@@ -530,7 +533,7 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
             <el-table-column label="本次" width="70"><template #default="{ row }">{{ pct(row.currProb) }}</template></el-table-column>
             <el-table-column label="变化" width="110"><template #default="{ row }"><el-tag :type="COMPARE_STATUS[row.status]?.type" size="small">{{ COMPARE_STATUS[row.status]?.text }}<template v-if="row.delta != null"> {{ row.delta > 0 ? '+' : '' }}{{ Math.round(row.delta * 100) }}pp</template></el-tag></template></el-table-column>
           </el-table>
-          <div class="muted small">段落按文本相似度配对；改动很大的段会分别算作「新增」和「删除」。</div>
+          <div class="cmp-foot"><span class="muted small">段落按文本相似度配对；改动很大的段会分别算作「新增」和「删除」。</span><el-button type="primary" round size="small" @click="askRevision">💬 让小白点评这次修改</el-button></div>
         </template>
       </div>
     </el-dialog>
@@ -693,5 +696,6 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
 .cmp-side-rate { font-size: 28px; font-weight: 600; letter-spacing: -.5px; } .cmp-side-rate.ok { color: #1B7F3E; } .cmp-side-rate.bad { color: #C62A22; }
 .cmp-arrow { font-size: 24px; color: rgba(60, 60, 67, 0.30); }
 .cmp-stats { display: flex; gap: 8px; justify-content: center; }
+.cmp-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 :deep(.cmp-row-down) { background: rgba(52, 199, 89, 0.06); } :deep(.cmp-row-up) { background: rgba(255, 59, 48, 0.06); }
 </style>
