@@ -209,6 +209,7 @@ uniapp 与 web 各有一个对话入口。零新服务、零新部署单元，LL
 
 ### 登录页二次优化（web + uniapp）
 
+- `username-available` 按客户端 IP 限流：`IpRateLimiter`（Caffeine 1 分钟窗口）+ `ClientIpUtils`（X-Forwarded-For 首跳 > X-Real-IP > remoteAddr），`platform.auth.username-check-per-minute` 默认 20，超限返回 2429；前端查重失败静默忽略，由注册接口兜底判重
 - 逻辑：已登录直跳；验证码 5 分钟过期后禁提交并提示刷新；服务端锁定文案解析成倒计时，倒计时内禁用按钮；注册用户名实时查重（新接口 `GET /api/v1/auth/username-available`，防抖 400ms）；密码规则逐条勾选；`redirect` 只接受站内单斜杠路径（uniapp 只接受 `/pages/` 路径）；提交中屏蔽重复提交；密码错误后清空密码重输；Caps Lock 提示（web）
 - 视觉：web 左栏渐变 + 光斑 + 玻璃卡价值主张 + 小白气泡，右栏白卡、滑块分段、48px 输入框聚焦光环、SVG 眼睛、验证码悬浮「换一张」、自绘复选框、渐变主按钮；uniapp 渐变头图 + 上浮白卡，同一套控件语言
 

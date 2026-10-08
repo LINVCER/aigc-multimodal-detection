@@ -2,6 +2,7 @@ package com.paperaigc.detect.controller;
 
 import cn.dev33.satoken.annotation.SaIgnore;
 import com.paperaigc.detect.common.constant.AuthConstants;
+import com.paperaigc.detect.common.util.ClientIpUtils;
 import com.paperaigc.detect.domain.dto.ChangePasswordDTO;
 import com.paperaigc.detect.domain.dto.LoginDTO;
 import com.paperaigc.detect.domain.dto.RegisterDTO;
@@ -10,6 +11,9 @@ import com.paperaigc.detect.domain.vo.CaptchaVO;
 import com.paperaigc.detect.domain.vo.LoginVO;
 import com.paperaigc.detect.service.IAuthService;
 import com.paperaigc.detect.service.impl.CaptchaService;
+import com.paperaigc.detect.service.impl.IpRateLimiter;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Value;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,6 +39,11 @@ public class PaperAigcAuthController {
 
     private final IAuthService authService;
     private final CaptchaService captchaService;
+    private final IpRateLimiter rateLimiter;
+
+    /** 用户名查重按 IP 每分钟上限；≤ 0 不限 */
+    @Value("${platform.auth.username-check-per-minute:20}")
+    private int usernameCheckPerMinute;
 
     /** 图形验证码：返回 captchaId + base64 图片 */
     @GetMapping("/captcha")
@@ -42,9 +51,11 @@ public class PaperAigcAuthController {
         return R.ok(captchaService.generate());
     }
 
-    /** 注册前用户名查重；只回 available 布尔，不暴露其它信息 */
+    /** 注册前用户名查重；只回 available 布尔，不暴露其它信息。按 IP 限流防批量探测 */
     @GetMapping("/username-available")
-    public R<java.util.Map<String, Boolean>> usernameAvailable(@org.springframework.web.bind.annotation.RequestParam String username) {
+    public R<java.util.Map<String, Boolean>> usernameAvailable(@org.springframework.web.bind.annotation.RequestParam String username,
+                                                               HttpServletRequest request) {
+        rateLimiter.check("username-check", ClientIpUtils.resolve(request), usernameCheckPerMinute);
         return R.ok(java.util.Map.of("available", authService.usernameAvailable(username)));
     }
 

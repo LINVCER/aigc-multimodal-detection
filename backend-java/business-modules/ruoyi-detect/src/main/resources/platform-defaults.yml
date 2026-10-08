@@ -60,6 +60,8 @@ platform:
     lock-minutes: ${AUTH_LOCK_MINUTES:15}
     # token 闲置多久失效（有访问即续期）
     token-ttl-days: ${AUTH_TOKEN_TTL_DAYS:7}
+    # 用户名查重接口按客户端 IP 每分钟上限（防批量探测账号是否存在）；<= 0 不限
+    username-check-per-minute: ${AUTH_USERNAME_CHECK_PER_MINUTE:20}
 
   # ---------- 事务通知（订阅消息）· 增长闭环 §5 ----------
   # LogNotifyServiceImpl 读取；模板 id 在微信公众平台申请后注入。当前实现只记日志（微信登录 mock 无 openid）

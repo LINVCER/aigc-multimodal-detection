@@ -42,6 +42,7 @@ public enum ErrorCode {
     CAPTCHA_REQUIRED       (2011, "请输入验证码"),
     REGISTER_USERNAME_INVALID (2012, "用户名只能包含字母、数字、_ . @ -，长度 2-64 位"),
     LOGIN_TOKEN_INVALID    (2401, "token 无效或已过期"),
+    AUTH_RATE_LIMITED      (2429, "请求太频繁，请稍后再试"),
 
     /* ========== 3xxx 检测任务 ========== */
     DETECT_FORMAT_UNSUPPORT(3000, "论文格式不支持，请上传 PDF / DOC / DOCX / TXT"),
