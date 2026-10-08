@@ -6,10 +6,13 @@ import { listTasks, deleteTask, retryTask, getStatistics } from '@/api/detect'
 import { useAuthStore } from '@/stores/auth'
 import EmptyState from '@/components/EmptyState.vue'
 import Skeleton from '@/components/Skeleton.vue'
+import AssistantDrawer from '@/components/AssistantDrawer.vue'
 import type { DetectTask, StatisticsResp } from '@/api/types'
 
 const router = useRouter()
 const auth = useAuthStore()
+const assistantOpen = ref(false)
+const isOps = computed(() => { const r = auth.user?.role || ''; return r === 'OPS_ADMIN' || r === 'ADMIN' })
 
 const tasks = ref<DetectTask[]>([])
 const total = ref(0)
@@ -169,6 +172,13 @@ const showEmptyFiltered = computed(() =>
         <div class="brand-block">
           <span class="brand">知源</span>
         </div>
+        <nav class="header-nav">
+          <a class="nav-link active">检测记录</a>
+          <a class="nav-link" @click="router.push('/upload')">上传论文</a>
+          <a class="nav-link" @click="assistantOpen = true">问小白</a>
+          <a class="nav-link" @click="router.push('/verify')">验证报告</a>
+          <a v-if="isOps" class="nav-link" @click="router.push('/admin')">运营后台</a>
+        </nav>
         <div class="header-actions">
           <div class="avatar-btn" @click="router.push('/profile')" :title="auth.user?.username || '我的'">
             {{ avatarLetter }}
@@ -182,7 +192,10 @@ const showEmptyFiltered = computed(() =>
         <!-- Large Title -->
         <div class="large-title-bar">
           <h1 class="large-title">检测记录</h1>
-          <el-button type="primary" round size="large" @click="router.push('/upload')">+ 提交检测</el-button>
+          <div class="title-actions">
+            <el-button round size="large" @click="router.push({ path: '/upload', query: { mode: 'paste' } })">粘贴一段试试</el-button>
+            <el-button type="primary" round size="large" @click="router.push('/upload')">+ 上传论文</el-button>
+          </div>
         </div>
 
         <!-- Stats overview (Wave 2.c) -->
@@ -329,6 +342,7 @@ const showEmptyFiltered = computed(() =>
         </el-card>
       </div>
     </el-main>
+    <AssistantDrawer v-model="assistantOpen" />
   </el-container>
 </template>
 
@@ -353,6 +367,12 @@ const showEmptyFiltered = computed(() =>
 .brand { font-size: var(--fs-headline); font-weight: var(--fw-semibold); color: var(--label); letter-spacing: -0.2px; }
 
 .header-actions { display: flex; align-items: center; gap: 12px; }
+.header-nav { display: flex; align-items: center; gap: 4px; margin-left: 24px; margin-right: auto; }
+.nav-link { padding: 6px 12px; border-radius: 8px; font-size: 14px; color: var(--label-secondary); cursor: pointer; transition: background var(--dur-fast), color var(--dur-fast); }
+.nav-link:hover { background: rgba(120, 120, 128, 0.12); color: var(--label); }
+.nav-link.active { color: var(--label); font-weight: var(--fw-semibold); background: rgba(120, 120, 128, 0.12); }
+.title-actions { display: flex; gap: 10px; }
+@media (max-width: 760px) { .header-nav { display: none; } }
 .avatar-btn {
   width: 32px; height: 32px; border-radius: 50%;
   background: linear-gradient(135deg, var(--system-blue) 0%, var(--system-teal) 100%);

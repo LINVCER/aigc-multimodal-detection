@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { UploadFile, UploadRawFile } from 'element-plus'
 import { submitPaper, detectTextDirect, listTasks, type DirectDetectResp } from '@/api/detect'
@@ -14,6 +14,7 @@ import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 
 const SCENARIOS = [
   { key: 'academic_bachelor', label: '学术·本科', threshold: 20, desc: '毕业论文自查', tint: '#007AFF' },
@@ -26,7 +27,7 @@ const SCENARIOS = [
 type ScenarioKey = typeof SCENARIOS[number]['key']
 const SCENARIO_LABEL: Record<string, string> = Object.fromEntries(SCENARIOS.map((s) => [s.key, s.label]))
 
-const mode = ref<'file' | 'paste'>('file')
+const mode = ref<'file' | 'paste'>(route.query.mode === 'paste' ? 'paste' : 'file')
 const scenario = ref<ScenarioKey>('academic_bachelor')
 const sc = computed(() => SCENARIOS.find((s) => s.key === scenario.value) || SCENARIOS[0])
 const file = ref<UploadRawFile | null>(null)
