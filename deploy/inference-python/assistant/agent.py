@@ -213,7 +213,7 @@ async def run_chat(req: ChatRequest, detector_getter: DetectorGetter) -> AsyncIt
 
 
 # 结构化分析卡（product-feature-plan §2.1）：这三种工具的 data 原样给前端渲染，助手文字作「翻译」
-CARD_TOOLS = {"explain_paragraph", "get_task_detail", "detect_text"}
+CARD_TOOLS = {"explain_paragraph", "get_task_detail", "detect_text", "compare_revision"}
 
 
 def _card_payload(tool: str, res: Any) -> Optional[dict[str, Any]]:

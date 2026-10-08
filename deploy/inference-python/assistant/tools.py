@@ -47,6 +47,12 @@ POLICY_LINES = {
     "other": ("其他", 25),
 }
 
+# 各维「更像人」的方向：+1 值越大越像人，-1 值越小越像人，0 无方向（对比修改稿时用）
+SURFACE_HUMAN_DIR = {
+    "sent_len_cv": 1, "discourse_marker_rate": -1, "ttr": 1, "punct_gap_cv": 1,
+    "hapax_ratio": 1, "char_entropy": 1, "repeat_bigram_rate": -1, "avg_sent_len": 0,
+}
+
 # 表层特征里最适合翻成人话的几维（名称 → (人话标签, 高值含义, 低值含义)）
 SURFACE_EXPLAIN = {
     "sent_len_cv": ("句长变化", "长短句交错，节奏像人写", "句子长度很匀，是机器文本常见的『平』"),
@@ -121,6 +127,11 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         "parameters": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]},
     }},
     {"type": "function", "function": {
+        "name": "compare_revision",
+        "description": "修改稿 vs 上一次检测：整体 AI 率变化、逐段概率变化，以及每段表层特征（句长节奏 / 套话连接词 / 用词丰富度 / 标点节奏等）的前后差值和方向（更像人 / 更像机器）。用户问『我改的方向对了吗』『改了之后有进步吗』『哪几段白改了』时用。只有当前任务是修改稿（有 parentTaskId）才能比。",
+        "parameters": {"type": "object", "properties": {"task_id": {"type": "integer", "description": "修改稿任务 id；不传则用当前对话绑定的任务"}}, "required": []},
+    }},
+    {"type": "function", "function": {
         "name": "create_appeal",
         "description": "对某次检测结果发起人工复核申诉。只有在用户明确说『申诉/复核/我要提交』并给出理由后才调用；调用前要先向用户复述理由并确认。",
         "parameters": {"type": "object", "properties": {
@@ -142,6 +153,7 @@ TOOL_LABELS = {
     "get_threshold_policy": "正在查阈值…",
     "search_knowledge": "正在查资料…",
     "create_appeal": "正在提交申诉…",
+    "compare_revision": "正在对比修改前后…",
 }
 
 _SCENARIO_ALIAS = {
@@ -317,6 +329,99 @@ class ToolRunner:
         _attach_surface_evidence(data, det, text, refs)
         return ToolResult(ok=True, data=data, summary=f"第 {idx} 段 校准概率 {data['calibratedProb']}，{data['verdict']}")
 
+    async def tool_compare_revision(self, args: dict[str, Any]) -> ToolResult:
+        tid = self._resolve_task_id(args)
+        if tid is None:
+            return ToolResult(ok=False, error="没有指定任务", summary="缺少任务 id")
+        detail = await self._fetch_task(tid)
+        parent_id = detail.get("parentTaskId")
+        if not parent_id:
+            return ToolResult(ok=False, error="这次检测不是修改稿（上传时没有关联上一次），没有可对比的版本；下次上传时在「这是修改稿？」里选上一次即可",
+                              summary="无上一次版本")
+        cmp = await self._java("GET", f"/api/v1/detect/tasks/{tid}/compare")
+        parent = await self._fetch_task(int(parent_id))
+        cur_map = {p.get("paragraphIdx"): p for p in (detail.get("paragraphs") or [])}
+        par_map = {p.get("paragraphIdx"): p for p in (parent.get("paragraphs") or [])}
+        rows = cmp.get("rows") or []
+        summary = cmp.get("summary") or {}
+
+        paired: list[dict[str, Any]] = []
+        agg: dict[str, list[float]] = {k: [] for k in SURFACE_HUMAN_DIR}
+        for r in rows:
+            ci, pi = r.get("currIdx"), r.get("parentIdx")
+            if ci is None or pi is None:
+                continue
+            cur, par = cur_map.get(ci), par_map.get(pi)
+            if not cur or not par:
+                continue
+            changes = _surface_changes(par.get("text") or "", cur.get("text") or "")
+            for ch in changes:
+                agg[ch["name"]].append(ch["delta"])
+            delta = r.get("delta")
+            if delta is None and cur.get("calibratedProb") is not None and par.get("calibratedProb") is not None:
+                delta = cur["calibratedProb"] - par["calibratedProb"]
+            toward = sum(1 for ch in changes if ch["towardHuman"])
+            away = sum(1 for ch in changes if ch["towardHuman"] is False)
+            if delta is None:
+                verdict = "无法判断"
+            elif delta <= -0.1:
+                verdict = "有效"
+            elif delta >= 0.1:
+                verdict = "反了"
+            elif r.get("status") == "same":
+                verdict = "没动"
+            else:
+                verdict = "变化不大"
+            paired.append({
+                "currIdx": ci, "parentIdx": pi, "status": r.get("status"),
+                "parentProb": r.get("parentProb"), "currProb": r.get("currProb"), "delta": None if delta is None else round(delta, 3),
+                "verdict": verdict, "towardHuman": toward, "awayFromHuman": away,
+                "preview": (cur.get("text") or "")[:50],
+                "changes": [c for c in changes if c["notable"]][:3],
+            })
+        # 改动最大的段放前面；没改的高风险段单列
+        paired.sort(key=lambda p: -abs(p["delta"] or 0))
+        untouched = [p for p in paired if p["status"] == "same" and (p.get("currProb") or 0) >= 0.5]
+        overall = []
+        for name, deltas in agg.items():
+            if not deltas or SURFACE_HUMAN_DIR[name] == 0:
+                continue
+            mean = sum(deltas) / len(deltas)
+            label, hi, lo = SURFACE_EXPLAIN[name]
+            toward = (mean > 0 and SURFACE_HUMAN_DIR[name] > 0) or (mean < 0 and SURFACE_HUMAN_DIR[name] < 0)
+            overall.append({"feature": label, "meanDelta": round(mean, 4), "direction": "更像人" if toward else "更像机器",
+                            "reading": (hi if mean > 0 else lo)})
+        overall.sort(key=lambda o: -abs(o["meanDelta"]))
+
+        changed = [p for p in paired if p["status"] in ("down", "up")]
+        effective = sum(1 for p in paired if p["verdict"] == "有效")
+        reversed_ = sum(1 for p in paired if p["verdict"] == "反了")
+        if not changed and not summary.get("added"):
+            direction = "基本没改"
+        elif effective and not reversed_:
+            direction = "方向对了"
+        elif effective > reversed_:
+            direction = "大部分对了"
+        elif reversed_:
+            direction = "方向反了"
+        else:
+            direction = "变化不大"
+
+        data = {
+            "currentTaskId": tid, "parentTaskId": parent_id,
+            "aiRate": detail.get("aiRate"), "parentAiRate": parent.get("aiRate"),
+            "deltaRate": summary.get("deltaRate"), "threshold": detail.get("threshold"), "pass": summary.get("pass"),
+            "comparable": cmp.get("comparable", True), "modelChanged": detail.get("modelVersion") != parent.get("modelVersion"),
+            "summary": {k: summary.get(k) for k in ("down", "up", "added", "removed", "changed")},
+            "direction": direction, "effectiveParagraphs": effective, "reversedParagraphs": reversed_,
+            "overallChanges": overall[:4],
+            "paragraphs": paired[:6],
+            "untouchedHighRisk": [{"currIdx": p["currIdx"], "currProb": p["currProb"], "preview": p["preview"]} for p in untouched[:4]],
+            "evidenceBasis": "表层特征取修改前后同一段的原始值直接相减，不依赖训练集基线",
+        }
+        s = f"AI 率 {parent.get('aiRate')}% → {detail.get('aiRate')}%，{direction}，有效 {effective} 段、反了 {reversed_} 段"
+        return ToolResult(ok=True, data=data, summary=s)
+
     async def tool_detect_text(self, args: dict[str, Any]) -> ToolResult:
         text = (args.get("text") or "").strip()
         if not text:
@@ -395,6 +500,35 @@ def _verdict(p: Optional[float]) -> str:
     if p >= 0.4:
         return "中风险（黄）"
     return "低风险（绿）"
+
+
+def _surface_changes(before: str, after: str) -> list[dict[str, Any]]:
+    """同一段修改前后的 8 维可解释表层特征差值；相对变化 ≥ 15% 记为 notable。"""
+    if not _SURFACE_OK or not before.strip() or not after.strip():
+        return []
+    try:
+        fb = extract_surface_features(before)
+        fa = extract_surface_features(after)
+    except Exception:
+        return []
+    idx = {n: i for i, n in enumerate(SURFACE_FEATURE_NAMES)}
+    out = []
+    for name, (label, hi, lo) in SURFACE_EXPLAIN.items():
+        if name not in idx:
+            continue
+        b, a = float(fb[idx[name]]), float(fa[idx[name]])
+        delta = a - b
+        rel = abs(delta) / (abs(b) + 1e-6)
+        d = SURFACE_HUMAN_DIR.get(name, 0)
+        toward = None if d == 0 or abs(delta) < 1e-9 else ((delta > 0) == (d > 0))
+        out.append({
+            "name": name, "feature": label, "before": round(b, 4), "after": round(a, 4), "delta": round(delta, 4),
+            "towardHuman": toward, "notable": rel >= 0.15,
+            "direction": "更像人" if toward else ("更像机器" if toward is False else "中性"),
+            "reading": (hi if delta > 0 else lo) if abs(delta) > 1e-9 else "没变",
+        })
+    out.sort(key=lambda c: -abs(c["delta"]) / (abs(c["before"]) + 1e-6))
+    return out
 
 
 def _external_baseline():
