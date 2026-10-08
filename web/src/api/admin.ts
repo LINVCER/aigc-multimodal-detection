@@ -8,6 +8,10 @@ export interface DashboardKpi {
   totalUser: number
   totalDetect: number
   avgAiRate: number
+  overRate: number
+  failedTasks: number
+  runningTasks: number
+  pendingFeedback: number
 }
 export interface DashboardTrendRow {
   date: string
@@ -141,6 +145,29 @@ export interface AdminTask {
   modelVersion: string
   userId: number | null
   userLabel: string
+  finishedAt?: string | null
+  parentTaskId?: number | null
+  originalFilename?: string | null
+  fileSize?: number | null
+  bodyParagraphCount?: number | null
+  excludedParagraphCount?: number | null
+}
+
+export interface TaskStats { total: number; byStatus: Record<string, number>; today: number; todayFailed: number; over: number; overRate: number | null }
+
+export async function getTaskStats(): Promise<TaskStats> {
+  const resp = await http.get('/admin/task/stats')
+  return resp.data.data
+}
+
+export async function batchDeleteTasks(ids: number[]): Promise<{ deleted: number }> {
+  const resp = await http.post('/admin/task/batch-delete', { ids })
+  return resp.data.data
+}
+
+export async function batchRetryTasks(ids: number[]): Promise<{ retried: number }> {
+  const resp = await http.post('/admin/task/batch-retry', { ids })
+  return resp.data.data
 }
 
 export async function listAdminTasks(params: {
@@ -155,6 +182,8 @@ export async function listAdminTasks(params: {
   modelVersion?: string
   dateFrom?: string
   dateTo?: string
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
   pageNum?: number
   pageSize?: number
 } = {}): Promise<{ total: number; rows: AdminTask[] }> {

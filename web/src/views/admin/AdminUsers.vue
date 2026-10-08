@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, reactive, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   listAdminUsers, banUser, unbanUser, type AdminUser, type LoginType, type UserStatus,
@@ -16,6 +16,7 @@ import { useAuthStore } from '@/stores/auth'
  */
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 const tab = ref<'account' | 'profile'>('account')
 
 const ROLE_LABEL: Record<AccountRole, string> = { USER: '普通用户', ADMIN: '管理员', OPS_ADMIN: '运营管理员' }
@@ -208,7 +209,12 @@ function reset() { Object.assign(filter, { loginType: '', status: '', keyword: '
 async function onBan(u: AdminUser) { await ElMessageBox.confirm(`确定封禁用户 ${u.identity}？`, '封禁确认', { type: 'warning' }); await banUser(u.id); ElMessage.success('已封禁'); load() }
 async function onUnban(u: AdminUser) { await unbanUser(u.id); ElMessage.success('已解封'); load() }
 
-onMounted(() => { refreshAll(); load() })
+onMounted(() => {
+  refreshAll(); load()
+  // 从任务页点用户进来时直接打开该账号详情
+  const uid = Number(route.query.userId)
+  if (uid) openDetail({ id: uid, username: '', realName: null, role: 'USER', orgName: null, status: 1, lastLoginAt: null, createdAt: '', detectCount: 0, lastDetectAt: null })
+})
 </script>
 
 <template>

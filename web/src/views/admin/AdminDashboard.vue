@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { getAdminDashboard, type DashboardResp } from '@/api/admin'
+
+const router = useRouter()
 
 const data = ref<DashboardResp | null>(null)
 const loading = ref(true)
@@ -77,11 +80,11 @@ const pieSlices = computed(buildPie)
   <div v-loading="loading" class="dash-page">
     <!-- KPI 卡 -->
     <div v-if="data" class="kpi-row">
-      <el-card class="kpi-card"><div class="kpi-label">今日新增用户</div><div class="kpi-value">{{ data.kpi.todayNewUser }}</div></el-card>
-      <el-card class="kpi-card"><div class="kpi-label">今日检测数</div><div class="kpi-value">{{ data.kpi.todayDetect }}</div></el-card>
-      <el-card class="kpi-card"><div class="kpi-label">累计用户</div><div class="kpi-value">{{ data.kpi.totalUser }}</div></el-card>
-      <el-card class="kpi-card"><div class="kpi-label">累计检测数</div><div class="kpi-value">{{ data.kpi.totalDetect }}</div></el-card>
-      <el-card class="kpi-card"><div class="kpi-label">平均 AI 率</div><div class="kpi-value">{{ data.kpi.avgAiRate.toFixed(1) }}%</div></el-card>
+      <el-card class="kpi-card link" @click="router.push('/admin/users')"><div class="kpi-label">今日新增用户</div><div class="kpi-value">{{ data.kpi.todayNewUser }}</div><div class="kpi-foot">累计 {{ data.kpi.totalUser }}</div></el-card>
+      <el-card class="kpi-card link" @click="router.push('/admin/tasks')"><div class="kpi-label">今日检测数</div><div class="kpi-value">{{ data.kpi.todayDetect }}</div><div class="kpi-foot">累计 {{ data.kpi.totalDetect }}</div></el-card>
+      <el-card class="kpi-card link" @click="router.push('/admin/analytics')"><div class="kpi-label">平均 AI 率</div><div class="kpi-value">{{ data.kpi.avgAiRate.toFixed(1) }}%</div><div class="kpi-foot">超线占比 {{ (data.kpi.overRate ?? 0).toFixed(1) }}%</div></el-card>
+      <el-card class="kpi-card link" @click="router.push({ path: '/admin/tasks', query: { status: 'FAILED' } })"><div class="kpi-label">失败任务</div><div class="kpi-value" :class="{ bad: data.kpi.failedTasks > 0 }">{{ data.kpi.failedTasks ?? 0 }}</div><div class="kpi-foot">排队 / 检测中 {{ data.kpi.runningTasks ?? 0 }}</div></el-card>
+      <el-card class="kpi-card link" @click="router.push({ path: '/admin/feedback', query: { status: 'PENDING' } })"><div class="kpi-label">待处理反馈</div><div class="kpi-value" :class="{ warn: data.kpi.pendingFeedback > 0 }">{{ data.kpi.pendingFeedback ?? 0 }}</div><div class="kpi-foot">点击去处理</div></el-card>
     </div>
 
     <!-- 趋势 + 场景分布 -->
@@ -139,6 +142,7 @@ const pieSlices = computed(buildPie)
           <el-table-column prop="category" label="分类" width="90" />
           <el-table-column prop="content" label="内容" show-overflow-tooltip />
           <el-table-column prop="createdAt" label="时间" width="150" />
+          <el-table-column label="" width="70"><template #default><el-button link type="primary" size="small" @click="router.push({ path: '/admin/feedback', query: { status: 'PENDING' } })">处理</el-button></template></el-table-column>
         </el-table>
       </el-card>
     </div>
@@ -151,6 +155,9 @@ const pieSlices = computed(buildPie)
 .kpi-card { text-align: center; }
 .kpi-label { font-size: 13px; color: rgba(60,60,67,0.60); }
 .kpi-value { font-size: 30px; font-weight: 600; letter-spacing: -0.5px; margin-top: 6px; color: #1C1C1E; }
+.kpi-value.bad { color: #C62A22; } .kpi-value.warn { color: #B26200; }
+.kpi-foot { font-size: 11px; color: rgba(60,60,67,0.45); margin-top: 6px; }
+.kpi-card.link { cursor: pointer; transition: transform .15s; } .kpi-card.link:hover { transform: translateY(-1px); }
 
 .mid-row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
 .card-title { display: flex; justify-content: space-between; align-items: center; font-weight: 600; }

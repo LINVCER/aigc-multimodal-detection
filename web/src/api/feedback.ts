@@ -88,10 +88,26 @@ export async function listMyFeedback(userId: number): Promise<FeedbackItem[]> {
   return resp.data.data
 }
 
+export interface FeedbackStats { total: number; byStatus: Record<string, number>; byCategory: Record<string, number>; todayNew: number; pendingAppeal: number }
+
+export async function getFeedbackStats(): Promise<FeedbackStats> {
+  const resp = await http.get('/admin/feedback/stats')
+  return resp.data.data
+}
+
+export async function batchHandleFeedback(ids: number[], status: FeedbackStatus, reply?: string): Promise<{ updated: number }> {
+  const resp = await http.post('/admin/feedback/batch-handle', { ids, status, reply })
+  return resp.data.data
+}
+
 /** 运营后台列表（W3.e 后台页面调用） */
 export async function listFeedbackAdmin(params: {
   status?: FeedbackStatus | ''
+  category?: FeedbackCategory | ''
   keyword?: string
+  taskId?: number
+  dateFrom?: string
+  dateTo?: string
   pageNum?: number
   pageSize?: number
 } = {}): Promise<{ total: number; rows: FeedbackItem[] }> {

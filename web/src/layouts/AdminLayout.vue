@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { getFeedbackStats } from '@/api/feedback'
 
 const route = useRoute()
 const router = useRouter()
@@ -17,6 +18,10 @@ const menus = [
 ]
 const activePath = computed(() => route.path)
 
+/* 侧栏角标：待处理反馈数（进后台时拉一次，处理完回到列表时由页面自己刷新 KPI） */
+const pendingFeedback = ref(0)
+onMounted(async () => { try { pendingFeedback.value = (await getFeedbackStats()).byStatus?.PENDING || 0 } catch { pendingFeedback.value = 0 } })
+
 async function logout() {
   await auth.logout()
   router.replace('/login')
@@ -27,13 +32,14 @@ async function logout() {
   <el-container class="admin-shell">
     <el-aside class="side" width="220px">
       <div class="brand">
-        <span class="brand-mark">🎯</span>
-        <span class="brand-text">运营后台</span>
+        <img src="/logo.png" alt="" class="brand-logo" />
+        <span class="brand-text">知源 · 运营后台</span>
       </div>
       <el-menu :default-active="activePath" router class="menu" background-color="transparent">
         <el-menu-item v-for="m in menus" :key="m.path" :index="m.path">
           <span class="menu-icon">{{ m.icon }}</span>
           <span>{{ m.text }}</span>
+          <span v-if="m.path === '/admin/feedback' && pendingFeedback" class="badge">{{ pendingFeedback > 99 ? '99+' : pendingFeedback }}</span>
         </el-menu-item>
       </el-menu>
     </el-aside>
@@ -69,7 +75,8 @@ async function logout() {
   gap: 10px;
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
-.brand-mark { font-size: 22px; }
+.brand-logo { width: 26px; height: 26px; border-radius: 7px; object-fit: cover; }
+.badge { margin-left: auto; min-width: 18px; height: 18px; padding: 0 6px; border-radius: 9px; background: #FF3B30; color: #fff; font-size: 11px; font-weight: 600; line-height: 18px; text-align: center; }
 .brand-text { font-size: 16px; letter-spacing: 0.4px; }
 .menu {
   border-right: 0;
