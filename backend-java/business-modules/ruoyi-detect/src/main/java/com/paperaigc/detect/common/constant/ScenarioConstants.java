@@ -58,6 +58,7 @@ public final class ScenarioConstants {
      * @return AI 率红线（%）
      */
     public static int threshold(String scenario) {
+        if (scenario == null || scenario.isBlank()) return DEFAULT_THRESHOLD.get(OTHER);
         return DEFAULT_THRESHOLD.getOrDefault(scenario, DEFAULT_THRESHOLD.get(OTHER));
     }
 
