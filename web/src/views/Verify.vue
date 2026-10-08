@@ -41,7 +41,7 @@ onMounted(() => { if (reportNo.value && code.value) doVerify() })
 
 <template>
   <div class="verify">
-    <header class="bar"><router-link to="/" class="bar-brand"><img src="/logo.png" alt="" class="bar-logo" />知源</router-link><span class="bar-title">验证报告真伪</span><span /></header>
+    <header class="bar"><router-link to="/" class="bar-brand"><img src="/logo-mark.png" alt="" class="bar-logo" />知源</router-link><span class="bar-title">验证报告真伪</span><span /></header>
 
     <main class="main">
       <div class="intro">
@@ -100,7 +100,7 @@ onMounted(() => { if (reportNo.value && code.value) doVerify() })
 <style scoped>
 .verify { min-height: 100vh; background: var(--system-background); }
 .bar { position: sticky; top: 0; z-index: 10; height: 56px; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); border-bottom: 1px solid var(--label-quaternary); }
-.bar-brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: var(--label); text-decoration: none; } .bar-logo { width: 24px; height: 24px; border-radius: 6px; }
+.bar-brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: var(--label); text-decoration: none; } .bar-logo { width: 24px; height: 24px; object-fit: contain; }
 .bar-title { font-weight: 600; }
 .main { max-width: 560px; margin: 0 auto; padding: 40px 24px 64px; display: flex; flex-direction: column; gap: 20px; }
 .intro h1 { font-size: 28px; letter-spacing: -0.6px; margin: 0 0 8px; } .intro p { color: var(--label-secondary); line-height: 1.7; margin: 0; }

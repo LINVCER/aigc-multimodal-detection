@@ -32,7 +32,7 @@ async function logout() {
   <el-container class="admin-shell">
     <el-aside class="side" width="220px">
       <div class="brand">
-        <img src="/logo.png" alt="" class="brand-logo" />
+        <img src="/logo-mark.png" alt="" class="brand-logo" />
         <span class="brand-text">知源 · 运营后台</span>
       </div>
       <el-menu :default-active="activePath" router class="menu" background-color="transparent">
@@ -75,7 +75,7 @@ async function logout() {
   gap: 10px;
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
-.brand-logo { width: 26px; height: 26px; border-radius: 7px; object-fit: cover; }
+.brand-logo { width: 26px; height: 26px; object-fit: contain; }
 .badge { margin-left: auto; min-width: 18px; height: 18px; padding: 0 6px; border-radius: 9px; background: #FF3B30; color: #fff; font-size: 11px; font-weight: 600; line-height: 18px; text-align: center; }
 .brand-text { font-size: 16px; letter-spacing: 0.4px; }
 .menu {
