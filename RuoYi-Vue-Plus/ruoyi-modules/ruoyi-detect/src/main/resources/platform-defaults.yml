@@ -1,0 +1,79 @@
+# ============================================================
+# platform.* 平台业务配置 · 单一事实来源（single source of truth）
+# ============================================================
+#
+# 为什么需要这个文件：
+#   1. 若依基座态的 ruoyi-admin/src/main/resources/application-dev.yml 只声明了
+#      platform.inference.{host,port}，且 SPRING_PROFILES_ACTIVE=prod 时（deploy/docker-compose.yml）
+#      application-dev.yml 根本不加载 —— 容器里 platform.* 全靠 compose 注入的环境变量。
+#   2. platform.assistant.* / platform.storage.* 此前只声明在 standalone-app 的 application.yml，
+#      而 standalone-app 从未被构建或部署；若依态完全依赖 @Value 的行内兜底值。
+#   3. 行内兜底值无法被审查、无法在部署前被发现写错（platform.storage 就曾把 local-root 写成 local-path）。
+#
+# 加载方式：PlatformDefaultsEnvironmentPostProcessor（本模块 META-INF/spring.factories 注册）
+#   以 addLast 追加 —— 优先级最低，任何 application.yml / 环境变量都能覆盖它。
+#
+# 覆盖示例：
+#   PLATFORM_INFERENCE_HOST=inference        → platform.inference.host
+#   PLATFORM_ASSISTANT_BASE_URL=http://inference:8000
+#   PLATFORM_STORAGE_LOCAL_ROOT=/app/storage
+#
+# 注意：键名必须与代码里 @Value("${platform.*}") 的读取路径一致，否则是死配置。
+# ============================================================
+
+platform:
+
+  # ---------- Python 推理服务 ----------
+  # HttpInferenceClient 读取；容器里由 compose 注入 PLATFORM_INFERENCE_HOST=inference 覆盖
+  inference:
+    host: ${INFERENCE_HOST:localhost}
+    port: ${INFERENCE_PORT:8000}
+    # 单次推理请求超时（HttpInferenceClient 使用）
+    deadline-seconds: ${INFERENCE_DEADLINE_SECONDS:15}
+
+  # ---------- 本地文件存储 ----------
+  # LocalFileSystemStorageService 读取 platform.storage.local-root（不是 local-path）
+  # 路径规范：{local-root}/uploads/{yyyyMM}/{taskId}.{ext}
+  storage:
+    local-root: ${STORAGE_LOCAL_ROOT:./storage}
+
+  # ---------- 论文检测助手 ----------
+  # AssistantServiceImpl 读取；base-url 指 Python assistant/ 的宿主地址
+  assistant:
+    base-url: ${ASSISTANT_BASE_URL:http://localhost:8000}
+    rate-per-minute: ${ASSISTANT_RATE_PER_MINUTE:8}
+    rate-per-day: ${ASSISTANT_RATE_PER_DAY:100}
+    stream-timeout-seconds: ${ASSISTANT_STREAM_TIMEOUT_SECONDS:120}
+
+  # ---------- Web 前端地址 ----------
+  # ReportShareServiceImpl 拼分享链接 {base-url}/s/{token}；部署时填对外域名
+  web:
+    base-url: ${WEB_BASE_URL:http://localhost:5173}
+
+  # ---------- 报告溯源 ----------
+  # ReportCredentialServiceImpl / ReportVerifyController 读取
+  report:
+    # HMAC-SHA256 签名密钥；生产必须覆盖，否则报告签名可伪造
+    sign-secret: ${REPORT_SIGN_SECRET:zhiyuan-dev-secret-change-me}
+    # 验证接口按 IP 每分钟上限（防爆破验证码）
+    verify-per-minute: ${REPORT_VERIFY_PER_MINUTE:30}
+
+  # ---------- 登录 / 注册 ----------
+  # AuthServiceImpl / LoginAttemptGuard / InMemoryAuthTokenRepository 读取
+  auth:
+    # 登录与注册是否必须带图形验证码；前端拿不到验证码时服务端会返回 2011 提示刷新
+    captcha-required: ${AUTH_CAPTCHA_REQUIRED:true}
+    # 连续失败 N 次锁定（按用户名、进程内存）
+    lock-max-failures: ${AUTH_LOCK_MAX_FAILURES:5}
+    lock-minutes: ${AUTH_LOCK_MINUTES:15}
+    # token 闲置多久失效（有访问即续期）
+    token-ttl-days: ${AUTH_TOKEN_TTL_DAYS:7}
+    # 用户名查重接口按客户端 IP 每分钟上限（防批量探测账号是否存在）；<= 0 不限
+    username-check-per-minute: ${AUTH_USERNAME_CHECK_PER_MINUTE:20}
+
+  # ---------- 事务通知（订阅消息）· 增长闭环 §5 ----------
+  # LogNotifyServiceImpl 读取；模板 id 在微信公众平台申请后注入。当前实现只记日志（微信登录 mock 无 openid）
+  notify:
+    wechat:
+      detect-done-template: ${WECHAT_TMPL_DETECT_DONE:}
+      appeal-replied-template: ${WECHAT_TMPL_APPEAL_REPLIED:}

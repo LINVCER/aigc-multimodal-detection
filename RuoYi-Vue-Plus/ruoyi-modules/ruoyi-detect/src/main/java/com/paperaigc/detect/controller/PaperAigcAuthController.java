@@ -1,0 +1,112 @@
+package com.paperaigc.detect.controller;
+
+import cn.dev33.satoken.annotation.SaIgnore;
+import com.paperaigc.detect.common.constant.AuthConstants;
+import com.paperaigc.detect.common.util.ClientIpUtils;
+import com.paperaigc.detect.domain.dto.ChangePasswordDTO;
+import com.paperaigc.detect.domain.dto.LoginDTO;
+import com.paperaigc.detect.domain.dto.RegisterDTO;
+import com.paperaigc.detect.domain.entity.AuthUser;
+import com.paperaigc.detect.domain.vo.CaptchaVO;
+import com.paperaigc.detect.domain.vo.LoginVO;
+import com.paperaigc.detect.service.IAuthService;
+import com.paperaigc.detect.service.impl.CaptchaService;
+import com.paperaigc.detect.service.impl.IpRateLimiter;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Value;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.dromara.common.core.domain.R;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * 认证接口 · 开发期 mock
+ *
+ * <p>规则见 {@link IAuthService}；生产走若依基座自带 Sa-Token，本 Controller + Service 可整体删除。</p>
+ */
+@Slf4j
+@SaIgnore
+@RestController
+@RequestMapping("/api/v1/auth")
+@RequiredArgsConstructor
+public class PaperAigcAuthController {
+
+    private final IAuthService authService;
+    private final CaptchaService captchaService;
+    private final IpRateLimiter rateLimiter;
+
+    /** 用户名查重按 IP 每分钟上限；≤ 0 不限 */
+    @Value("${platform.auth.username-check-per-minute:20}")
+    private int usernameCheckPerMinute;
+
+    /** 图形验证码：返回 captchaId + base64 图片 */
+    @GetMapping("/captcha")
+    public R<CaptchaVO> captcha() {
+        return R.ok(captchaService.generate());
+    }
+
+    /** 注册前用户名查重；只回 available 布尔，不暴露其它信息。按 IP 限流防批量探测 */
+    @GetMapping("/username-available")
+    public R<java.util.Map<String, Boolean>> usernameAvailable(@org.springframework.web.bind.annotation.RequestParam String username,
+                                                               HttpServletRequest request) {
+        rateLimiter.check("username-check", ClientIpUtils.resolve(request), usernameCheckPerMinute);
+        return R.ok(java.util.Map.of("available", authService.usernameAvailable(username)));
+    }
+
+    @PostMapping("/login")
+    public R<LoginVO> login(@Valid @RequestBody LoginDTO dto) {
+        return R.ok(authService.login(dto));
+    }
+
+    @PostMapping("/register")
+    public R<LoginVO> register(@Valid @RequestBody RegisterDTO dto) {
+        return R.ok(authService.register(dto));
+    }
+
+    /**
+     * 微信一键登录（Wave 3.1 · mock）
+     * body 期望 { code, nickname?, avatarUrl? }
+     */
+    @PostMapping("/wechat/login")
+    public R<LoginVO> wechatLogin(@RequestBody java.util.Map<String, String> body) {
+        return R.ok(authService.loginByWechat(
+                body.get("code"), body.get("nickname"), body.get("avatarUrl")));
+    }
+
+    /**
+     * 微信订阅消息 · 保存用户授权的模板 ID（Wave 3.3 · mock 打日志）
+     * <p>body { tmplIds: [ 'xxx', 'yyy' ] } · 生产走 user_wechat_subscribe 表 + wx 服务端 subscribeMessage.send</p>
+     */
+    @PostMapping("/wechat/subscribe")
+    public R<Void> wechatSubscribe(@RequestBody java.util.Map<String, Object> body,
+                                   @RequestHeader(value = AuthConstants.HEADER_AUTHORIZATION, required = false) String auth) {
+        Object tmplIds = body.get("tmplIds");
+        log.info("wechat subscribe saved: user={} tmplIds={}", auth == null ? "-" : "bearer", tmplIds);
+        return R.ok();
+    }
+
+    /** 修改密码（已登录）；成功后当前 token 作废，前端需重新登录 */
+    @PostMapping("/password")
+    public R<Void> changePassword(@Valid @RequestBody ChangePasswordDTO dto,
+                                  @RequestHeader(value = AuthConstants.HEADER_AUTHORIZATION, required = false) String auth) {
+        authService.changePassword(auth, dto);
+        return R.ok();
+    }
+
+    @PostMapping("/logout")
+    public R<Void> logout(@RequestHeader(value = AuthConstants.HEADER_AUTHORIZATION, required = false) String auth) {
+        authService.logout(auth);
+        return R.ok();
+    }
+
+    @GetMapping("/me")
+    public R<AuthUser> me(@RequestHeader(value = AuthConstants.HEADER_AUTHORIZATION, required = false) String auth) {
+        return R.ok(authService.me(auth));
+    }
+}

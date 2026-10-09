@@ -1,0 +1,12 @@
+# EnvironmentPostProcessor 走 spring.factories（不是 AutoConfiguration.imports）：
+# 它必须早于 Environment 准备完成时执行，AutoConfiguration SPI 此时还不会加载。
+#
+# 本文件必须与 backend-java/standalone-app/src/main/resources/META-INF/spring.factories
+# 保持逐字一致 —— standalone-app/pom.xml 的 build-helper 把本模块的 src/main/resources
+# 也纳入了它的资源，Maven 资源拷贝“后写覆盖前写”，两份同名文件内容不一致时会静默丢掉一份。
+org.springframework.boot.env.EnvironmentPostProcessor=\
+com.paperaigc.detect.config.PlatformDefaultsEnvironmentPostProcessor
+
+# 业务 AutoConfiguration 仍只注册在
+# META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
+# （standalone 显式排除 META-INF/spring/**，靠 @SpringBootApplication 组件扫描）
