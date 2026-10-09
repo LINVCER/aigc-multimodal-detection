@@ -1,0 +1,43 @@
+# ============================================================
+# 集成冒烟测试专用 profile（@ActiveProfiles("integration")）
+# ------------------------------------------------------------
+# 指向**真实** MySQL / Redis，用于验证部署环境连通性与真实 SQL 行为。
+# 与单测（全 Mock、零外部依赖）严格区分：本 profile 仅在集成冒烟测试中激活。
+#
+# 覆盖方式（CI / 他人机器无需改文件）：
+#   SMOKE_MYSQL_HOST / SMOKE_MYSQL_PORT / SMOKE_MYSQL_DATABASE
+#   SMOKE_MYSQL_USER / SMOKE_MYSQL_PASSWORD
+#   SMOKE_REDIS_HOST / SMOKE_REDIS_PORT / SMOKE_REDIS_PASSWORD
+# ============================================================
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${SMOKE_MYSQL_HOST:127.0.0.1}:${SMOKE_MYSQL_PORT:3306}/${SMOKE_MYSQL_DATABASE:ry-vue}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: ${SMOKE_MYSQL_USER:root}
+    password: ${SMOKE_MYSQL_PASSWORD:}
+    hikari:
+      maximum-pool-size: 4
+      minimum-idle: 1
+      connection-timeout: 5000
+      pool-name: smoke-pool
+
+  # 业务代码不消费 Redis；此处仅供集成测试校验部署环境中的 Redis 可用
+  data:
+    redis:
+      host: ${SMOKE_REDIS_HOST:127.0.0.1}
+      port: ${SMOKE_REDIS_PORT:16379}
+      password: ${SMOKE_REDIS_PASSWORD:123456}
+      database: 0
+      timeout: 3000ms
+      connect-timeout: 3000ms
+
+mybatis-plus:
+  configuration:
+    # 集成测试会打真实 SQL，关闭 StdOut 日志避免刷屏
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+
+logging:
+  level:
+    com.paperaigc: INFO
+    com.zaxxer.hikari: WARN

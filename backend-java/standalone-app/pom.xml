@@ -24,6 +24,9 @@
         <tika.version>2.9.2</tika.version>
         <caffeine.version>3.1.8</caffeine.version>
         <itext.version>8.0.4</itext.version>
+        <!-- 默认排除 @Tag("integration") 集成冒烟测试：mvn test 保持零外部依赖。
+             需要真实 MySQL/Redis 时用 mvn test -Pintegration 启用。 -->
+        <smoke.excludedGroups>integration</smoke.excludedGroups>
     </properties>
 
     <dependencies>
@@ -107,6 +110,15 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- 集成冒烟测试：真实 Redis 客户端（Lettuce，经 Spring Data Redis）。
+             业务代码本身不依赖 Redis（限流/登录锁定为进程内实现），
+             此依赖仅 test 作用域，用于验证部署环境中的 Redis 可用性。 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -150,6 +162,16 @@
                 </executions>
             </plugin>
 
+            <!-- 默认排除 @Tag("integration")：mvn test 保持零外部依赖（纯 Mock 单测）。
+                 mvn test -Pintegration 时 smoke.excludedGroups 被覆盖为不匹配值 → 集成冒烟测试参与执行。 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <excludedGroups>${smoke.excludedGroups}</excludedGroups>
+                </configuration>
+            </plugin>
+
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
@@ -164,4 +186,19 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!-- 集成冒烟测试：需要真实 MySQL(3306) + Redis(16379)。
+             启用后不再排除 integration 分组，测试类通过 @ActiveProfiles("integration")
+             加载 application-integration.yml 指向真实服务。
+             运行：mvn test -Pintegration
+             仅跑集成用例：mvn test -Pintegration -Dtest='*IntegrationSmokeTest' -->
+        <profile>
+            <id>integration</id>
+            <properties>
+                <!-- 不存在的分组名 → Surefire 不排除任何用例 -->
+                <smoke.excludedGroups>__no_group_excluded__</smoke.excludedGroups>
+            </properties>
+        </profile>
+    </profiles>
 </project>
