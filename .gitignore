@@ -213,3 +213,8 @@ deploy/minio-data/
 
 # 助手 golden set 本地运行记录
 deploy/inference-python/assistant/eval/history.csv
+
+# ======== 本地工具与缓存（不入库） ========
+backend-java/.tools/
+backend-java/.m2-e2e/
+backend-java/.mvn-test-settings.xml
