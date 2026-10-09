@@ -35,7 +35,9 @@
             "android" : {
                 "permissions" : []
             },
-            "ios" : {},
+            "ios" : {
+                "dSYMs" : false
+            },
             "sdkConfigs" : {}
         }
     },
