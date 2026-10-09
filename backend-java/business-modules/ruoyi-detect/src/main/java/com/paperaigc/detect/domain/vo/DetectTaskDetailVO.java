@@ -39,6 +39,9 @@ public class DetectTaskDetailVO {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime finishedAt;
 
+    /** 失败原因（异步推理失败兜底） */
+    private String failReason;
+
     private List<ParagraphResult> paragraphs;
     private Map<String, Double> sourceLabels;
 
@@ -76,6 +79,7 @@ public class DetectTaskDetailVO {
                 .excludedParagraphCount(t.getExcludedParagraphCount())
                 .createdAt(t.getCreatedAt())
                 .finishedAt(t.getFinishedAt())
+                .failReason(t.getFailReason())
                 .paragraphs(t.getParagraphs())
                 .sourceLabels(t.getSourceLabels())
                 .parentTaskId(t.getParentTaskId())

@@ -347,7 +347,7 @@ function copyPara(text) { uni.setClipboardData({ data: text, showToast: false, s
       <view v-else-if="detail.status === 'FAILED'" class="state-card">
         <view class="state-mark danger"><view class="mark-x-1" /><view class="mark-x-2" /></view>
         <text class="state-title" style="color: #C62A22">检测失败</text>
-        <text class="state-sub">推理服务暂时不可用，或文件无法解析出正文</text>
+        <text class="state-sub">{{ detail.failReason || '推理服务暂时不可用，可稍后重新检测' }}</text>
         <button class="btn-primary retry-btn" :loading="retrying" :disabled="retrying" @click="onRetry">重新检测</button>
       </view>
 

@@ -313,3 +313,8 @@ CREATE TABLE IF NOT EXISTS report_share (
 SET @c1 := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'detect_task' AND COLUMN_NAME = 'report_no');
 SET @sql := IF(@c1 = 0, 'ALTER TABLE detect_task ADD COLUMN report_no VARCHAR(32) NULL, ADD COLUMN verify_code VARCHAR(16) NULL, ADD COLUMN report_sign VARCHAR(64) NULL, ADD COLUMN signed_at DATETIME NULL, ADD COLUMN verify_count INT NOT NULL DEFAULT 0, ADD UNIQUE INDEX uk_report_no (report_no)', 'SELECT 1');
 PREPARE s FROM @sql; EXECUTE s; DEALLOCATE PREPARE s;
+
+-- V0.3.0.013 · detect_task 失败原因列（异步推理失败兜底）
+SET @c1 := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'detect_task' AND COLUMN_NAME = 'fail_reason');
+SET @sql := IF(@c1 = 0, 'ALTER TABLE detect_task ADD COLUMN fail_reason VARCHAR(512) NULL COMMENT ''失败原因（异步推理失败兜底）'' AFTER finished_at', 'SELECT 1');
+PREPARE s FROM @sql; EXECUTE s; DEALLOCATE PREPARE s;

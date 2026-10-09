@@ -63,6 +63,9 @@ public class DetectTask {
     private LocalDateTime createdAt;
     private LocalDateTime finishedAt;
 
+    /** 失败原因（异步推理失败时写入，供前端 FAILED 态展示原因兜底） */
+    private String failReason;
+
     /** 报告溯源凭证（V0.3.0.012）：完成后签发，验证页凭编号 + 验证码核对签名 */
     private String reportNo;
     private String verifyCode;

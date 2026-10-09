@@ -20,6 +20,7 @@ import com.paperaigc.detect.service.IInferenceClient;
 import com.paperaigc.detect.service.IStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -33,6 +34,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executor;
 
 /**
  * 检测任务业务实现
@@ -54,6 +56,8 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
     private final com.paperaigc.detect.service.INotifyService notifyService;
     private final com.paperaigc.detect.service.IDetectAnalyticsService analyticsService;
     private final com.paperaigc.detect.service.IReportCredentialService credentialService;
+    @Qualifier("detectExecutor")
+    private final Executor detectExecutor;
 
     /* ==================== §3.1 提交 ==================== */
 
@@ -128,9 +132,7 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
             log.warn("save uploaded file failed but continue task {}", task.getId(), e);
         }
 
-        runInference(task, metas);
-        taskRepository.update(task);
-        issueCredential(task);
+        enqueueInference(task, metas);
         return task;
     }
 
@@ -195,6 +197,7 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
         // 尝试了推理但一段都没成功 → 视为整体失败（避免展示"完成但无结果"）
         boolean allFailed = attemptedCount > 0 && rateCount == 0;
         task.setStatus(allFailed ? DetectConstants.STATUS_FAILED : DetectConstants.STATUS_DONE);
+        if (allFailed) task.setFailReason("推理服务暂时不可用，未能获得有效检测结果");
         // 秒级精度：MySQL DATETIME 会对毫秒四舍五入，签名覆盖完成时间时内存值必须与落库值一致
         task.setFinishedAt(LocalDateTime.now().withNano(0));
         // 物化统计：终态计入当天分片（detect-analytics-plan §4 方案 B）；失败不影响任务
@@ -210,6 +213,52 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
                 log.warn("notify taskDone failed task={}: {}", task.getId(), e.toString());
             }
         }
+    }
+
+    /**
+     * 入队立即返回：提交线程只落库 + 投递执行器，段级推理由 detectExecutor 异步消化。
+     * 入队被拒（线程池满）不阻塞提交，直接把任务置 FAILED 并带兜底原因。
+     */
+    private void enqueueInference(DetectTask task, List<Map<String, Object>> metas) {
+        try {
+            detectExecutor.execute(() -> runInferenceAsync(task, metas));
+        } catch (Exception e) {
+            log.error("enqueue detect task {} failed", task.getId(), e);
+            task.setStatus(DetectConstants.STATUS_FAILED);
+            task.setFailReason("系统繁忙，请稍后重试");
+            task.setFinishedAt(LocalDateTime.now().withNano(0));
+            taskRepository.update(task);
+        }
+    }
+
+    /** 异步推理主体：置 RUNNING → 推理 → 落库；任一异常兜底为 FAILED + 明确失败原因 */
+    private void runInferenceAsync(DetectTask task, List<Map<String, Object>> metas) {
+        try {
+            task.setStatus(DetectConstants.STATUS_RUNNING);
+            taskRepository.update(task);
+            runInference(task, metas);
+            taskRepository.update(task);
+            issueCredential(task);
+        } catch (Exception e) {
+            log.error("async inference failed task={}: {}", task.getId(), e.toString(), e);
+            task.setStatus(DetectConstants.STATUS_FAILED);
+            task.setFailReason(failReasonOf(e));
+            task.setFinishedAt(LocalDateTime.now().withNano(0));
+            try {
+                taskRepository.update(task);
+            } catch (Exception persist) {
+                log.error("persist failReason failed task={}: {}", task.getId(), persist.toString());
+            }
+        }
+    }
+
+    /** 失败原因兜底：业务异常透传友好文案，其余给通用兜底，避免暴露技术堆栈 */
+    private String failReasonOf(Exception e) {
+        if (e instanceof BizException) return e.getMessage();
+        String msg = e.getMessage();
+        if (msg == null || msg.isBlank()) return "检测失败，请稍后重试";
+        if (msg.length() > 200) msg = msg.substring(0, 200);
+        return "检测失败：" + msg;
     }
 
     @SuppressWarnings("unchecked")
