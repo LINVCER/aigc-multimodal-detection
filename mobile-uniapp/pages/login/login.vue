@@ -213,21 +213,6 @@ async function onSubmit() {
 
 function goPrivacy() { uni.navigateTo({ url: '/pages/about/privacy' }) }
 
-/** 微信一键登录：wx.login → code → /api/v1/auth/wechat/login */
-function onWechatLogin() {
-  if (submitting.value) return
-  uni.login({
-    provider: 'weixin',
-    success: async (res) => {
-      if (!res.code) { uni.showToast({ title: '未拿到微信 code', icon: 'none' }); return }
-      submitting.value = true
-      try { await auth.loginByWechat({ code: res.code }); afterLogin() }
-      catch (e) { serverError.value = e?.message || '微信登录失败' }
-      finally { submitting.value = false }
-    },
-    fail: () => uni.showToast({ title: '微信授权失败', icon: 'none' }),
-  })
-}
 </script>
 
 <template>
@@ -316,13 +301,6 @@ function onWechatLogin() {
         {{ lockLeft > 0 ? `已锁定 ${lockText}` : mode === 'login' ? '登 录' : '注册并登录' }}
       </button>
 
-      <view class="divider"><text class="divider-text">或</text></view>
-      <text class="social-label">使用微信快捷登录</text>
-      <view class="social-row">
-        <view class="social-btn" hover-class="social-hover" @click="onWechatLogin">
-          <view class="wechat-icon" />
-        </view>
-      </view>
 
       <view class="foot">
         <text class="foot-label">{{ mode === 'login' ? '还没有账号？' : '已有账号？' }}</text>
@@ -450,23 +428,6 @@ $si-ring:      rgba(10, 10, 10, 0.08);
   &::after { border: none; }
   &:active { transform: scale(#{$tap-scale}); opacity: 0.88; }
   &.disabled { opacity: 0.35; }
-}
-
-/* 微信快捷登录 */
-.divider { display: flex; align-items: center; margin: $sp-5 0 $sp-3; &::before, &::after { content: ''; flex: 1; height: $stroke-hairline; background: $si-line; } }
-.divider-text { padding: 0 $sp-3; font-size: $fs-caption-1; color: $si-ink-faint; }
-.social-label { display: block; text-align: center; font-size: $fs-footnote; color: $si-ink-soft; margin-bottom: $sp-3; }
-.social-row { display: flex; justify-content: center; gap: $sp-3; }
-.social-btn {
-  width: 96rpx; height: 96rpx; border-radius: $radius-lg;
-  background: $si-field;
-  display: flex; align-items: center; justify-content: center;
-  transition: background $duration-fast $ease-standard;
-}
-.social-hover { background: rgba(116, 116, 128, 0.16); }
-.wechat-icon {
-  width: 44rpx; height: 44rpx;
-  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230A0A0A'><path d='M9.5 4C5.4 4 2 6.6 2 10c0 1.8 1 3.5 2.6 4.6L4 17l2.7-1.4c.9.2 1.8.3 2.8.3.3 0 .6 0 .9-.1-.2-.6-.4-1.3-.4-2 0-3.3 3.3-6 7.5-6 .3 0 .6 0 .9.1C17.7 5.6 13.9 4 9.5 4zm-3 3.6c.6 0 1 .4 1 1s-.4 1-1 1-1-.4-1-1 .4-1 1-1zm5.5 0c.6 0 1 .4 1 1s-.4 1-1 1-1-.4-1-1 .4-1 1-1z'/><path d='M22 14c0-2.8-2.9-5-6.5-5S9 11.2 9 14s2.9 5 6.5 5c.8 0 1.6-.1 2.3-.3l2 1-.5-2C21 16.7 22 15.4 22 14zm-9-1.4c.4 0 .8.3.8.8 0 .4-.3.8-.8.8-.4 0-.8-.3-.8-.8 0-.4.4-.8.8-.8zm4.5 0c.4 0 .8.3.8.8 0 .4-.3.8-.8.8-.4 0-.8-.3-.8-.8 0-.4.3-.8.8-.8z'/></svg>") no-repeat center / contain;
 }
 
 /* 底部切换（方案 A）：分隔线 + 放大跳转字号；再下一行是条款小字 */
