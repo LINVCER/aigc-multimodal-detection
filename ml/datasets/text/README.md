@@ -66,6 +66,35 @@ python -m ml.datasets.text.build_surface_baseline \
 
 推理服务设 `TEXT_SURFACE_BASELINE_PATH` 指向该文件即可生效；fusion checkpoint 上线后以其自带 scaler 为准，此文件自动退居次选。
 
+## 真实论文基线（`ingest_thesis.py`）
+
+公开集里没有一篇完整真论文，评测出的「学术假阳率」没有说服力。把真实学位论文解析成人类负样本，先给现有模型出一个基线数字：**规范学术写作被判 AI 的比例**。
+
+**准备**：论文放 `ml/datasets/text/raw/thesis/`（pdf / docx / txt，不入 git），建议附 `manifest.csv`：
+
+```csv
+file,scenario,year,names
+zhang_2021.pdf,academic_master,2021,张三;李四
+wang_2019.docx,academic_phd,2019,
+```
+
+- `year` 必须 ≤ 2022（ChatGPT 之前才算纯人类样本，`--max-year` 之后的会被跳过）
+- `names` 是要打码的作者 / 导师姓名；手机 / 邮箱 / 身份证 / 学号由 `clean_text` 统一打码；封面、声明、授权书、目录、参考文献、致谢整段丢弃
+- 解析依赖：`pip install pymupdf python-docx`（没有 pymupdf 时退到 pypdf）
+
+**跑基线**：
+
+```bash
+# 1. 解析 → eval_real_thesis.jsonl（全部 label=0，带 meta.section / file）
+python -m ml.datasets.text.ingest_thesis --in ml/datasets/text/raw/thesis --manifest ml/datasets/text/raw/thesis/manifest.csv     --out ml/datasets/text/data/evalsets/eval_real_thesis.jsonl
+# 2. 现有 legacy 模型跑一遍，看 fpr / by_section / per_doc / top_false_positives
+python -m ml.evaluation.text.eval --checkpoint models/text/aigc_detector_v3_thesis.pth --base-model models/text/chinese-roberta-wwm-ext     --set real_thesis=ml/datasets/text/data/evalsets/eval_real_thesis.jsonl --threshold-key default_0_5 --out ml/datasets/text/data/evalsets/baseline-real-thesis.json
+```
+
+报告里看四个数：整体 `fpr`、`by_section`（摘要 / 引言 / 方法 / 结论哪一章最容易被冤枉）、`per_doc`（中位数、p90、超过 20% 的篇数、最差 10 篇）、`top_false_positives`（被判最像 AI 的 15 段原文，人工复看）。验收线 `fpr ≤ 0.05`，基线阶段只记数字不拦截。
+
+同一批论文加 `--as-train` 可产出训练用人类样本到 `raw/custom/`，由 `build_dataset --sources custom` 按 doc_id 划分；评测用的那批要和训练用的分开，不能同一篇既训又评。
+
 ## 评测集（`data/evalsets/`）
 
 | 文件 | 构成 | 盯什么 |
@@ -76,3 +105,4 @@ python -m ml.datasets.text.build_surface_baseline \
 | eval_polished | test 里 polished + human | Fraser「差于随机」区间 · F1 ≥ 0.60 |
 | eval_mixed | test 里 mixcase + polished + human | 人机混写 · F1 ≥ 0.60 |
 | eval_short_text | 50–119 字 | 短文本下限 · AUROC ≥ 0.85 |
+| eval_real_thesis | 真实论文正文段（全 human） | 学术假阳 · FPR ≤ 0.05，按章节 / 按篇细分 |
