@@ -16,27 +16,33 @@
 
 /* ========== 1. Brand & Accent ========== */
 
-/* iOS system-blue 作为主 tint；保留品牌延展色供 Hero / 场景高亮使用 */
-$brand-primary:        #007AFF;   /* 主交互色 = accent */
-$brand-primary-dark:   #0A84FF;   /* Dark 变体 */
-$brand-primary-tint:   #4DA2FF;   /* hover / active 上层 */
-$brand-primary-wash:   rgba(0, 122, 255, 0.10);  /* 淡背景 */
+/* 「知源小白」AI 助手风（docs/design/202610-web-visual-style-prompt.md）：
+ * 智能青取自小白触角 / 眼睛，是全站唯一主操作色；#14B8A6 只做装饰渐变与底色，不做正文文字 */
+$brand-primary:        #0F766E;   /* 主交互色 = ai-700，白底对比 5.9:1 */
+$brand-primary-dark:   #0B5F59;   /* 按压 */
+$brand-primary-tint:   #14B8A6;   /* ai-500：渐变端点 / 选中态 / 装饰 */
+$brand-primary-wash:   rgba(20, 184, 166, 0.10);  /* ai-100：tinted 底 / hover / 选中 */
 
-/* Apple Health / Fitness 常见的双色梯度，做 AIGC 智能感 */
-$brand-gradient:       linear-gradient(135deg, #007AFF 0%, #5AC8FA 100%);
-$brand-gradient-vivid: linear-gradient(135deg, #5E5CE6 0%, #64D2FF 100%);   /* 更 AI 一点 */
+/* 青→蓝渐变只给品牌时刻（hero、小白语义、溯源）；日常界面单色克制 */
+$brand-gradient:       linear-gradient(135deg, #14B8A6 0%, #3B82F6 100%);
+$brand-gradient-vivid: linear-gradient(135deg, #0F766E 0%, #14B8A6 60%, #3B82F6 100%);
+
+/* 情绪点缀色：只在鼓励 / 彩蛋 / 贴纸时刻出现，绝不进操作色 */
+$accent-orange:        #FF8A3D;   /* 元气橙：徽章、庆祝 */
+$accent-pink:          #FF9EB5;   /* 腮红粉：点赞、感谢 */
+$accent-blue:          #3B82F6;   /* 渐变辅助蓝 */
 
 
 /* ========== 2. System Colors（iOS systemXxx 全色板，语义优先） ========== */
 
-$system-blue:        #007AFF;
-$system-green:       #34C759;
-$system-orange:      #FF9500;
-$system-red:         #FF3B30;
+$system-blue:        #0F766E;   /* 兼容旧引用：统一指向主色 */
+$system-green:       #16A34A;
+$system-orange:      #F59E0B;
+$system-red:         #E5484D;
 $system-yellow:      #FFCC00;
 $system-purple:      #AF52DE;
 $system-pink:        #FF2D55;
-$system-teal:        #5AC8FA;
+$system-teal:        #14B8A6;
 $system-indigo:      #5856D6;
 $system-mint:        #00C7BE;
 $system-brown:       #A2845E;
@@ -52,10 +58,10 @@ $system-gray-6:      #F2F2F7;
 /* ========== 3. Label / Fill 分层（iOS 4 级） ========== */
 
 /* 文本 4 级 —— 用透明度分层，能在任意背景上保持对比 */
-$label-primary:      #000000;
-$label-secondary:    rgba(60, 60, 67, 0.60);
-$label-tertiary:     rgba(60, 60, 67, 0.30);
-$label-quaternary:   rgba(60, 60, 67, 0.18);
+$label-primary:      #17181C;
+$label-secondary:    rgba(23, 24, 28, 0.62);
+$label-tertiary:     rgba(23, 24, 28, 0.38);
+$label-quaternary:   rgba(23, 24, 28, 0.18);
 
 /* 兼容旧代码 */
 $label:              $label-primary;
@@ -71,9 +77,10 @@ $fill-quaternary:    rgba(116, 116, 128, 0.08);
 /* ========== 4. Background 分层 ========== */
 
 $bg-primary:                  #FFFFFF;      /* 卡片 / 弹层 */
-$bg-secondary:                #F2F2F7;      /* Grouped 表格外层 */
+$bg-secondary:                #FAF9F6;      /* 暖白页面底（拒绝冷灰白） */
 $bg-tertiary:                 #FFFFFF;      /* 二级组内层 */
-$bg-grouped-primary:          #F2F2F7;      /* Grouped 页面底 */
+$bg-grouped-primary:          #FAF9F6;      /* 暖白页面底 */
+$bg-deep:                     #F1EFEA;      /* 分区块底 / 输入底 / segmented 底 */
 $bg-grouped-secondary:        #FFFFFF;      /* Grouped 内卡 */
 $bg-elevated:                 #FFFFFF;      /* 弹层 / sheet */
 
@@ -83,8 +90,8 @@ $system-grouped-background:   $bg-grouped-primary;
 $secondary-system-background: $bg-secondary;
 
 /* 分割线：hairline 0.5pt = 1rpx（iOS 视觉密度）*/
-$separator:                   rgba(60, 60, 67, 0.29);
-$separator-opaque:            #C6C6C8;
+$separator:                   rgba(23, 24, 28, 0.10);   /* 发丝线 */
+$separator-opaque:            #E3E1DC;
 $stroke-hairline:             1rpx;
 $stroke-thin:                 2rpx;
 
@@ -92,29 +99,29 @@ $stroke-thin:                 2rpx;
 /* ========== 5. Semantic Tokens（每语义三配色：solid + bg wash + fg） ========== */
 
 /* Success（通过 / 低风险 / 达标） */
-$success-solid:      #34C759;
-$success-bg:         rgba(52, 199, 89, 0.14);
-$success-fg:         #1B7F3E;
+$success-solid:      #16A34A;
+$success-bg:         rgba(22, 163, 74, 0.12);
+$success-fg:         #15803D;
 
 /* Warning（中风险 / 待确认 / 检测中） */
-$warning-solid:      #FF9500;
-$warning-bg:         rgba(255, 149, 0, 0.16);
-$warning-fg:         #B26200;
+$warning-solid:      #F59E0B;
+$warning-bg:         rgba(245, 158, 11, 0.14);
+$warning-fg:         #B45309;
 
 /* Danger（失败 / 高风险 / 超红线） */
-$danger-solid:       #FF3B30;
-$danger-bg:          rgba(255, 59, 48, 0.14);
+$danger-solid:       #E5484D;
+$danger-bg:          rgba(229, 72, 77, 0.12);
 $danger-fg:          #C62A22;
 
 /* Info（信息 / 排队中 / 中性提示） */
-$info-solid:         #007AFF;
-$info-bg:            rgba(0, 122, 255, 0.10);
-$info-fg:            #0056B3;
+$info-solid:         #0F766E;
+$info-bg:            rgba(20, 184, 166, 0.10);
+$info-fg:            #0F766E;
 
 /* Neutral（次要动作 / 灰态 / disabled） */
 $neutral-solid:      #8E8E93;
-$neutral-bg:         rgba(142, 142, 147, 0.14);
-$neutral-fg:         #48484A;
+$neutral-bg:         rgba(23, 24, 28, 0.06);
+$neutral-fg:         #4B4C52;
 
 
 /* ========== 6. Typography（Apple Dynamic Type，rpx = pt × 2） ========== */
@@ -177,9 +184,9 @@ $sp-16: 128rpx;     /* 64pt · Hero 上下留白 */
 $radius-xs:    8rpx;     /*  4pt · chip / tag */
 $radius-sm:   12rpx;     /*  6pt · input inner */
 $radius-md:   16rpx;     /*  8pt · 中卡片 */
-$radius-btn:  20rpx;     /* 10pt · 按钮 */
+$radius-btn:  24rpx;     /* 12pt · 胖按钮 */
 $radius-lg:   24rpx;     /* 12pt · list row */
-$radius-card: 28rpx;     /* 14pt · 标准卡片 */
+$radius-card: 32rpx;     /* 16pt · AI 助手产品标准卡片圆角 */
 $radius-xl:   32rpx;     /* 16pt */
 $radius-sheet: 40rpx;    /* 20pt · bottom sheet */
 $radius-hero: 44rpx;     /* 22pt · hero card */
@@ -190,11 +197,12 @@ $radius-pill: 9999rpx;   /* 药丸 */
 
 /* iOS 惜用阴影；三级 elevation 已足够 */
 $shadow-hair:  0 1rpx 0 rgba(0, 0, 0, 0.06);                                  /* 边界暗示 */
-$shadow-card:  0 2rpx 12rpx rgba(0, 0, 0, 0.04);                              /* 常规卡片 */
-$shadow-lift:  0 8rpx 24rpx rgba(0, 0, 0, 0.08);                              /* 悬浮 / 弹层 */
-$shadow-modal: 0 16rpx 48rpx rgba(0, 0, 0, 0.12);                             /* 模态背景 */
-$shadow-inset: inset 0 0 0 1rpx rgba(60, 60, 67, 0.08);                       /* 描边内阴影 */
-$shadow-tap:   0 0 0 8rpx rgba(0, 122, 255, 0.10);                            /* focus ring */
+$shadow-card:  0 2rpx 12rpx rgba(23, 24, 28, 0.05);                           /* 常规卡片 */
+$shadow-lift:  0 8rpx 24rpx rgba(23, 24, 28, 0.06), 0 24rpx 60rpx rgba(15, 118, 110, 0.10);   /* 重点卡：环境光带青 */
+$shadow-modal: 0 16rpx 48rpx rgba(23, 24, 28, 0.12);                          /* 模态背景 */
+$shadow-inset: inset 0 0 0 1rpx rgba(23, 24, 28, 0.08);                       /* 发丝描边 */
+$shadow-tap:   0 0 0 8rpx rgba(20, 184, 166, 0.14);                           /* focus ring */
+$shadow-glow:  0 0 0 8rpx rgba(20, 184, 166, 0.10);                           /* 「AI 在思考」外发光 */
 
 
 /* ========== 10. Motion（Apple spring 曲线族） ========== */
@@ -202,7 +210,7 @@ $shadow-tap:   0 0 0 8rpx rgba(0, 122, 255, 0.10);                            /*
 $ease-standard:  cubic-bezier(0.32, 0.72, 0, 1);    /* iOS 系统主曲线 · 万能 */
 $ease-accel:     cubic-bezier(0.4, 0, 1, 1);        /* 消失 */
 $ease-decel:     cubic-bezier(0, 0, 0.2, 1);        /* 出现 */
-$ease-spring:    cubic-bezier(0.5, 1.4, 0.5, 1);    /* 弹性回弹 */
+$ease-spring:    cubic-bezier(0.34, 1.56, 0.64, 1); /* 弹簧：主按钮回弹、小白冒泡入场 */
 $ease-back:      cubic-bezier(0.68, -0.55, 0.27, 1.55);
 
 $duration-instant: 100ms;
@@ -231,8 +239,8 @@ $z-topmost:    9999;
 /* 组件尺寸约束（用 token 保证一致性） */
 $size-touch-min:   88rpx;   /* 44pt · Apple 触控最小尺寸 */
 $size-btn-h-sm:    56rpx;   /* 28pt */
-$size-btn-h-md:    76rpx;   /* 38pt */
-$size-btn-h-lg:    96rpx;   /* 48pt · 主 CTA */
+$size-btn-h-md:    72rpx;   /* 36pt · 胖按钮 */
+$size-btn-h-lg:    92rpx;   /* 46pt · 主 CTA */
 $size-input-h:     88rpx;   /* 44pt */
 $size-row-h:       88rpx;   /* 44pt · list row min */
 $size-avatar-sm:   64rpx;
@@ -292,6 +300,7 @@ $blur-thick:     40rpx;
   background: $bg-primary;
   border-radius: $radius-card;
   overflow: hidden;
+  border: $stroke-hairline solid rgba(23, 24, 28, 0.08);
   box-shadow: $shadow-card;
 }
 
@@ -354,7 +363,7 @@ $blur-thick:     40rpx;
   text-align: center;
   transition: transform $duration-fast $ease-standard, background $duration-fast;
   &:active:not(:disabled) { transform: scale(#{$tap-scale}); background: $brand-primary-tint; }
-  &:disabled, &.disabled { background: rgba(0, 122, 255, 0.35); }
+  &:disabled, &.disabled { background: rgba(15, 118, 110, 0.35); }
 }
 
 /* iOS 按钮 · 次要（灰底黑字） */
@@ -384,7 +393,7 @@ $blur-thick:     40rpx;
 @mixin btn-destructive {
   @include btn-primary;
   background: $danger-solid;
-  &:active:not(:disabled) { background: rgba(255, 59, 48, 0.85); }
+  &:active:not(:disabled) { background: rgba(229, 72, 77, 0.85); }
 }
 
 /* iOS Chip / Tag（状态胶囊） */
