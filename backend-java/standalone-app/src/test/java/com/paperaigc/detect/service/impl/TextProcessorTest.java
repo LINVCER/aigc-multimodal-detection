@@ -85,6 +85,15 @@ class TextProcessorTest {
         }
 
         @Test
+        @DisplayName("单独成行的「参考文献」「章节标题」不被并入相邻段落")
+        void structuralLinesStayAlone() {
+            String body = "本章提出的模型由三个部分组成，词级编码器采用双向长短期记忆网络对每个句子内部的词序列建模，句级编码器在此基础上对句子序列建模。";
+            String text = String.join("\n\n", "第三章 方法", body, "参考文献", "[1] 李四. 另一篇论文. 2021.");
+            List<String> out = tp.splitParagraphs(text);
+            assertThat(out).containsExactly("第三章 方法", body, "参考文献", "[1] 李四. 另一篇论文. 2021.");
+        }
+
+        @Test
         @DisplayName("超长段落（>800 字）按句末标点切分且不超限")
         void splitLong() {
             String unit = "a".repeat(99) + "。";     // 100 字/句
@@ -141,6 +150,29 @@ class TextProcessorTest {
             assertThat(out.get(3).get("sectionName")).isEqualTo("参考文献");
             assertThat(out.get(4).get("excluded")).isEqualTo(true);
             assertThat(out.get(5).get("excluded")).isEqualTo(true);
+        }
+
+        @Test
+        @DisplayName("「第N章 标题」同行写法识别为章节标题并归一章节名")
+        void chapterWithTitle() {
+            List<Map<String, Object>> out = tp.filterNonBody(List.of("第三章 方法", "本章提出的模型由三个部分组成，各部分之间通过注意力机制进行信息传递与聚合。"));
+            assertThat(out.get(0).get("excludeReason")).isEqualTo("sectionTitle");
+            assertThat(out.get(0).get("sectionName")).isEqualTo("方法");
+            assertThat(out.get(1).get("excluded")).isEqualTo(false);
+            assertThat(out.get(1).get("sectionName")).isEqualTo("方法");
+        }
+
+        @Test
+        @DisplayName("端到端：切分后过滤，参考文献起始行仍能命中并排除其后条目")
+        void splitThenFilterKeepsReferenceStart() {
+            String body = "本文提出了一种新的检测方法，通过多模态融合提升准确率，并在多个数据集上验证了有效性。";
+            String text = String.join("\n\n", "摘要", body, "参考文献", "[1] 李四. 另一篇论文. 2021.", "[2] 王五. 第三篇论文. 2020.");
+            List<Map<String, Object>> out = tp.filterNonBody(tp.splitParagraphs(text));
+            assertThat(out).hasSize(5);
+            assertThat(out.get(1).get("excluded")).isEqualTo(false);
+            assertThat(out.get(2).get("excludeReason")).isEqualTo("reference");
+            assertThat(out.get(3).get("excluded")).isEqualTo(true);
+            assertThat(out.get(4).get("excluded")).isEqualTo(true);
         }
 
         @Test

@@ -38,7 +38,7 @@ public class TextProcessor {
 
     /** 章节标题：短段 + 中/英数字前缀或常见节名 */
     private static final Pattern SECTION_TITLE = Pattern.compile(
-            "^\\s*(第[一二三四五六七八九十百千0-9]+[章节篇]|chapter\\s+\\d+|\\d+(\\.\\d+)*\\s+\\S{1,20}|摘\\s*要|abstract|引\\s*言|introduction|结\\s*论|conclusion|讨\\s*论|discussion|方\\s*法|methods?|背\\s*景|background|相关工作|related\\s+work|实\\s*验|experiments?|结\\s*果|results?)\\s*$",
+            "^\\s*(第[一二三四五六七八九十百千0-9]+[章节篇]\\s*\\S{0,30}|chapter\\s+\\d+\\s*\\S{0,30}|\\d+(\\.\\d+)*\\s+\\S{1,20}|摘\\s*要|abstract|引\\s*言|introduction|结\\s*论|conclusion|讨\\s*论|discussion|方\\s*法|methods?|背\\s*景|background|相关工作|related\\s+work|实\\s*验|experiments?|结\\s*果|results?)\\s*$",
             Pattern.CASE_INSENSITIVE);
 
     /** 图/表/公式 caption：段首匹配 */
@@ -102,6 +102,13 @@ public class TextProcessor {
             String p = raw.replaceAll("[\\t ]+", " ").trim();
             if (p.isEmpty()) continue;
 
+            // 标题 / 参考文献起始 / 图表标题 / 文献条目单独成段：并进相邻正文会让 filterNonBody 永远匹配不到
+            if (isStructuralLine(p)) {
+                if (buf.length() > 0) { out.add(buf.toString()); buf.setLength(0); }
+                out.add(p);
+                continue;
+            }
+
             if (p.length() < 30) {
                 if (buf.length() > 0) buf.append(' ');
                 buf.append(p);
@@ -129,6 +136,14 @@ public class TextProcessor {
             if (chunk.length() > 0) normalized.add(chunk.toString().trim());
         }
         return normalized;
+    }
+
+    /** 短段合并时必须保持独立的结构行（与 filterNonBody 的判定条件一致） */
+    private boolean isStructuralLine(String p) {
+        return REF_START.matcher(p).matches()
+                || (SECTION_TITLE.matcher(p).matches() && p.length() < 30)
+                || CAPTION.matcher(p).find()
+                || (REF_ITEM.matcher(p).find() && p.length() < 300);
     }
 
     /* ==================== 非正文过滤 ==================== */
@@ -177,6 +192,19 @@ public class TextProcessor {
     /** 章节名归一化：英文常见节名映射为中文规范名 */
     private String normalizeSectionName(String raw) {
         String s = raw.replaceAll("\\s+", " ").trim();
+        // 「第三章 方法」「3.1 实验设计」→ 去掉章节编号后按关键字归一
+        String title = s.replaceFirst("^(第[一二三四五六七八九十百千0-9]+[章节篇]|chapter\\s+\\d+|\\d+(\\.\\d+)*)\\s*", "");
+        if (!title.isEmpty() && !title.equals(s)) {
+            if (title.matches(".*(摘要|abstract).*")) return "摘要";
+            if (title.matches(".*(绪论|引言|introduction|背景|background).*")) return "引言";
+            if (title.matches(".*(相关工作|文献综述|related work).*")) return "相关工作";
+            if (title.matches(".*(方法|设计|模型|方案|method).*")) return "方法";
+            if (title.matches(".*(实验|实现|experiment|implementation).*")) return "实验";
+            if (title.matches(".*(结果|分析|result|analysis).*")) return "结果";
+            if (title.matches(".*(讨论|discussion).*")) return "讨论";
+            if (title.matches(".*(结论|总结|展望|conclusion).*")) return "结论";
+            return title;
+        }
         String lower = s.toLowerCase();
         if (lower.equals("abstract")) return "摘要";
         if (lower.equals("introduction")) return "引言";
