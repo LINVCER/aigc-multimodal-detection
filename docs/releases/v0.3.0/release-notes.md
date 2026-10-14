@@ -253,6 +253,15 @@ uniapp 与 web 各有一个对话入口。零新服务、零新部署单元，LL
 - uniapp 段落区加「段落 / 全文标注」切换，同一套着色与图例，点段落问小白
 - 边界：只有解析出的段落文本，不含原版式、图表与页码；颜色表示「像」的程度，不是判定结论
 
+### App 端主题：对齐「知源小白 AI 助手风」（style-prompt）
+
+- `uni.scss` 令牌：主色 Apple 蓝 → 智能青 `#0F766E`（`#14B8A6` 只做渐变 / 选中 / 装饰），页面底冷灰 → 暖白 `#FAF9F6`，新增 `$bg-deep`、`$accent-orange / pink / blue`、`$shadow-glow`；语义色换 success `#16A34A` / warning `#F59E0B` / danger `#E5484D`；墨色文字 `#17181C`，发丝分隔线；按钮圆角 12px、高度 36 / 46，卡片 16px 圆角 + 发丝边框；弹簧曲线换 `(0.34, 1.56, 0.64, 1)`
+- `pages.json` tabBar 选中色与页面底色同步
+- 登录页 / 小白对话页：原「近黑单色」局部变量重映射为墨色文字 + 智能青控件（禁忌：不允许第二个主操作色、不做大面积深色），版式不动
+- 新组件 `ZyIcon`：SparkLine 星点细线图标 30 余枚（SVG mask 上色），对话页 / 上传页 / 结果页 / 空态的 emoji 全部替换；`EmptyState` 支持小白形象 + 口语文案，`AssistantFab` 加青色环境光与 3s 呼吸（reduce-motion 关闭）
+- 口语文案：首页主 CTA「赶 DDL 前先自查一遍」、空态「还没有记录，交一篇试试？」、上传分段「先贴一段看看」
+- 未做：六枚小白表情包 PNG（打哈欠 / 比心 / 捂嘴 / 握拳 / 摊手 / 发光）需设计资产，`EmptyState.mood` 已留位，现用 xiaobai.png / gif 顶替；硬编码 `#F2F2F7` 的页内样式按页陆续清理
+
 ## 验证状态
 
 - Python：`compileall` 通过；知识库 32 块可加载。未在本机起服务（无 torch / 无 LLM key / 无 numpy，`surface_facts` 与文档内基线未本机跑过，逻辑复用已有 `extract_surface_features` 与 `SurfaceScaler`）
