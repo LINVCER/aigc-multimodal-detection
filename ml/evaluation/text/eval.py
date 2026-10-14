@@ -50,6 +50,9 @@ ACCEPTANCE = {
     # 第七套：运营复核确认的申诉样本（build_appeal_evalset.py 产出 eval_appeal.jsonl）。
     # 多数是 label=0 的确认误判，AUROC 常无定义，看 FPR：每版 checkpoint 在这批上的假阳率不得超过 10%
     "appeal": {"fpr": 0.10},
+    # 第八套：真实论文（ingest_thesis.py 产出 eval_real_thesis.jsonl，全部 label=0）。
+    # 只看假阳：规范学术写作被判 AI 的比例，按章节 / 按篇细分；基线先出数字，验收线 5% 对齐 fpr_5pct 口径
+    "real_thesis": {"fpr": 0.05},
 }
 
 # 越低越好的指标（验收时用 <=）
@@ -81,7 +84,7 @@ def predict(det, samples, device: torch.device, batch_size: int = 32, num_worker
     }
 
 
-def score_set(name: str, pred: dict, det, threshold: float) -> dict:
+def score_set(name: str, pred: dict, det, threshold: float, samples=None) -> dict:
     lg, y = pred["logits"], pred["labels"]
     probs = apply_calibration(lg, CalibrationParams(det.temperature, det.platt_a, det.platt_b))
     raw = 1.0 / (1.0 + np.exp(-lg))
@@ -117,6 +120,46 @@ def score_set(name: str, pred: dict, det, threshold: float) -> dict:
         gm = binary_metrics(probs[idx], y[idx], threshold)
         gm["n"] = int(len(idx))
         m["by_source"][k] = gm
+    # 真实论文集：按 meta.section 与按篇（doc_id）看假阳分布；DataLoader 不打乱，预测与 samples 同序
+    if samples is not None and len(samples) == len(y):
+        by_sec, by_doc = defaultdict(list), defaultdict(list)
+        for i, smp in enumerate(samples):
+            by_sec[(smp.meta or {}).get("section") or "正文"].append(i)
+            by_doc[smp.doc_id].append(i)
+        if any((smp.meta or {}).get("section") for smp in samples):
+            m["by_section"] = {}
+            for k, idx in sorted(by_sec.items()):
+                idx = np.asarray(idx)
+                gm = binary_metrics(probs[idx], y[idx], threshold)
+                gm["n"] = int(len(idx))
+                m["by_section"][k] = gm
+        if len(by_doc) > 1:
+            doc_fpr = []
+            for d, idx in by_doc.items():
+                idx = np.asarray(idx)
+                hum = idx[y[idx] == 0]
+                if len(hum) == 0:
+                    continue
+                flagged = int((probs[hum] >= threshold).sum())
+                doc_fpr.append({"doc_id": d, "n": int(len(hum)), "flagged": flagged, "fpr": flagged / len(hum),
+                                "file": (samples[int(hum[0])].meta or {}).get("file")})
+            if doc_fpr:
+                rates = np.asarray([d["fpr"] for d in doc_fpr])
+                m["per_doc"] = {
+                    "docs": int(len(doc_fpr)),
+                    "fpr_median": float(np.median(rates)), "fpr_p90": float(np.percentile(rates, 90)),
+                    "docs_over_20pct": int((rates > 0.20).sum()),
+                    "worst": sorted(doc_fpr, key=lambda d: -d["fpr"])[:10],
+                }
+        # 被判最像 AI 的人类段落，给人工复看用
+        hum_idx = np.where(y == 0)[0]
+        if len(hum_idx):
+            top = hum_idx[np.argsort(-probs[hum_idx])[:15]]
+            m["top_false_positives"] = [
+                {"prob": float(probs[i]), "section": (samples[i].meta or {}).get("section"),
+                 "file": (samples[i].meta or {}).get("file"), "preview": samples[i].text[:100]}
+                for i in top if probs[i] >= threshold
+            ]
     # 溯源头 top-1（若有）
     if pred.get("source_pred") is not None:
         sid = np.asarray(pred["source_id"])
@@ -176,7 +219,7 @@ def main() -> None:
             log.warning("%s 为空，跳过", path)
             continue
         pred = predict(det, samples, device, args.batch_size)
-        report["sets"][name] = score_set(name, pred, det, threshold)
+        report["sets"][name] = score_set(name, pred, det, threshold, samples=samples)
         m = report["sets"][name]
         log.info("%-16s n=%-6d auroc=%.4f f1=%.4f acc=%.4f fpr=%.3f tpr@fpr1=%.3f ece=%.4f brier=%.4f %s",
                  name, m["n"], m["auroc"], m["f1"], m["accuracy"], m["fpr"], m["tpr_at_fpr_1pct"],
