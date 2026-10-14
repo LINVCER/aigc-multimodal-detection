@@ -91,7 +91,7 @@ function onTaskLongPress(t) {
   const items = canCancel ? ['取消检测', '删除任务'] : ['删除任务']
   uni.showActionSheet({
     itemList: items,
-    itemColor: '#FF3B30',
+    itemColor: '#E5484D',
     success: async (res) => {
       const action = items[res.tapIndex]
       if (action === '取消检测') await confirmCancel(t)
@@ -122,7 +122,7 @@ function modal({ title, content }) {
   return new Promise((resolve) => {
     uni.showModal({
       title, content,
-      confirmColor: '#FF3B30', cancelColor: '#007AFF',
+      confirmColor: '#E5484D', cancelColor: '#0F766E',
       success: (r) => resolve(r.confirm),
       fail: () => resolve(false),
     })
@@ -172,7 +172,7 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
           class="search-input"
           v-model="keyword"
           placeholder="搜索论文标题"
-          placeholder-style="color: rgba(60,60,67,0.30)"
+          placeholder-style="color: rgba(23, 24, 28,0.30)"
           confirm-type="search"
         />
         <text v-if="keyword" class="search-clear" @click="keyword = ''">×</text>
@@ -202,18 +202,18 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
 
     <EmptyState
       v-else-if="error && tasks.length === 0"
-      icon="!" :title="error" desc="下拉可重试，或检查网络后重新进入"
+      icon="alert" :title="error" desc="下拉可重试，或检查网络后重新进入"
       actionText="重新加载" @action="load()"
     />
     <EmptyState
       v-else-if="filtered.length === 0 && !keyword && statusFilter === 'ALL'"
-      icon="✎" title="还没有检测记录"
-      desc="上传第一份论文，几十秒内拿到 AI 率报告"
+      xiaobai title="还没有记录，交一篇试试？"
+      desc="几十秒出报告，小白陪你逐段看懂"
       actionText="去上传" @action="goUpload"
     />
     <EmptyState
       v-else-if="filtered.length === 0"
-      icon="?" title="没有匹配的记录"
+      icon="search" title="没有匹配的记录"
       desc="试试其它关键词或筛选条件"
     />
 
@@ -351,7 +351,7 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
   height: 32rpx;
   margin-right: $sp-2;
   /* SVG 放大镜 · rgba stroke（image 不继承 CSS color） */
-  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgba(60,60,67,0.6)' stroke-width='2.4' stroke-linecap='round'><circle cx='11' cy='11' r='7'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>") no-repeat center / contain;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgba(23, 24, 28,0.6)' stroke-width='2.4' stroke-linecap='round'><circle cx='11' cy='11' r='7'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>") no-repeat center / contain;
 }
 .search-input {
   flex: 1;
@@ -431,7 +431,7 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
   transition: transform $duration-fast $ease-standard, background $duration-fast;
 }
 .task-card-hover {
-  background: rgba(60, 60, 67, 0.04);
+  background: rgba(23, 24, 28, 0.04);
   transform: scale(0.99);
 }
 .task-head {

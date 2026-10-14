@@ -23,9 +23,9 @@ defineProps({ rows: { type: Number, default: 3 } })
   height: 28rpx;
   border-radius: 14rpx;
   background: linear-gradient(90deg,
-    rgba(60,60,67,0.06) 0%,
-    rgba(60,60,67,0.14) 50%,
-    rgba(60,60,67,0.06) 100%);
+    rgba(23, 24, 28,0.06) 0%,
+    rgba(23, 24, 28,0.14) 50%,
+    rgba(23, 24, 28,0.06) 100%);
   background-size: 200% 100%;
   animation: shimmer 1.6s cubic-bezier(0.32, 0.72, 0, 1) infinite;
 }

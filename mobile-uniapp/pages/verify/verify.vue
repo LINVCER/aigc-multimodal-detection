@@ -78,11 +78,11 @@ onLoad((q) => {
     <view class="card">
       <view class="fld">
         <text class="fld-label">报告编号</text>
-        <input v-model="reportNo" class="inp" placeholder="ZY-20261008-XXXXXX" placeholder-style="color: rgba(60,60,67,0.30)" :adjust-position="true" :cursor-spacing="24" @input="(e) => (reportNo = String(e.detail.value).toUpperCase())" />
+        <input v-model="reportNo" class="inp" placeholder="ZY-20261008-XXXXXX" placeholder-style="color: rgba(23, 24, 28,0.30)" :adjust-position="true" :cursor-spacing="24" @input="(e) => (reportNo = String(e.detail.value).toUpperCase())" />
       </view>
       <view class="fld">
         <text class="fld-label">验证码</text>
-        <input v-model="code" class="inp" placeholder="PDF 封面 8 位验证码" maxlength="8" placeholder-style="color: rgba(60,60,67,0.30)" :adjust-position="true" :cursor-spacing="24" @input="(e) => (code = String(e.detail.value).toUpperCase())" />
+        <input v-model="code" class="inp" placeholder="PDF 封面 8 位验证码" maxlength="8" placeholder-style="color: rgba(23, 24, 28,0.30)" :adjust-position="true" :cursor-spacing="24" @input="(e) => (code = String(e.detail.value).toUpperCase())" />
       </view>
       <text v-if="error" class="err">{{ error }}</text>
       <button class="submit" :loading="loading" :disabled="loading" @click="doVerify">验 证</button>
@@ -143,7 +143,7 @@ onLoad((q) => {
 .submit { height: $size-btn-h-lg; line-height: $size-btn-h-lg; background: $brand-primary; color: #fff; font-size: $fs-headline; font-weight: $fw-semibold; border-radius: $radius-pill; &::after { border: none; } }
 .helpers { display: flex; justify-content: center; gap: $sp-5; margin-top: $sp-3; }
 .helper { font-size: $fs-footnote; color: $brand-primary; }
-.result { @include card; margin-top: $sp-4; padding: $sp-4; border: 2rpx solid transparent; &.ok { border-color: rgba(52, 199, 89, 0.5); } &.warn { border-color: rgba(255, 149, 0, 0.6); } &.bad { border-color: rgba(255, 59, 48, 0.5); } }
+.result { @include card; margin-top: $sp-4; padding: $sp-4; border: 2rpx solid transparent; &.ok { border-color: rgba(22, 163, 74, 0.5); } &.warn { border-color: rgba(245, 158, 11, 0.6); } &.bad { border-color: rgba(229, 72, 77, 0.5); } }
 .result-head { display: flex; align-items: center; gap: $sp-3; }
 .shield { width: 88rpx; height: 88rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex: none; text { color: #fff; font-size: 40rpx; font-weight: $fw-bold; } }
 .ok .shield { background: $success-solid; } .warn .shield { background: $warning-solid; } .bad .shield { background: $danger-solid; }

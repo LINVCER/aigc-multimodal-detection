@@ -62,8 +62,8 @@ function logout() {
   uni.showModal({
     title: '退出登录',
     content: '确定要退出吗？',
-    confirmColor: '#FF3B30',
-    cancelColor: '#007AFF',
+    confirmColor: '#E5484D',
+    cancelColor: '#0F766E',
     success: (res) => { if (res.confirm) auth.logout() },
   })
 }
@@ -194,9 +194,9 @@ onShow(() => {
     <view v-if="pwdOpen" class="mask" @click="pwdOpen = false" />
     <view class="sheet" :class="{ open: pwdOpen }">
       <view class="sheet-head"><text class="sheet-title">修改密码</text><text class="sheet-close" @click="pwdOpen = false">✕</text></view>
-      <view class="sheet-field"><input v-model="pwd.oldPassword" class="sheet-input" password placeholder="原密码" placeholder-style="color: rgba(60,60,67,0.30)" :adjust-position="true" :cursor-spacing="24" /></view>
-      <view class="sheet-field"><input v-model="pwd.newPassword" class="sheet-input" password placeholder="新密码（6-32 位，含字母和数字）" placeholder-style="color: rgba(60,60,67,0.30)" :adjust-position="true" :cursor-spacing="24" /></view>
-      <view class="sheet-field"><input v-model="pwd.confirmPassword" class="sheet-input" password placeholder="确认新密码" placeholder-style="color: rgba(60,60,67,0.30)" :adjust-position="true" :cursor-spacing="24" /></view>
+      <view class="sheet-field"><input v-model="pwd.oldPassword" class="sheet-input" password placeholder="原密码" placeholder-style="color: rgba(23, 24, 28,0.30)" :adjust-position="true" :cursor-spacing="24" /></view>
+      <view class="sheet-field"><input v-model="pwd.newPassword" class="sheet-input" password placeholder="新密码（6-32 位，含字母和数字）" placeholder-style="color: rgba(23, 24, 28,0.30)" :adjust-position="true" :cursor-spacing="24" /></view>
+      <view class="sheet-field"><input v-model="pwd.confirmPassword" class="sheet-input" password placeholder="确认新密码" placeholder-style="color: rgba(23, 24, 28,0.30)" :adjust-position="true" :cursor-spacing="24" /></view>
       <text class="sheet-hint">{{ pwdError && (pwd.oldPassword || pwd.newPassword) ? pwdError : '修改成功后所有设备需重新登录' }}</text>
       <button class="sheet-submit" :class="{ disabled: !!pwdError }" :disabled="!!pwdError" :loading="auth.loading" @click="submitPassword">确认修改</button>
     </view>
@@ -298,7 +298,7 @@ onShow(() => {
   font-size: $fs-body;
   &::after { border: none; }
 }
-.row-hover { background: rgba(60, 60, 67, 0.06); }
+.row-hover { background: rgba(23, 24, 28, 0.06); }
 .row-title {
   font-size: $fs-body;
   color: $label-primary;
@@ -353,7 +353,7 @@ onShow(() => {
   text-align: center;
   transition: background $duration-fast $ease-standard;
 }
-.danger-card-hover { background: rgba(60, 60, 67, 0.06); }
+.danger-card-hover { background: rgba(23, 24, 28, 0.06); }
 .danger-text {
   font-size: $fs-headline;
   color: $danger-solid;

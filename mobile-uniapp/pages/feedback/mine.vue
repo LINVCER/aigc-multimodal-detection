@@ -33,14 +33,14 @@ onPullDownRefresh(load)
 
 /* ---------- 语义映射 ---------- */
 const CATEGORY = {
-  bug:        { label: 'Bug',   tint: '#FF9500', wash: 'rgba(255,149,0,0.10)' },
+  bug:        { label: 'Bug',   tint: '#F59E0B', wash: 'rgba(245, 158, 11,0.10)' },
   suggestion: { label: '建议',  tint: '#5856D6', wash: 'rgba(88,86,214,0.10)' },
-  appeal:     { label: '结果申诉', tint: '#FF3B30', wash: 'rgba(255,59,48,0.10)' },
+  appeal:     { label: '结果申诉', tint: '#E5484D', wash: 'rgba(229, 72, 77,0.10)' },
 }
 const STATUS = {
-  PENDING:    { text: '待处理', color: '#B26200', bg: 'rgba(255,149,0,0.14)' },
-  PROCESSING: { text: '处理中', color: '#0056B3', bg: 'rgba(0,122,255,0.14)' },
-  REPLIED:    { text: '已回复', color: '#1B7F3E', bg: 'rgba(52,199,89,0.14)' },
+  PENDING:    { text: '待处理', color: '#B45309', bg: 'rgba(245, 158, 11,0.14)' },
+  PROCESSING: { text: '处理中', color: '#0F766E', bg: 'rgba(20, 184, 166,0.14)' },
+  REPLIED:    { text: '已回复', color: '#15803D', bg: 'rgba(22, 163, 74,0.14)' },
   IGNORED:    { text: '已忽略', color: '#48484A', bg: 'rgba(142,142,147,0.14)' },
 }
 const categoryOf = (k) => CATEGORY[k] || { label: k, tint: '#8E8E93', wash: 'rgba(142,142,147,0.14)' }
@@ -188,7 +188,7 @@ const groupedByStatus = computed(() => {
   padding: $sp-3 $sp-4;
   transition: background $duration-fast;
 }
-.card-hover { background: rgba(60, 60, 67, 0.04); }
+.card-hover { background: rgba(23, 24, 28, 0.04); }
 .card-head {
   display: flex; align-items: center; gap: $sp-2;
   margin-bottom: $sp-2;

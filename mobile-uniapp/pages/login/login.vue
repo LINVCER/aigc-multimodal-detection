@@ -314,17 +314,18 @@ function goPrivacy() { uni.navigateTo({ url: '/pages/about/privacy' }) }
 
 <style lang="scss" scoped>
 /* ============================================================
- * Sign in 版式 · 白卡 + 灰色填充输入框 + 黑色胶囊按钮
- *   画布 = 浅灰；卡片 = 纯白；输入 = 灰色填充；主色 = 近黑（单色）
+ * Sign in 版式 · 暖白画布 + 白卡 + 填充输入框 + 智能青胶囊按钮
+ *   文字用墨色，操作色只有智能青（style-prompt §二）
  * ============================================================ */
-$si-canvas:    #F2F2F7;
-$si-card:      #FFFFFF;
-$si-field:     #F2F2F4;
-$si-ink:       #0A0A0A;
-$si-ink-soft:  #6E6E73;
-$si-ink-faint: #8E8E93;
-$si-line:      #E5E5EA;
-$si-ring:      rgba(10, 10, 10, 0.08);
+$si-canvas:    $bg-grouped-primary;
+$si-card:      $bg-primary;
+$si-field:     $bg-deep;
+$si-ink:       $label-primary;
+$si-ink-soft:  rgba(23, 24, 28, 0.62);
+$si-ink-faint: rgba(23, 24, 28, 0.38);
+$si-line:      rgba(23, 24, 28, 0.10);
+$si-ring:      rgba(20, 184, 166, 0.18);
+$si-accent:    $brand-primary;
 
 /* 页面：纯浅灰画布 */
 .page {
@@ -363,9 +364,9 @@ $si-ring:      rgba(10, 10, 10, 0.08);
   background: $si-field;
   border: $stroke-thin solid transparent;
   transition: background $duration-fast $ease-standard, border-color $duration-fast $ease-standard, box-shadow $duration-fast $ease-standard;
-  &.focus { border-color: $si-ink; box-shadow: 0 0 0 6rpx $si-ring; }
+  &.focus { border-color: $si-accent; box-shadow: 0 0 0 6rpx $si-ring; }
   &.error { border-color: $danger-solid; }
-  &.ok { border-color: rgba(52, 199, 89, 0.6); }
+  &.ok { border-color: rgba(22, 163, 74, 0.6); }
 }
 .lead {
   flex: none; width: 36rpx; height: 36rpx;
@@ -406,11 +407,11 @@ $si-ring:      rgba(10, 10, 10, 0.08);
 .box {
   width: 34rpx; height: 34rpx; border-radius: 10rpx; border: 2rpx solid $si-ink-faint;
   display: flex; align-items: center; justify-content: center;
-  &.on { background: $si-ink; border-color: $si-ink; }
+  &.on { background: $si-accent; border-color: $si-accent; }
   text { color: #fff; font-size: 22rpx; line-height: 1; }
 }
 .chk-text { font-size: $fs-footnote; color: $si-ink-soft; }
-.link { font-size: $fs-footnote; color: $si-ink; font-weight: $fw-medium; text-decoration: underline; }
+.link { font-size: $fs-footnote; color: $si-accent; font-weight: $fw-medium; text-decoration: underline; }
 .muted { font-size: $fs-caption-1; color: $si-ink-faint; }
 
 /* 错误 / 锁定提示 */
@@ -421,7 +422,7 @@ $si-ring:      rgba(10, 10, 10, 0.08);
 /* 主按钮：黑色胶囊 */
 .submit {
   margin-top: $sp-5; height: $size-btn-h-lg; line-height: $size-btn-h-lg;
-  background: $si-ink; color: #fff;
+  background: $si-accent; color: #fff;
   font-size: $fs-headline; font-weight: $fw-semibold;
   border-radius: $radius-pill; letter-spacing: $tracking-normal;
   transition: transform $duration-fast $ease-standard, opacity $duration-fast;
@@ -433,7 +434,7 @@ $si-ring:      rgba(10, 10, 10, 0.08);
 /* 底部切换（方案 A）：分隔线 + 放大跳转字号；再下一行是条款小字 */
 .foot { margin-top: $sp-5; padding-top: $sp-4; border-top: $stroke-hairline solid $si-line; display: flex; align-items: center; justify-content: center; gap: $sp-2; }
 .foot-label { font-size: $fs-footnote; color: $si-ink-soft; }
-.foot-action { font-size: $fs-subhead; font-weight: $fw-semibold; color: $si-ink; text-decoration: underline; }
+.foot-action { font-size: $fs-subhead; font-weight: $fw-semibold; color: $si-accent; text-decoration: underline; }
 .terms { display: block; margin-top: $sp-3; text-align: center; font-size: $fs-caption-1; color: $si-ink-soft; line-height: $lh-normal; }
 .terms-link { color: $si-ink; text-decoration: underline; }
 </style>

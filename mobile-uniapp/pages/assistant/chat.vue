@@ -6,6 +6,7 @@ import { listTasks, getTaskDetail } from '@/api/detect'
 import { submitFeedback } from '@/api/feedback'
 import { useAuth } from '@/store/auth'
 import AssistantAnalysisCard from '@/components/AssistantAnalysisCard.vue'
+import ZyIcon from '@/components/ZyIcon.vue'
 import { renderMarkdown } from '@/utils/markdown'
 
 /*
@@ -16,7 +17,7 @@ import { renderMarkdown } from '@/utils/markdown'
  *   上下文 pill（当前绑定的报告 / 通用咨询，点开报告面板）
  *   消息流
  *     - 空态：问候 + 4 张能力卡（解读报告 / 即时测一段 / 答辩准备 / 申诉指导）+ 快捷问题
- *     - 对话：日期分隔 · 工具三态 chip · 分析卡 · Markdown 气泡 · 操作行（复制 / 重新生成 / 👍 👎）· 追问建议
+ *     - 对话：日期分隔 · 工具三态 chip · 分析卡 · Markdown 气泡 · 操作行（复制 / 重新生成 / 有帮助 / 没帮助）· 追问建议
  *     - 流式：光标 + 「停止生成」浮条；离底部较远时出「回到底部」
  *   输入区：「+」工具面板（换报告 / 粘贴测一段 / 清空）· 自增高输入 · 圆形发送
  *   面板：报告选择 · 粘贴检测 · 历史会话（右侧抽屉）
@@ -28,8 +29,8 @@ const auth = useAuth()
 
 /* ---------- 常量 ---------- */
 const TOOL_ICON = {
-  get_task_detail: '📊', list_my_tasks: '🗂', explain_paragraph: '🔍', detect_text: '🧪',
-  get_threshold_policy: '📏', search_knowledge: '📚', create_appeal: '✍️',
+  get_task_detail: 'chart', list_my_tasks: 'file-text', explain_paragraph: 'search', detect_text: 'flask',
+  get_threshold_policy: 'ruler', search_knowledge: 'book', create_appeal: 'flag', compare_revision: 'rotate',
 }
 const TOOL_DONE = {
   get_task_detail: '已读取报告', list_my_tasks: '已查看记录', explain_paragraph: '已分析段落', detect_text: '已检测',
@@ -37,10 +38,10 @@ const TOOL_DONE = {
 }
 /** 空态能力卡：需要报告的卡在没绑定时会先弹报告面板 */
 const ABILITIES = [
-  { key: 'report', icon: '📊', title: '解读我的报告', sub: '哪几段最该先改', needTask: true },
-  { key: 'paste', icon: '🧪', title: '即时测一段', sub: '粘贴文字立刻看结果', needTask: false },
-  { key: 'defense', icon: '🎓', title: '答辩怎么准备', sub: '被问「是不是 AI 写的」', needTask: false, ask: '答辩前要准备哪些材料？如果被问「这段是不是 AI 写的」该怎么回答？' },
-  { key: 'appeal', icon: '🚩', title: '我觉得判错了', sub: '申诉流程与证据', needTask: false, ask: '我觉得检测结果判错了，什么情况适合申诉，需要准备什么证据？' },
+  { key: 'report', icon: 'chart', title: '解读我的报告', sub: '哪几段最该先改', needTask: true },
+  { key: 'paste', icon: 'flask', title: '即时测一段', sub: '粘贴文字立刻看结果', needTask: false },
+  { key: 'defense', icon: 'graduation', title: '答辩怎么准备', sub: '被问「是不是 AI 写的」', needTask: false, ask: '答辩前要准备哪些材料？如果被问「这段是不是 AI 写的」该怎么回答？' },
+  { key: 'appeal', icon: 'flag', title: '我觉得判错了', sub: '申诉流程与证据', needTask: false, ask: '我觉得检测结果判错了，什么情况适合申诉，需要准备什么证据？' },
 ]
 const LS_KEY = 'paperaigc_chat_state'
 
@@ -339,7 +340,7 @@ async function rateAnswer(idx, rating) {
 function onBubbleLongPress(m, i) {
   if (m.role !== 'assistant' || !m.text) return
   uni.showActionSheet({
-    itemList: ['复制', '重新生成', '有帮助 👍', '没帮助 👎'],
+    itemList: ['复制', '重新生成', '有帮助', '没帮助'],
     success: ({ tapIndex }) => {
       if (tapIndex === 0) copyAnswer(m)
       else if (tapIndex === 1) regenerate(i)
@@ -426,8 +427,8 @@ function formatTime(t) {
           </view>
         </view>
         <view class="nav-actions">
-          <view class="nav-btn" hover-class="nav-btn--hover" @click="openHistory"><text class="nav-btn-icon sm">🕘</text></view>
-          <view class="nav-btn" hover-class="nav-btn--hover" @click="onMore"><text class="nav-btn-icon">⋯</text></view>
+          <view class="nav-btn" hover-class="nav-btn--hover" @click="openHistory"><ZyIcon name="history" :size="36" /></view>
+          <view class="nav-btn" hover-class="nav-btn--hover" @click="onMore"><ZyIcon name="more" :size="36" /></view>
         </view>
       </view>
     </view>
@@ -435,7 +436,7 @@ function formatTime(t) {
     <!-- ================= 上下文 pill ================= -->
     <view class="ctx-wrap">
       <view class="ctx" :class="{ bound: activeTask }" hover-class="ctx--hover" @click="reportSheet = true">
-        <text class="ctx-icon">{{ activeTask ? '📄' : '💬' }}</text>
+        <ZyIcon class="ctx-icon" :name="activeTask ? 'file-text' : 'chat'" :size="30" />
         <text class="ctx-title">{{ activeTask ? activeTask.paperTitle : '通用咨询' }}</text>
         <text v-if="activeTask && activeTask.aiRate != null" class="ctx-rate" :class="taskBadge?.cls">AI {{ activeTask.aiRate.toFixed(1) }}%</text>
         <text v-if="taskBadge" class="ctx-badge" :class="taskBadge.cls">{{ taskBadge.text }}</text>
@@ -444,7 +445,7 @@ function formatTime(t) {
       <!-- 绑定报告：高风险段 chips 一行横滑 -->
       <scroll-view v-if="activeTask && taskDetail && riskParagraphs.length" class="ctx-chips" scroll-x :show-scrollbar="false">
         <view class="ctx-chips-inner">
-          <view class="chip primary" hover-class="chip--hover" @click="analyzeOverall"><text>📊 整体怎么看</text></view>
+          <view class="chip primary" hover-class="chip--hover" @click="analyzeOverall"><ZyIcon name="sparkle" :size="24" color="#fff" /><text>整体怎么看</text></view>
           <view
             v-for="p in riskParagraphs" :key="p.paragraphIdx"
             class="chip" :class="(p.calibratedProb ?? 0) >= 0.7 ? 'red' : 'yellow'"
@@ -466,7 +467,7 @@ function formatTime(t) {
           </view>
           <view class="abilities">
             <view v-for="a in ABILITIES" :key="a.key" class="ability" hover-class="ability--hover" @click="onAbility(a)">
-              <text class="ability-icon">{{ a.icon }}</text>
+              <view class="ability-icon"><ZyIcon :name="a.icon" :size="40" /></view>
               <text class="ability-title">{{ a.title }}</text>
               <text class="ability-sub">{{ a.sub }}</text>
             </view>
@@ -488,7 +489,7 @@ function formatTime(t) {
               <!-- 工具三态 -->
               <view v-if="m.role === 'assistant' && m.tools?.length" class="tools">
                 <view v-for="(t, k) in m.tools" :key="k" class="tool" :class="t.status">
-                  <text class="tool-icon">{{ TOOL_ICON[t.name] || '🔧' }}</text>
+                  <ZyIcon class="tool-icon" :name="TOOL_ICON[t.name] || 'tool'" :size="26" />
                   <text class="tool-text">{{ t.status === 'done' ? (TOOL_DONE[t.name] || t.label) : t.status === 'failed' ? t.label + '失败' : t.label }}</text>
                   <view v-if="t.status === 'running'" class="spin" />
                   <text v-else class="tool-mark">{{ t.status === 'done' ? '✓' : '✕' }}</text>
@@ -510,8 +511,8 @@ function formatTime(t) {
                 <text class="act" @click="copyAnswer(m)">复制</text>
                 <text class="act" @click="regenerate(i)">重新生成</text>
                 <view class="act-spacer" />
-                <text class="act icon" :class="{ on: m.rating === 'up', off: m.rating && m.rating !== 'up' }" @click="rateAnswer(i, 'up')">👍</text>
-                <text class="act icon" :class="{ on: m.rating === 'down', off: m.rating && m.rating !== 'down' }" @click="rateAnswer(i, 'down')">👎</text>
+                <view class="act icon" :class="{ on: m.rating === 'up', off: m.rating && m.rating !== 'up' }" @click="rateAnswer(i, 'up')"><ZyIcon name="thumb-up" :size="28" /></view>
+                <view class="act icon" :class="{ on: m.rating === 'down', off: m.rating && m.rating !== 'down' }" @click="rateAnswer(i, 'down')"><ZyIcon name="thumb-down" :size="28" /></view>
               </view>
             </view>
           </view>
@@ -533,10 +534,10 @@ function formatTime(t) {
     <!-- ================= 输入区 ================= -->
     <view class="composer">
       <view v-if="toolMenuOpen" class="toolmenu">
-        <view class="toolmenu-item" hover-class="toolmenu-item--hover" @click="reportSheet = true; toolMenuOpen = false"><text class="toolmenu-icon">📄</text><text>换报告</text></view>
-        <view class="toolmenu-item" hover-class="toolmenu-item--hover" @click="pasteSheet = true; toolMenuOpen = false"><text class="toolmenu-icon">🧪</text><text>粘贴测一段</text></view>
-        <view class="toolmenu-item" hover-class="toolmenu-item--hover" @click="openHistory(); toolMenuOpen = false"><text class="toolmenu-icon">🕘</text><text>历史对话</text></view>
-        <view class="toolmenu-item" hover-class="toolmenu-item--hover" @click="onNewChat"><text class="toolmenu-icon">✨</text><text>新对话</text></view>
+        <view class="toolmenu-item" hover-class="toolmenu-item--hover" @click="reportSheet = true; toolMenuOpen = false"><ZyIcon class="toolmenu-icon" name="file-text" :size="32" /><text>换报告</text></view>
+        <view class="toolmenu-item" hover-class="toolmenu-item--hover" @click="pasteSheet = true; toolMenuOpen = false"><ZyIcon class="toolmenu-icon" name="flask" :size="32" /><text>粘贴测一段</text></view>
+        <view class="toolmenu-item" hover-class="toolmenu-item--hover" @click="openHistory(); toolMenuOpen = false"><ZyIcon class="toolmenu-icon" name="history" :size="32" /><text>历史对话</text></view>
+        <view class="toolmenu-item" hover-class="toolmenu-item--hover" @click="onNewChat"><ZyIcon class="toolmenu-icon" name="sparkle" :size="32" /><text>新对话</text></view>
       </view>
       <view class="composer-row">
         <view class="plus" :class="{ open: toolMenuOpen }" hover-class="plus--hover" @click="toolMenuOpen = !toolMenuOpen"><text>+</text></view>
@@ -561,12 +562,12 @@ function formatTime(t) {
         <view class="sheet-head"><text class="sheet-title">围绕哪份报告聊</text><text class="sheet-close" @click="reportSheet = false">✕</text></view>
         <scroll-view scroll-y class="sheet-list">
           <view class="opt" :class="{ on: taskId == null }" hover-class="opt--hover" @click="selectTask(undefined)">
-            <text class="opt-icon">💬</text>
+            <ZyIcon class="opt-icon" name="chat" :size="36" />
             <view class="opt-main"><text class="opt-title">通用咨询</text><text class="opt-sub">不绑定报告，聊原理、政策、答辩</text></view>
             <text v-if="taskId == null" class="opt-check">✓</text>
           </view>
           <view v-for="t in tasks" :key="t.id" class="opt" :class="{ on: taskId === t.id }" hover-class="opt--hover" @click="selectTask(t.id)">
-            <text class="opt-icon">📄</text>
+            <ZyIcon class="opt-icon" name="file-text" :size="36" />
             <view class="opt-main">
               <text class="opt-title">{{ t.paperTitle }}</text>
               <text class="opt-sub">{{ t.createdAt }} · 红线 {{ t.threshold }}%</text>
@@ -613,25 +614,26 @@ function formatTime(t) {
 </template>
 
 <style lang="scss" scoped>
-/* ==== 近黑单色主题（对齐登录页 Sign in 版式：浅灰底 + 白卡 + 黑胶囊） ==== */
-$ink:        #0A0A0A;
-$ink-soft:   #6E6E73;
-$ink-faint:  #8E8E93;
-$ink-line:   #E5E5EA;
-$ink-field:  #F2F2F4;
-$ink-wash:   rgba(10, 10, 10, 0.06);
-$ink-ring:   rgba(10, 10, 10, 0.08);
+/* ==== 小白对话页：本次风格的「样板间」——暖白底、墨色文字、智能青对话控件、星点语义 ==== */
+$ink:        $brand-primary;                 /* 对话控件（发送 / 主 chip / 用户气泡）= 智能青 */
+$ink-text:   $label-primary;                 /* 正文墨色 */
+$ink-soft:   rgba(23, 24, 28, 0.62);
+$ink-faint:  rgba(23, 24, 28, 0.38);
+$ink-line:   rgba(23, 24, 28, 0.10);
+$ink-field:  $bg-deep;
+$ink-wash:   $brand-primary-wash;
+$ink-ring:   rgba(20, 184, 166, 0.18);
 
 .page {
   height: 100vh; display: flex; flex-direction: column; position: relative;
-  background: #F2F2F7;
+  background: $bg-grouped-primary;
 }
 
 /* ===== 导航 ===== */
 .nav { flex: none; @include backdrop-blur($blur-material, rgba(255, 255, 255, 0.78)); border-bottom: $stroke-hairline solid $separator; z-index: $z-navbar; }
 .nav-inner { height: 96rpx; padding: 0 $sp-3; display: flex; align-items: center; justify-content: space-between; }
 .nav-btn { width: 68rpx; height: 68rpx; border-radius: $radius-pill; display: flex; align-items: center; justify-content: center; &--hover { background: $fill-quaternary; } }
-.nav-btn-icon { font-size: $fs-title-1; color: $label-primary; line-height: 1; &.sm { font-size: $fs-title-3; } }
+.nav-btn { color: $label-primary; }
 .nav-center { flex: 1; min-width: 0; display: flex; align-items: center; gap: $sp-2; justify-content: center; }
 .nav-avatar {
   position: relative; width: 60rpx; height: 60rpx; border-radius: $radius-pill;
@@ -651,14 +653,14 @@ $ink-ring:   rgba(10, 10, 10, 0.08);
   height: 76rpx; padding: 0 $sp-3 0 $sp-3;
   border-radius: $radius-pill; background: $bg-primary;
   box-shadow: $shadow-card; border: $stroke-hairline solid $separator;
-  &.bound { border-color: rgba(10, 10, 10, 0.18); }
+  &.bound { border-color: rgba(23, 24, 28, 0.18); }
   &--hover { opacity: 0.8; }
 }
-.ctx-icon { flex: none; font-size: $fs-footnote; }
+.ctx-icon { flex: none; color: $ink; }
 .ctx-title { flex: 1; min-width: 0; font-size: $fs-footnote; font-weight: $fw-medium; color: $label-primary; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .ctx-rate { flex: none; font-size: $fs-caption-2; font-weight: $fw-semibold; font-variant-numeric: tabular-nums; &.ok { color: $success-fg; } &.warn { color: $warning-fg; } &.bad { color: $danger-fg; } }
 .ctx-badge { flex: none; font-size: $fs-caption-2; font-weight: $fw-semibold; padding: 2rpx $sp-2; border-radius: $radius-pill; &.ok { background: $success-bg; color: $success-fg; } &.warn { background: $warning-bg; color: $warning-fg; } &.bad { background: $danger-bg; color: $danger-fg; } }
-.ctx-switch { flex: none; font-size: $fs-caption-1; color: $ink; font-weight: $fw-medium; }
+.ctx-switch { flex: none; font-size: $fs-caption-1; color: $ink-text; font-weight: $fw-medium; }
 .ctx-chips { margin-top: $sp-2; white-space: nowrap; }
 .ctx-chips-inner { display: inline-flex; gap: $sp-2; padding-bottom: 2rpx; }
 .chip {
@@ -666,9 +668,9 @@ $ink-ring:   rgba(10, 10, 10, 0.08);
   padding: 10rpx $sp-3; border-radius: $radius-pill;
   background: $bg-primary; color: $label-primary; border: $stroke-hairline solid $separator; font-size: $fs-footnote;
   &--hover { opacity: 0.6; }
-  &.primary { background: $ink; color: #fff; border-color: $ink; font-weight: $fw-medium; }
-  &.red { color: $danger-fg; border-color: rgba(255, 59, 48, 0.35); background: rgba(255, 59, 48, 0.06); }
-  &.yellow { color: $warning-fg; border-color: rgba(255, 149, 0, 0.35); background: rgba(255, 149, 0, 0.08); }
+  &.primary { background: $ink; color: #fff; border-color: $ink; font-weight: $fw-medium; gap: 8rpx; }
+  &.red { color: $danger-fg; border-color: rgba(229, 72, 77, 0.35); background: rgba(229, 72, 77, 0.06); }
+  &.yellow { color: $warning-fg; border-color: rgba(245, 158, 11, 0.35); background: rgba(245, 158, 11, 0.08); }
 }
 
 /* ===== 消息流 ===== */
@@ -681,7 +683,7 @@ $ink-ring:   rgba(10, 10, 10, 0.08);
 .hero { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0 $sp-4 $sp-6; }
 .hero-orb {
   width: 128rpx; height: 128rpx; border-radius: $radius-pill;
-  box-shadow: 0 16rpx 40rpx rgba(10, 10, 10, 0.16);
+  box-shadow: 0 16rpx 40rpx rgba(23, 24, 28, 0.16);
   margin-bottom: $sp-4;
 }
 .hero-title { font-size: $fs-title-2; font-weight: $fw-bold; color: $label-primary; letter-spacing: $tracking-tight; }
@@ -692,7 +694,7 @@ $ink-ring:   rgba(10, 10, 10, 0.08);
   display: flex; flex-direction: column; gap: 4rpx;
   &--hover { transform: scale(0.98); background: $fill-quaternary; }
 }
-.ability-icon { font-size: 44rpx; margin-bottom: $sp-1; }
+.ability-icon { width: 72rpx; height: 72rpx; border-radius: 20rpx; background: $ink-wash; color: $ink; display: flex; align-items: center; justify-content: center; margin-bottom: $sp-2; }
 .ability-title { font-size: $fs-subhead; font-weight: $fw-semibold; color: $label-primary; }
 .ability-sub { font-size: $fs-caption-1; color: $label-secondary; }
 .quick { margin-top: $sp-6; }
@@ -730,7 +732,7 @@ $ink-ring:   rgba(10, 10, 10, 0.08);
   &.assistant {
     background: #F7F7F9; color: $label-primary;
     box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
-    border: $stroke-hairline solid rgba(60, 60, 67, 0.06);
+    border: $stroke-hairline solid rgba(23, 24, 28, 0.06);
     min-width: 160rpx;
     &::after {
       content: ''; position: absolute; left: -10rpx; bottom: 16rpx;
@@ -741,7 +743,7 @@ $ink-ring:   rgba(10, 10, 10, 0.08);
 .bubble-text { white-space: pre-wrap; word-break: break-word; }
 .md-wrap { position: relative; }
 .bubble-md { display: block; word-break: break-word; line-height: $lh-normal; }
-.caret { color: $ink; animation: blink 1s steps(2) infinite; }
+.caret { color: $ink-text; animation: blink 1s steps(2) infinite; }
 .bubble-md :deep(.md-p) { margin: 0 0 $sp-1; }
 .bubble-md :deep(.md-h) { display: block; margin: $sp-2 0 4rpx; font-weight: $fw-semibold; }
 .bubble-md :deep(.md-list) { margin: 4rpx 0 $sp-1; padding-left: 36rpx; }
@@ -767,16 +769,16 @@ $ink-ring:   rgba(10, 10, 10, 0.08);
 @keyframes blink { 0%, 80%, 100% { opacity: 0.3; } 40% { opacity: 1; } }
 .err { display: flex; align-items: center; gap: $sp-3; margin-top: $sp-1; }
 .err-text { font-size: $fs-footnote; color: $danger-fg; }
-.err-retry { font-size: $fs-footnote; color: $ink; font-weight: $fw-medium; }
+.err-retry { font-size: $fs-footnote; color: $ink-text; font-weight: $fw-medium; }
 .actions { display: flex; align-items: center; gap: $sp-3; margin-top: $sp-2; padding-top: $sp-2; border-top: $stroke-hairline solid $separator; }
-.act { font-size: $fs-caption-1; color: $label-secondary; &.icon { font-size: $fs-footnote; } &.on { color: $ink; } &.off { opacity: 0.3; } }
+.act { font-size: $fs-caption-1; color: $label-secondary; display: inline-flex; align-items: center; &.on { color: $ink; } &.off { opacity: 0.3; } }
 .act-spacer { flex: 1; }
 
 .followups { display: flex; flex-wrap: wrap; gap: $sp-2; margin: 0 0 $sp-3 (60rpx + $sp-2); }
 .followup {
   padding: 10rpx $sp-3; border-radius: $radius-pill;
   background: $ink-wash; color: $ink; font-size: $fs-footnote;
-  border: $stroke-hairline solid rgba(10, 10, 10, 0.14);
+  border: $stroke-hairline solid rgba(23, 24, 28, 0.14);
   &--hover { opacity: 0.6; }
 }
 
@@ -791,7 +793,7 @@ $ink-ring:   rgba(10, 10, 10, 0.08);
   @include backdrop-blur($blur-material, rgba(255, 255, 255, 0.85));
   box-shadow: $shadow-lift; border: $stroke-hairline solid $separator;
   &.stop { color: $danger-fg; }
-  &.down { color: $ink; }
+  &.down { color: $ink-text; }
 }
 .stop-sq { width: 18rpx; height: 18rpx; border-radius: 4rpx; background: $danger-fg; &.light { background: #fff; } }
 
@@ -812,7 +814,8 @@ $ink-ring:   rgba(10, 10, 10, 0.08);
   font-size: $fs-caption-1; color: $label-primary;
   &--hover { background: $fill-quaternary; }
 }
-.toolmenu-icon { font-size: 40rpx; }
+.toolmenu-icon { color: $ink; }
+.tool-icon { flex: none; margin-right: 6rpx; }
 .composer-row { display: flex; align-items: flex-end; gap: $sp-2; }
 .plus {
   flex: none; width: 76rpx; height: 76rpx; border-radius: $radius-pill;
@@ -829,7 +832,7 @@ $ink-ring:   rgba(10, 10, 10, 0.08);
   background: $fill-secondary; color: $label-tertiary; font-size: $fs-title-3; font-weight: $fw-bold;
   display: flex; align-items: center; justify-content: center;
   transition: background .15s;
-  &.on { background: $ink; color: #fff; box-shadow: 0 6rpx 16rpx rgba(10, 10, 10, 0.24); }
+  &.on { background: $ink; color: #fff; box-shadow: 0 6rpx 16rpx rgba(15, 118, 110, 0.28); }
   &.busy { background: $danger-solid; }
   &--hover { opacity: 0.85; }
 }
@@ -852,12 +855,12 @@ $ink-ring:   rgba(10, 10, 10, 0.08);
   &.on { background: $ink-wash; }
   &--hover { background: $fill-quaternary; }
 }
-.opt-icon { flex: none; font-size: $fs-title-3; }
+.opt-icon { flex: none; color: $ink; }
 .opt-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2rpx; }
 .opt-title { font-size: $fs-subhead; font-weight: $fw-medium; color: $label-primary; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .opt-sub { font-size: $fs-caption-2; color: $label-secondary; }
 .opt-rate { flex: none; font-size: $fs-footnote; font-weight: $fw-semibold; font-variant-numeric: tabular-nums; &.ok { color: $success-fg; } &.bad { color: $danger-fg; } }
-.opt-check { flex: none; color: $ink; font-weight: $fw-bold; }
+.opt-check { flex: none; color: $ink-text; font-weight: $fw-bold; }
 .paste-input { width: 100%; height: 320rpx; padding: $sp-3; border-radius: $radius-md; background: $fill-tertiary; font-size: $fs-subhead; color: $label-primary; line-height: $lh-normal; }
 .paste-foot { display: flex; align-items: center; justify-content: space-between; margin-top: $sp-3; }
 .paste-count { font-size: $fs-caption-1; color: $label-tertiary; }

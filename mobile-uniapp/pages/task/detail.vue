@@ -2,6 +2,7 @@
 import { ref, computed, onUnmounted } from 'vue'
 import { onLoad, onShareAppMessage } from '@dcloudio/uni-app'
 import { getTaskDetail, retryTask, cancelTask, getTaskCompare } from '@/api/detect'
+import ZyIcon from '@/components/ZyIcon.vue'
 import { downloadReportPdf, createShare, listShares, revokeShare } from '@/api/report'
 import { SOURCE_MAP, COLOR, paragraphRisk, aiRateColor } from '@/utils/constants'
 import Skeleton from '@/components/Skeleton.vue'
@@ -160,7 +161,7 @@ async function onRetry() {
 async function onCancel() {
   const ok = await new Promise((resolve) => uni.showModal({
     title: '取消检测', content: '确定取消本次检测？取消后可在列表重新提交。',
-    confirmColor: '#FF3B30', success: (r) => resolve(r.confirm), fail: () => resolve(false),
+    confirmColor: '#E5484D', success: (r) => resolve(r.confirm), fail: () => resolve(false),
   }))
   if (!ok) return
   cancelling.value = true
@@ -285,10 +286,10 @@ const suggestions = computed(() => {
   return out
 })
 const SEV = {
-  danger: { fg: '#C62A22', bg: 'rgba(255,59,48,0.10)', dot: '#FF3B30' },
-  warn: { fg: '#B26200', bg: 'rgba(255,149,0,0.12)', dot: '#FF9500' },
-  success: { fg: '#1B7F3E', bg: 'rgba(52,199,89,0.10)', dot: '#34C759' },
-  info: { fg: '#0056B3', bg: 'rgba(0,122,255,0.08)', dot: '#007AFF' },
+  danger: { fg: '#C62A22', bg: 'rgba(229,72,77,0.10)', dot: '#E5484D' },
+  warn: { fg: '#B45309', bg: 'rgba(245,158,11,0.12)', dot: '#F59E0B' },
+  success: { fg: '#15803D', bg: 'rgba(22,163,74,0.10)', dot: '#16A34A' },
+  info: { fg: '#0F766E', bg: 'rgba(20,184,166,0.10)', dot: '#14B8A6' },
 }
 
 function jumpTo(idx) {
@@ -332,7 +333,7 @@ function copyPara(text) { uni.setClipboardData({ data: text, showToast: false, s
       <!-- ================= 处理中 ================= -->
       <view v-if="detail.status === 'RUNNING' || detail.status === 'PENDING'" class="state-card">
         <view class="state-spinner"><view class="spinner-ring" /></view>
-        <text class="state-title" style="color: #B26200">检测中</text>
+        <text class="state-title" style="color: #B45309">检测中</text>
         <text class="state-sub">通常 15–30 秒，页面会自动刷新</text>
         <view class="steps">
           <view v-for="(s, i) in STEPS" :key="s" class="step" :class="{ done: i < stepIndex, now: i === stepIndex }">
@@ -361,7 +362,7 @@ function copyPara(text) { uni.setClipboardData({ data: text, showToast: false, s
               <circle cx="100" cy="100" r="86" fill="none" :stroke="summaryColor" stroke-width="14" stroke-linecap="round"
                 :stroke-dasharray="ringCircumference" :stroke-dashoffset="ringOffset" transform="rotate(-90 100 100)"
                 style="transition: stroke-dashoffset 900ms cubic-bezier(0.32, 0.72, 0, 1)"/>
-              <circle cx="100" cy="100" r="86" fill="none" :stroke="pass ? '#34C759' : '#FF3B30'" stroke-width="14"
+              <circle cx="100" cy="100" r="86" fill="none" :stroke="pass ? '#16A34A' : '#E5484D'" stroke-width="14"
                 :stroke-dasharray="`3 ${ringCircumference - 3}`" :stroke-dashoffset="ringThresholdOffset" transform="rotate(-90 100 100)" opacity="0.9"/>
             </svg>
             <view class="ring-center">
@@ -581,7 +582,7 @@ function copyPara(text) { uni.setClipboardData({ data: text, showToast: false, s
       </view>
       <view class="share-row">
         <text class="share-label">水印</text>
-        <input v-model="shareWatermark" class="share-input" maxlength="40" placeholder="如：仅供张老师审阅" placeholder-style="color: rgba(60,60,67,0.30)" />
+        <input v-model="shareWatermark" class="share-input" maxlength="40" placeholder="如：仅供张老师审阅" placeholder-style="color: rgba(23, 24, 28,0.30)" />
       </view>
       <text class="share-hint">对方只能看报告，不能申诉、下载或问助手；页面带水印，随时可撤销。</text>
       <button class="share-submit" :loading="shareCreating" :disabled="shareCreating" @click="doCreateShare">生成链接并复制</button>
@@ -620,7 +621,7 @@ function copyPara(text) { uni.setClipboardData({ data: text, showToast: false, s
           <text class="cmp-arrow">→</text>
           <view class="cmp-side"><text class="cmp-side-label">本次</text><text class="cmp-side-rate" :class="compareData.summary.pass ? 'ok' : 'bad'">{{ compareData.current.aiRate == null ? '—' : compareData.current.aiRate.toFixed(1) + '%' }}</text></view>
         </view>
-        <button class="cmp-ask" @click="askRevision">💬 让小白点评这次修改</button>
+        <button class="cmp-ask" @click="askRevision"><ZyIcon name="xiaobai-spark" :size="30" color="#0F766E" /><text>让小白点评这次修改</text></button>
         <view class="cmp-stats">
           <text class="cmp-stat down">降 {{ compareData.summary.down }}</text>
           <text class="cmp-stat up">涨 {{ compareData.summary.up }}</text>
@@ -674,14 +675,14 @@ function copyPara(text) { uni.setClipboardData({ data: text, showToast: false, s
 .state-sub { display: block; font-size: $fs-subhead; color: $label-secondary; margin-top: $sp-2; }
 .state-paper { display: block; font-size: $fs-footnote; color: $label-secondary; margin-top: $sp-3; }
 .state-spinner { width: 96rpx; height: 96rpx; }
-.spinner-ring { width: 100%; height: 100%; border-radius: 50%; border: 8rpx solid rgba(255, 149, 0, 0.18); border-top-color: $warning-solid; animation: spin 1s linear infinite; }
+.spinner-ring { width: 100%; height: 100%; border-radius: 50%; border: 8rpx solid rgba(245, 158, 11, 0.18); border-top-color: $warning-solid; animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .steps { display: flex; justify-content: space-between; width: 100%; margin-top: $sp-5; padding: 0 $sp-2; }
 .step { display: flex; flex-direction: column; align-items: center; gap: 8rpx; flex: 1; }
 .step-dot { width: 20rpx; height: 20rpx; border-radius: 50%; background: $fill-primary; }
 .step-text { font-size: $fs-caption-2; color: $label-tertiary; }
 .step.done .step-dot { background: $success-solid; } .step.done .step-text { color: $label-secondary; }
-.step.now .step-dot { background: $warning-solid; box-shadow: 0 0 0 8rpx rgba(255, 149, 0, 0.18); } .step.now .step-text { color: $warning-fg; font-weight: $fw-semibold; }
+.step.now .step-dot { background: $warning-solid; box-shadow: 0 0 0 8rpx rgba(245, 158, 11, 0.18); } .step.now .step-text { color: $warning-fg; font-weight: $fw-semibold; }
 .state-mark { width: 96rpx; height: 96rpx; border-radius: 50%; position: relative; &.danger { background: $danger-bg; } }
 .mark-x-1, .mark-x-2 { position: absolute; left: 20%; right: 20%; top: 48%; height: 6rpx; border-radius: 3rpx; background: $danger-solid; }
 .mark-x-1 { transform: rotate(45deg); } .mark-x-2 { transform: rotate(-45deg); }
@@ -780,14 +781,14 @@ function copyPara(text) { uni.setClipboardData({ data: text, showToast: false, s
   &.high.active { background: $danger-solid; border-color: $danger-solid; } &.mid.active { background: $warning-solid; border-color: $warning-solid; } &.low.active { background: $success-solid; border-color: $success-solid; } }
 .filter-n { font-size: $fs-caption-2; opacity: 0.7; font-variant-numeric: tabular-nums; }
 .legend-row { display: flex; align-items: center; gap: 8rpx; margin-top: $sp-2; padding: 0 $sp-2; font-size: $fs-caption-2; color: $label-secondary; }
-.sw { width: 24rpx; height: 12rpx; border-radius: 4rpx; &.high { background: rgba(255, 59, 48, 0.3); } &.mid { background: rgba(255, 149, 0, 0.3); margin-left: $sp-2; } }
+.sw { width: 24rpx; height: 12rpx; border-radius: 4rpx; &.high { background: rgba(229, 72, 77, 0.3); } &.mid { background: rgba(245, 158, 11, 0.3); margin-left: $sp-2; } }
 .legend-note { margin-left: auto; }
 
 /* 段落卡 */
 .para-card { @include card-flush; margin-bottom: $sp-2; overflow: hidden; }
 .para-excluded { opacity: 0.7; }
 .para-header { display: flex; justify-content: space-between; align-items: center; padding: $sp-3 $sp-4 $sp-3 0; }
-.para-header-hover { background: rgba(60, 60, 67, 0.06); }
+.para-header-hover { background: rgba(23, 24, 28, 0.06); }
 .para-bar { flex: none; width: 8rpx; align-self: stretch; margin-right: $sp-3; border-radius: 0 4rpx 4rpx 0; }
 .para-header-left { display: flex; align-items: baseline; gap: $sp-2; flex: 1; min-width: 0; flex-wrap: wrap; }
 .para-idx { font-size: $fs-caption-2; color: $label-secondary; font-weight: $fw-semibold; letter-spacing: 1rpx; }
@@ -816,7 +817,7 @@ function copyPara(text) { uni.setClipboardData({ data: text, showToast: false, s
 
 /* 申诉 */
 .appeal-card { margin-top: $sp-5; padding: $sp-3 $sp-4; background: $bg-primary; border-radius: $radius-lg; box-shadow: $shadow-card; display: flex; align-items: center; }
-.appeal-card-hover { background: rgba(60, 60, 67, 0.05); }
+.appeal-card-hover { background: rgba(23, 24, 28, 0.05); }
 .appeal-icon { position: relative; width: 48rpx; height: 48rpx; margin-right: $sp-3; flex-shrink: 0; }
 .appeal-flag-mast { position: absolute; left: 12rpx; top: 4rpx; width: 4rpx; height: 40rpx; background: $label-primary; border-radius: 2rpx; }
 .appeal-flag-cloth { position: absolute; left: 16rpx; top: 4rpx; width: 26rpx; height: 20rpx; background: $brand-primary; clip-path: polygon(0 0, 100% 0, 70% 50%, 100% 100%, 0 100%); }
@@ -860,7 +861,7 @@ function copyPara(text) { uni.setClipboardData({ data: text, showToast: false, s
 .cmp-side-label { font-size: $fs-caption-1; color: $label-secondary; }
 .cmp-side-rate { font-size: $fs-title-1; font-weight: $fw-bold; letter-spacing: -1rpx; &.ok { color: $success-fg; } &.bad { color: $danger-fg; } }
 .cmp-arrow { font-size: $fs-title-2; color: $label-quaternary; }
-.cmp-ask { margin: 0 0 $sp-3; height: 76rpx; line-height: 76rpx; background: $brand-primary-wash; color: $brand-primary; font-size: $fs-subhead; font-weight: $fw-semibold; border-radius: $radius-pill; &::after { border: none; } }
+.cmp-ask { margin: 0 0 $sp-3; height: $size-btn-h-md; display: flex; align-items: center; justify-content: center; gap: 8rpx; background: $brand-primary-wash; color: $brand-primary; font-size: $fs-subhead; font-weight: $fw-semibold; border-radius: $radius-pill; &::after { border: none; } }
 .cmp-stats { display: flex; justify-content: center; gap: $sp-2; margin-bottom: $sp-2; }
 .cmp-stat { font-size: $fs-caption-1; font-weight: $fw-semibold; padding: 2rpx $sp-2; border-radius: $radius-xs; &.down { background: $success-bg; color: $success-fg; } &.up { background: $danger-bg; color: $danger-fg; } &.added { background: $warning-bg; color: $warning-fg; } &.removed { background: $neutral-bg; color: $neutral-fg; } }
 .cmp-list { flex: 1; min-height: 0; max-height: 46vh; }

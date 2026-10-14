@@ -29,10 +29,20 @@ function open() {
   position: fixed;
   right: $sp-4;
   z-index: $z-sticky;
-  &--hover { opacity: 0.85; transform: scale(0.97); }
+  filter: drop-shadow(0 12rpx 28rpx rgba(15, 118, 110, 0.22));
+  animation: breathe 3s ease-in-out infinite;
+  &--hover { opacity: 0.85; transform: scale(0.97); animation: none; }
 }
 .fab-img {
   display: block;
   width: 186rpx;
+}
+/* 小白呼吸：空闲时才感知得到 */
+@keyframes breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fab { animation: none; }
 }
 </style>

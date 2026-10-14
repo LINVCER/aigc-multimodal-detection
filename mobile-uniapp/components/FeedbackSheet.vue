@@ -166,14 +166,14 @@ async function onSubmit() {
 }
 .fb-handle {
   width: 72rpx; height: 8rpx; border-radius: 4rpx;
-  background: rgba(60,60,67,0.24); margin: 0 auto 24rpx;
+  background: rgba(23, 24, 28,0.24); margin: 0 auto 24rpx;
 }
 .fb-header {
   display: flex; justify-content: space-between; align-items: center;
   margin-bottom: 24rpx;
 }
 .fb-title { font-size: 34rpx; font-weight: 600; color: #000; }
-.fb-close { font-size: 36rpx; color: rgba(60,60,67,0.60); padding: 4rpx 12rpx; }
+.fb-close { font-size: 36rpx; color: rgba(23, 24, 28,0.60); padding: 4rpx 12rpx; }
 
 .fb-tabs {
   display: flex; padding: 6rpx;
@@ -193,11 +193,11 @@ async function onSubmit() {
 }
 .fb-appeal-hint {
   padding: 20rpx 24rpx;
-  background: rgba(0,122,255,0.08);
+  background: rgba(20, 184, 166,0.08);
   border-radius: 18rpx;
   margin-bottom: 24rpx;
   font-size: 26rpx;
-  color: rgba(60,60,67,0.85);
+  color: rgba(23, 24, 28,0.85);
 }
 .fb-textarea {
   width: 100%; box-sizing: border-box;
@@ -210,7 +210,7 @@ async function onSubmit() {
 }
 .fb-count {
   text-align: right; font-size: 22rpx;
-  color: rgba(60,60,67,0.60);
+  color: rgba(23, 24, 28,0.60);
   margin: 8rpx 6rpx 20rpx;
 }
 .fb-input {
@@ -223,10 +223,10 @@ async function onSubmit() {
 }
 .fb-submit {
   width: 100%; height: 88rpx; line-height: 88rpx;
-  background: #007AFF; color: #FFFFFF;
+  background: $brand-primary; color: #FFFFFF;
   font-size: 32rpx; font-weight: 600;
   border-radius: 20rpx;
-  &.disabled { background: rgba(0,122,255,0.35); }
+  &.disabled { background: rgba(20, 184, 166,0.35); }
 }
 
 /* 段级申诉 */
