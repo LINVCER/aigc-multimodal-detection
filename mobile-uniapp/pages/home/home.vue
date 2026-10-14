@@ -116,8 +116,8 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
     <!-- 主 CTA · 品牌渐变卡 · 跳二级模态选择 -->
     <view class="hero-cta" hover-class="hero-cta-hover" @click="goModalityPicker">
       <view class="hero-cta-body">
-        <text class="hero-cta-title">立即开始检测</text>
-        <text class="hero-cta-desc">上传论文全文，几十秒出 AI 率报告</text>
+        <text class="hero-cta-title">赶 DDL 前先自查一遍</text>
+        <text class="hero-cta-desc">AI 率是多少、哪几段最像、为什么像、怎么改</text>
       </view>
       <text class="hero-cta-arrow">→</text>
     </view>
@@ -192,7 +192,7 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
     </view>
 
     <view v-if="!loading && recent.length === 0" class="recent-empty">
-      <text class="recent-empty-text">还没有检测记录，点击上方开始第一次</text>
+      <text class="recent-empty-text">还没有记录，交一篇试试？</text>
     </view>
 
     <view v-else class="recent-list">
@@ -344,7 +344,7 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
 .promo-dot {
   width: 12rpx; height: 12rpx;
   border-radius: $radius-pill;
-  background: rgba(60, 60, 67, 0.22);
+  background: rgba(23, 24, 28, 0.22);
   transition: width $duration-fast $ease-standard, background $duration-fast;
 }
 .promo-dot.on { width: 32rpx; background: $brand-primary; }
@@ -426,7 +426,7 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
   transition: background $duration-fast, transform $duration-fast $ease-standard;
 }
 .recent-card-hover {
-  background: rgba(60, 60, 67, 0.04);
+  background: rgba(23, 24, 28, 0.04);
   transform: scale(0.99);
 }
 .recent-head {

@@ -1,4 +1,5 @@
 <script setup>
+import ZyIcon from '@/components/ZyIcon.vue'
 import { ref, computed } from 'vue'
 import { onShow, onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
 import { uploadPaper, detectTextDirect, listTasks } from '@/api/detect'
@@ -161,8 +162,8 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
 
     <!-- 分段 -->
     <view class="seg">
-      <view class="seg-item" :class="{ active: mode === 'file' }" @click="mode = 'file'"><text>📄 上传论文</text></view>
-      <view class="seg-item" :class="{ active: mode === 'paste' }" @click="mode = 'paste'"><text>✍️ 粘贴一段</text></view>
+      <view class="seg-item" :class="{ active: mode === 'file' }" @click="mode = 'file'"><ZyIcon name="file-text" :size="28" /><text>上传论文</text></view>
+      <view class="seg-item" :class="{ active: mode === 'paste' }" @click="mode = 'paste'"><ZyIcon name="pen-line" :size="28" /><text>先贴一段看看</text></view>
     </view>
 
     <!-- ===================== 文件模式 ===================== -->
@@ -237,10 +238,10 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
         <textarea
           v-model="pasteText" class="paste-input" auto-height :maxlength="PASTE_MAX + 500"
           placeholder="粘贴 120–5000 字，立刻看到 AI 率、句子级高亮和疑似来源。不落库、不生成任务。"
-          placeholder-style="color: rgba(60,60,67,0.30)" :cursor-spacing="40" :adjust-position="true"
+          placeholder-style="color: rgba(23, 24, 28,0.30)" :cursor-spacing="40" :adjust-position="true"
         />
         <view class="paste-tools">
-          <text class="paste-tool" @click="pasteFromClipboard">📋 从剪贴板粘贴</text>
+          <view class="paste-tool" @click="pasteFromClipboard"><ZyIcon name="clipboard" :size="26" /><text>从剪贴板粘贴</text></view>
           <text v-if="pasteText" class="paste-tool" @click="clearPaste">清空</text>
         </view>
       </view>
@@ -299,9 +300,10 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
 /* 分段 */
 .seg { display: flex; padding: 6rpx; background: $fill-tertiary; border-radius: $radius-btn; margin-bottom: $sp-2; }
 .seg-item {
-  flex: 1; height: 72rpx; display: flex; align-items: center; justify-content: center; border-radius: 16rpx;
+  flex: 1; height: 72rpx; display: flex; align-items: center; justify-content: center; gap: 8rpx; border-radius: 16rpx;
+  color: $label-secondary;
   text { font-size: $fs-callout; color: $label-secondary; font-weight: $fw-medium; }
-  &.active { background: $bg-primary; box-shadow: 0 3rpx 8rpx rgba(0, 0, 0, 0.06); text { color: $label-primary; font-weight: $fw-semibold; } }
+  &.active { background: $bg-primary; color: $brand-primary; box-shadow: 0 3rpx 8rpx rgba(23, 24, 28, 0.06); text { color: $label-primary; font-weight: $fw-semibold; } }
 }
 
 /* 分组标题 */
@@ -314,11 +316,11 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
 .drop {
   @include card; margin-top: $sp-4; padding: $sp-8 $sp-4 $sp-5;
   display: flex; flex-direction: column; align-items: center; text-align: center;
-  border: 2rpx dashed rgba(0, 122, 255, 0.35); background: rgba(255, 255, 255, 0.9);
+  border: 2rpx dashed rgba(20, 184, 166, 0.35); background: rgba(255, 255, 255, 0.9);
   &--hover { background: $brand-primary-wash; }
 }
 .drop-icon { position: relative; width: 120rpx; height: 120rpx; margin-bottom: $sp-3; }
-.drop-doc { position: absolute; left: 22rpx; top: 8rpx; width: 76rpx; height: 100rpx; border-radius: 12rpx; background: $brand-primary-wash; border: 3rpx solid rgba(0, 122, 255, 0.45); }
+.drop-doc { position: absolute; left: 22rpx; top: 8rpx; width: 76rpx; height: 100rpx; border-radius: 12rpx; background: $brand-primary-wash; border: 3rpx solid rgba(20, 184, 166, 0.45); }
 .drop-plus { position: absolute; right: 2rpx; bottom: 0; width: 48rpx; height: 48rpx; border-radius: $radius-pill; background: $brand-primary; color: #fff; font-size: $fs-title-3; line-height: 48rpx; text-align: center; box-shadow: $shadow-lift; }
 .drop-title { font-size: $fs-headline; font-weight: $fw-semibold; color: $label-primary; }
 .drop-sub { font-size: $fs-footnote; color: $label-secondary; margin-top: 4rpx; }
@@ -336,7 +338,7 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
 .picked-act { flex: none; font-size: $fs-footnote; color: $brand-primary; font-weight: $fw-medium; &.danger { color: $danger-fg; } }
 
 /* 修改稿 */
-.prev { @include card; margin-top: $sp-3; padding: $sp-3 $sp-4; border: 2rpx solid transparent; &.on { border-color: rgba(0, 122, 255, 0.35); } }
+.prev { @include card; margin-top: $sp-3; padding: $sp-3 $sp-4; border: 2rpx solid transparent; &.on { border-color: rgba(20, 184, 166, 0.35); } }
 .prev-head { margin-bottom: $sp-2; }
 .prev-title { display: block; font-size: $fs-subhead; font-weight: $fw-semibold; color: $label-primary; }
 .prev-sub { display: block; font-size: $fs-caption-1; color: $label-secondary; margin-top: 2rpx; }
@@ -365,7 +367,7 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
   margin: 0; height: 96rpx; line-height: 96rpx; border-radius: $radius-pill;
   background: $fill-secondary; color: $label-tertiary; font-size: $fs-headline; font-weight: $fw-semibold;
   &::after { border: none; }
-  &.ready { background: $brand-primary; color: #fff; box-shadow: 0 8rpx 20rpx rgba(0, 122, 255, 0.28); }
+  &.ready { background: $brand-primary; color: #fff; box-shadow: 0 8rpx 20rpx rgba(20, 184, 166, 0.28); }
   &[disabled] { opacity: 1; }
 }
 .privacy { display: block; margin-top: $sp-2; font-size: $fs-caption-2; color: $label-tertiary; text-align: center; }
@@ -374,7 +376,7 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
 .paste { @include card; padding: $sp-3 $sp-4 $sp-2; }
 .paste-input { width: 100%; min-height: 320rpx; font-size: $fs-callout; line-height: $lh-normal; color: $label-primary; }
 .paste-tools { display: flex; gap: $sp-4; padding-top: $sp-2; border-top: $stroke-hairline solid $separator; margin-top: $sp-2; }
-.paste-tool { font-size: $fs-footnote; color: $brand-primary; font-weight: $fw-medium; }
+.paste-tool { display: inline-flex; align-items: center; gap: 6rpx; font-size: $fs-footnote; color: $brand-primary; font-weight: $fw-medium; }
 .paste-warn { display: block; font-size: $fs-caption-1; color: $warning-fg; padding: $sp-2 $sp-2 0; }
 
 .result { @include card; margin-top: $sp-4; padding: $sp-4; }
@@ -389,7 +391,7 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
 .result-warn { display: block; font-size: $fs-caption-1; color: $warning-fg; margin-top: 4rpx; }
 .result-text { font-size: $fs-body; line-height: $lh-relaxed; color: $label-primary; }
 .result-legend { display: flex; align-items: center; gap: 8rpx; margin-top: $sp-2; font-size: $fs-caption-2; color: $label-secondary; }
-.sw { width: 24rpx; height: 12rpx; border-radius: 4rpx; &.high { background: rgba(255, 59, 48, 0.3); } &.mid { background: rgba(255, 149, 0, 0.3); margin-left: $sp-2; } }
+.sw { width: 24rpx; height: 12rpx; border-radius: 4rpx; &.high { background: rgba(229, 72, 77, 0.3); } &.mid { background: rgba(245, 158, 11, 0.3); margin-left: $sp-2; } }
 .legend-note { margin-left: auto; }
 .result-branches { display: flex; flex-wrap: wrap; gap: $sp-2; margin-top: $sp-3; }
 .branch { background: $fill-tertiary; padding: 6rpx $sp-2; border-radius: $radius-pill; font-size: $fs-caption-1; color: $label-secondary; font-variant-numeric: tabular-nums; }
