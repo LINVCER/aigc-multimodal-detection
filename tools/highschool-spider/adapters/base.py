@@ -7,19 +7,27 @@
 """
 from __future__ import annotations
 
+import re
+
 import extract
 
 # 链接是否值得跟进：锚文本或 URL 命中这些词才入队，避免把整站爬一遍
 FOLLOW_KW = ["通知", "公告", "学位", "毕业论文", "毕业设计", "研究生", "本科", "学术规范",
-             "学术不端", "aigc", "人工智能", "查重", "检测", "诚信", "答辩", "notice", "news", "tzgg"]
-SKIP_EXT = (".pdf", ".doc", ".docx", ".xls", ".xlsx", ".zip", ".rar", ".7z",
-            ".jpg", ".jpeg", ".png", ".gif", ".mp4", ".avi")
+             "学术不端", "aigc", "人工智能", "查重", "检测", "诚信", "答辩", "notice", "news", "tzgg",
+             "yjsy", "gs", "grad", "jwc", "教务", "学位办", "质量"]
+# 深度模式额外跟进：研究生院/教务处/学位办等子站入口，哪怕锚文本没命中关键词
+DEEP_SITE_KW = ["yjsy", "gs.", "grad", "jwc", "xwb", "yb.", "/gra", "/yjs", "/jw"]
+IMG_MEDIA_EXT = (".xls", ".xlsx", ".zip", ".rar", ".7z", ".jpg", ".jpeg", ".png", ".gif", ".mp4", ".avi", ".mp3")
+ATTACH_EXT = (".pdf", ".doc", ".docx")
+# 列表翻页：index_2.html / list2.htm / ?page=2 / _2.html 等
+_PAGER = re.compile(r"(?:index|list)?_?\d{1,3}\.(?:html?|shtml)$|[?&](?:page|pageNum|pn)=\d+")
 
 
 class SiteAdapter:
     """一所学校的抓取策略。子类按需覆盖 should_follow / seed_urls / extract。"""
 
     name = "base"
+    deep = False  # 由 spider 按 --deep 设置：放宽跟进、跟进翻页与子站
 
     def match(self, host: str, seed: dict) -> bool:
         return False
@@ -27,11 +35,25 @@ class SiteAdapter:
     def seed_urls(self, seed: dict) -> list[str]:
         return [seed["entry_url"].strip()]
 
+    def is_attachment(self, href: str) -> bool:
+        return href.lower().split("?")[0].endswith(ATTACH_EXT)
+
     def should_follow(self, anchor: str, href: str) -> bool:
-        low = (anchor + " " + href).lower()
-        if any(href.lower().split("?")[0].endswith(ext) for ext in SKIP_EXT):
+        path = href.lower().split("?")[0]
+        if path.endswith(IMG_MEDIA_EXT):
             return False
-        return any(k in low for k in FOLLOW_KW)
+        if path.endswith(ATTACH_EXT):
+            return False  # 附件单独走 is_attachment，不走 html 跟进
+        low = (anchor + " " + href).lower()
+        if any(k in low for k in FOLLOW_KW):
+            return True
+        if self.deep:
+            # 深度模式：翻页与研究生院/教务处子站入口也跟，公开页没有时尽量往深走
+            if _PAGER.search(href):
+                return True
+            if any(k in low for k in DEEP_SITE_KW):
+                return True
+        return False
 
     def page_relevant(self, title: str, body: str) -> bool:
         return extract.page_is_relevant(f"{title}\n{body}")

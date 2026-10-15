@@ -85,6 +85,35 @@ class Candidate:
     snippet: str
     source_url: str
     confidence: int
+    notice_title: str = ""   # 基本信息：来源通知标题
+    publish_date: str = ""   # 基本信息：通知发布日期
+
+
+_DATE = re.compile(r"(20[12]\d)[-/.年](\d{1,2})[-/.月](\d{1,2})")
+_ROUNDS = re.compile(r"(?:检测|送检|查重|检测机会)[^。；\n]{0,8}?(\d)\s*次")
+SCOPE_KW = ["全日制", "非全日制", "专业学位", "学术学位", "同等学力", "留学生", "本科", "硕士", "博士", "专硕", "学硕"]
+DEPT_KW = ["研究生院", "教务处", "学位办", "学位评定", "质量监督", "学院"]
+
+
+def extract_basics(text: str, notice_title: str = "") -> dict:
+    """抽通知的基本信息，供人工复核时了解背景：发布日期、适用范围、检测工具、送检次数、是否免费、归口部门。"""
+    t = _norm(text or "")
+    dm = _DATE.search(t)
+    publish_date = f"{dm.group(1)}-{int(dm.group(2)):02d}-{int(dm.group(3)):02d}" if dm else ""
+    rounds = ""
+    rm = _ROUNDS.search(t)
+    if rm:
+        rounds = rm.group(1)
+    low = t.lower()
+    return {
+        "notice_title": notice_title.strip()[:120],
+        "publish_date": publish_date,
+        "platform": _platform_in(t) or "",
+        "applies_to": [k for k in SCOPE_KW if k in t],
+        "detect_rounds": rounds,
+        "free": ("免费" in t),
+        "department": next((k for k in DEPT_KW if k in notice_title or k in t), ""),
+    }
 
 
 def page_is_relevant(text: str) -> bool:
@@ -94,8 +123,9 @@ def page_is_relevant(text: str) -> bool:
     return hit_metric and bool(_PCT.search(low))
 
 
-def extract_rules(text: str, source_url: str, school_id: str = "", school_name: str = "") -> list[dict]:
-    """从正文抽红线候选。按子句顺序扫描，学位标题作为上下文带给后续子句。"""
+def extract_rules(text: str, source_url: str, school_id: str = "", school_name: str = "",
+                  notice_title: str = "", publish_date: str = "") -> list[dict]:
+    """从正文抽红线候选。按子句顺序扫描，学位标题作为上下文带给后续子句。notice_title/publish_date 作为基本信息随每条候选带出。"""
     text = _norm(text or "")
     page_year = None
     ym = _YEAR.search(text)
@@ -167,6 +197,7 @@ def extract_rules(text: str, source_url: str, school_id: str = "", school_name: 
                 school_id=school_id, school_name=school_name, degree_type=degree,
                 metric=metric, limit_pct=val, platform=platform, effective_year=year,
                 snippet=clause[:160], source_url=source_url, confidence=min(conf, 100),
+                notice_title=notice_title[:120], publish_date=publish_date,
             )))
     return out
 

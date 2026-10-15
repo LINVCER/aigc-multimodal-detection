@@ -1,3 +1,6 @@
 requests>=2.31
 beautifulsoup4>=4.12
 lxml>=5.0
+# 深挖模式解析附件红头文件（缺失时自动跳过附件，不影响 HTML 抓取）
+pypdf>=4.0
+python-docx>=1.1

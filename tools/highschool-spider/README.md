@@ -63,3 +63,30 @@ python tools/highschool-spider/spider.py --seeds my_seeds.csv --out out --delay 
 - 高校站点常用 GBK，已自动判编码；个别站点反爬严格时请增大 `--delay` 或减小 `--max-pages`，不要并发猛拉。
 - 抽取是启发式的，AI 率与查重率同句出现时可能各出一条，**务必人工看 snippet 再定**。
 - 本工具只收集公开政策信息，不采集任何学生个人数据或论文正文。
+
+## 深挖模式 `--deep`
+
+公开通知页常把阈值藏在二级列表、翻页、研究生院/教务处子站，或**附件红头文件（PDF/DOC）**里。`--deep` 会：
+
+- 把默认深度 2→4、每校页数 50→150（显式传参则不覆盖）；
+- 跟进列表翻页（`index_2.html` / `?page=2` 等）与同校 `gs.` / `yjs` / `jwc` 子站；
+- 下载并解析 PDF / DOCX / DOC 附件正文（需 `pip install pypdf python-docx`，缺库自动跳过）；
+- 仍然遵守 robots.txt 与每域限速，不碰任何鉴权。
+
+```bash
+python tools/highschool-spider/spider.py --seeds my_seeds.csv --out out --deep --delay 2 --max-attachments 10
+```
+
+输出除 `candidates.{jsonl,csv}` 外，`--deep` 命中页还写 `out/pages.jsonl`，含每页**基本信息**：
+通知标题、发布日期、检测平台、适用范围（全日制/专硕…）、送检次数、是否免费、归口部门，供人工复核时了解背景。
+
+### robots 与 UA 说明
+
+- robots.txt 由本工具用统一 UA 自取再解析：无 robots（404）按允许，真实 `Disallow` 照禁。
+  这样可避免高校反爬对默认 urllib UA 回 403、被误判成「整站禁止」。
+- UA 为纯 ASCII（HTTP 头不能带中文），标明用途与联系方式。
+
+### 提示：不是每所学校都公开数字
+
+部分高校（尤其顶尖院校）只在内部红头文件里给 AIGC/查重阈值，公开页查不到数字。
+这类学校靠用户上报 + 通用口径兜底（见 `docs/design/202610-school-redline-plan.md` §3、§5），爬虫抓不到属正常。
