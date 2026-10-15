@@ -38,6 +38,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -90,11 +91,10 @@ public class ReportController {
         String paperTitle = task.getPaperTitle() == null ? "未命名论文" : task.getPaperTitle();
         String filename = URLEncoder.encode("AIGC检测报告-" + paperTitle + ".pdf", StandardCharsets.UTF_8)
                 .replaceAll("\\+", "%20");
-        response.setContentType("application/pdf");
-        response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + filename);
 
-        try (OutputStream out = response.getOutputStream();
-             PdfWriter writer = new PdfWriter(out);
+        // 先生成完整 PDF 到内存，再一次写入响应：避免边生成边直接写 response 流导致尾部字节（xref/trailer/%%EOF）丢失
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (PdfWriter writer = new PdfWriter(baos);
              PdfDocument pdf = new PdfDocument(writer);
              Document doc = new Document(pdf, PageSize.A4)) {
 
@@ -109,7 +109,19 @@ public class ReportController {
             renderFooter(doc, id);
         } catch (Exception e) {
             log.error("generate pdf failed for task {}", id, e);
-            throw e;
+            response.setStatus(500);
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write("{\"code\":500,\"msg\":\"PDF 生成失败\"}");
+            return;
+        }
+
+        byte[] pdfBytes = baos.toByteArray();
+        response.setContentType("application/pdf");
+        response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + filename);
+        response.setContentLength(pdfBytes.length);
+        try (OutputStream out = response.getOutputStream()) {
+            out.write(pdfBytes);
+            out.flush();
         }
     }
 
@@ -143,8 +155,8 @@ public class ReportController {
                     .setFontSize(72).setBold().setFontColor(color)
                     .setTextAlignment(TextAlignment.CENTER).setMarginBottom(8));
             doc.add(new Paragraph(pass
-                    ? "✓  低于红线 " + threshold + "%，达标"
-                    : "⚠  超过红线 " + threshold + "%，建议修改后重检")
+                    ? "达标 · 低于红线 " + threshold + "%"
+                    : "超标 · 超过红线 " + threshold + "%，建议修改后重检")
                     .setFontSize(12).setBold().setFontColor(color)
                     .setTextAlignment(TextAlignment.CENTER).setMarginBottom(40));
         } else {
