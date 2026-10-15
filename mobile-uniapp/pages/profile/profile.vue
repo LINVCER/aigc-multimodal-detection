@@ -3,8 +3,22 @@ import { ref, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useAuth } from '@/store/auth'
 import { getStatistics } from '@/api/detect'
+import { getMyRule } from '@/api/school'
 import FeedbackSheet from '@/components/FeedbackSheet.vue'
 import AssistantFab from '@/components/AssistantFab.vue'
+import SchoolPicker from '@/components/SchoolPicker.vue'
+
+const schoolPickerOpen = ref(false)
+const myRule = ref(null)
+const DEG_CN = { bachelor: '本科', master: '硕士', phd: '博士' }
+const schoolText = computed(() => {
+  const r = myRule.value
+  if (!r || !r.schoolName) return '未设置'
+  return `${r.schoolName} · ${DEG_CN[r.degreeType] || ''}`
+})
+async function loadMyRule() {
+  try { myRule.value = await getMyRule() } catch (e) {}
+}
 
 const auth = useAuth()
 const feedbackOpen = ref(false)
@@ -79,6 +93,7 @@ onShow(() => {
   getStatistics()
     .then((s) => { stats.value = s })
     .catch(() => { stats.value = null })
+  loadMyRule()
 })
 </script>
 
@@ -114,6 +129,14 @@ onShow(() => {
     <!-- 账户 -->
     <text class="group-label">账户</text>
     <view class="group-card">
+      <view class="row" hover-class="row-hover" @click="schoolPickerOpen = true">
+        <text class="row-title">我的学校</text>
+        <view class="row-tail">
+          <text class="row-value">{{ schoolText }}</text>
+          <text class="chevron">›</text>
+        </view>
+      </view>
+      <view class="separator" />
       <view class="row" hover-class="row-hover" @click="comingSoon('额度余额')">
         <text class="row-title">额度余额</text>
         <view class="row-tail">
@@ -186,6 +209,7 @@ onShow(() => {
     </view>
 
     <FeedbackSheet v-model="feedbackOpen" default-category="suggestion" />
+    <SchoolPicker v-model="schoolPickerOpen" @saved="loadMyRule" />
 
     <!-- 修改密码 -->
     <view v-if="pwdOpen" class="mask" @click="pwdOpen = false" />

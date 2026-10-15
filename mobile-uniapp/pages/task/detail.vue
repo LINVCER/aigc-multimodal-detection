@@ -189,6 +189,7 @@ function goSection(id) { scrollIntoId.value = ''; setTimeout(() => { scrollIntoI
 
 /* ---------- 派生 ---------- */
 const pass = computed(() => { const d = detail.value; return d && d.aiRate != null && d.aiRate <= d.threshold })
+const redlineLabel = computed(() => { const l = detail.value?.ruleLabel; return l && l !== '通用标准' ? l.replace(/\s*·\s*/g, '') : '' })
 const summaryColor = computed(() => aiRateColor(detail.value?.aiRate, detail.value?.threshold))
 const ringCircumference = 2 * Math.PI * 86
 const ringOffset = computed(() => {
@@ -357,11 +358,11 @@ function copyPara(text) { uni.setClipboardData({ data: text, showToast: false, s
             <view class="ring-center">
               <text class="ring-label">整体 AI 率</text>
               <text class="ring-rate" :style="{ color: summaryColor }">{{ detail.aiRate?.toFixed(1) }}<text class="ring-unit">%</text></text>
-              <text class="ring-cap">红线 ≤ {{ detail.threshold }}%</text>
+              <text class="ring-cap">{{ redlineLabel || '红线' }} ≤ {{ detail.threshold }}%</text>
             </view>
           </view>
           <view class="verdict-pill" :class="pass ? 'ok' : 'bad'">
-            <text>{{ pass ? '✓ 低于红线，达标' : '超过红线 ' + (detail.aiRate - detail.threshold).toFixed(1) + ' 个百分点' }}</text>
+            <text>{{ pass ? ('✓ 低于' + (redlineLabel || '') + '红线，达标') : ('超过' + (redlineLabel || '') + '红线 ' + (detail.aiRate - detail.threshold).toFixed(1) + ' 个百分点') }}</text>
           </view>
 
           <!-- 红黄绿分布条 -->

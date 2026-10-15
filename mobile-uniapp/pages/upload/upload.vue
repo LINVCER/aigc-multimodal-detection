@@ -7,6 +7,15 @@ import { requestAndSaveSubscribe } from '@/api/wechat'
 import { SCENARIO_MAP, paragraphRisk, aiRateColor } from '@/utils/constants'
 import { useAuth } from '@/store/auth'
 import AssistantFab from '@/components/AssistantFab.vue'
+import SchoolPicker from '@/components/SchoolPicker.vue'
+import { getMyRule } from '@/api/school'
+
+const schoolPickerOpen = ref(false)
+const myRule = ref(null)
+const DEG_CN2 = { bachelor: '本科', master: '硕士', phd: '博士' }
+async function loadMyRule() {
+  try { myRule.value = await getMyRule() } catch (e) {}
+}
 
 // 首页 quick-tile 通过 storage 传 pending_upload_mode（switchTab 不能带参）
 
@@ -47,6 +56,7 @@ async function loadTasks() {
 
 onShow(() => {
   loadTasks()
+  loadMyRule()
   const pendingMode = uni.getStorageSync('pending_upload_mode')
   if (pendingMode === 'paste' || pendingMode === 'file') mode.value = pendingMode
   uni.removeStorageSync('pending_upload_mode')
@@ -153,6 +163,26 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
     <view class="head">
       <text class="large-title">论文检测</text>
       <text class="large-sub">上传全文出报告，或粘贴一段即时看结果</text>
+    </view>
+
+    <!-- 学校红线卡 -->
+    <view class="school-card" hover-class="row-hover" @click="schoolPickerOpen = true">
+      <ZyIcon name="graduation" :size="34" color="#0F766E" />
+      <view class="sch-txt">
+        <template v-if="myRule && myRule.resolved">
+          <text class="sch-main">按 {{ myRule.schoolName }} · {{ DEG_CN2[myRule.degreeType] || '' }} 的红线算</text>
+          <text class="sch-sub">AI 率 ≤ {{ myRule.aiRateLimit }}%<text v-if="myRule.platform"> · {{ myRule.platform }}</text></text>
+        </template>
+        <template v-else-if="myRule && myRule.schoolName">
+          <text class="sch-main">{{ myRule.schoolName }} 的红线还没收录</text>
+          <text class="sch-sub">先按通用标准算，收录后通知你</text>
+        </template>
+        <template v-else>
+          <text class="sch-main">选了学校，就按你学校的标准算</text>
+          <text class="sch-sub">不选也行，用通用红线</text>
+        </template>
+      </view>
+      <text class="sch-go">{{ myRule && myRule.schoolName ? '换' : '选学校' }} ›</text>
     </view>
 
     <!-- 分段 -->
@@ -276,10 +306,16 @@ const rateColorOf = (t) => aiRateColor(t.aiRate, t.threshold || 25)
     </template>
 
     <AssistantFab bottom="300rpx" />
+    <SchoolPicker v-model="schoolPickerOpen" @saved="loadMyRule" />
   </view>
 </template>
 
 <style lang="scss" scoped>
+.school-card { display: flex; align-items: center; gap: 16rpx; padding: 24rpx 28rpx; margin-bottom: $sp-2; background: $brand-primary-wash; border-radius: 24rpx; }
+.school-card .sch-txt { flex: 1; display: flex; flex-direction: column; }
+.school-card .sch-main { font-size: $fs-callout; color: $label-primary; }
+.school-card .sch-sub { font-size: $fs-footnote; color: $label-secondary; margin-top: 4rpx; }
+.school-card .sch-go { font-size: $fs-footnote; color: $brand-primary; font-weight: $fw-semibold; }
 .page {
   min-height: 100vh;
   padding: $sp-3 $sp-4 0;
