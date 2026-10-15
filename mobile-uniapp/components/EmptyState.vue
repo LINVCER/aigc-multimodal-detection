@@ -1,10 +1,6 @@
 <script setup>
 import ZyIcon from '@/components/ZyIcon.vue'
-/*
- * 空态 / 错误态 —— 情绪陪伴版
- *   xiaobai=true 时用小白形象 + 口语文案（空态「摊手」；六枚表情包资产到位后按 mood 换图）
- *   否则用 SparkLine 图标；不再使用 emoji
- */
+// xiaobai=true 用小白形象（mood 为表情位），否则用 ZyIcon
 defineProps({
   icon:       { type: String, default: 'file-text' },   // ZyIcon 名称
   xiaobai:    { type: Boolean, default: false },

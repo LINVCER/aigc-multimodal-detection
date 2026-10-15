@@ -36,12 +36,7 @@ onShareTimeline(() => ({
   query: '',
 }))
 
-/* ---------- 本周概览 ----------
- * 优先走后端 /detect/statistics：
- *   - 本周检测数 = dailyTrend 最近 7 天 count 求和（准）
- *   - 平均 AI 率 / 达标率 = 后端全局字段（历史累计口径，比"仅本周"样本量大）
- * 后端拉不到（stats == null） → 走本地 tasks 聚合兜底（口径本周准）
- */
+/* 本周概览：优先后端 /detect/statistics，拉不到时用本地 tasks 聚合兜底 */
 const weekStats = computed(() => {
   if (stats.value?.dailyTrend?.length) {
     const last7 = stats.value.dailyTrend.slice(-7)
@@ -73,9 +68,7 @@ const recent = computed(() => tasks.value.slice(0, 3))
 /* ---------- 场景标签（最近检测列表用） ---------- */
 const scenarioOf = (k) => SCENARIO_MAP[k] || SCENARIO_MAP.other
 
-/* ---------- 跳转 ----------
- * 主 CTA 与运营轮播跳二级模态选择；助手 / 验真 / 记录直连对应页
- */
+/* 跳转 */
 function goModalityPicker() { uni.switchTab({ url: '/pages/upload/upload' }) }
 function goAssistant() { uni.navigateTo({ url: '/pages/assistant/chat' }) }
 function goVerify() { uni.navigateTo({ url: '/pages/verify/verify' }) }
@@ -88,10 +81,7 @@ function comingSoon(name) {
   uni.showToast({ title: `${name} 即将上线`, icon: 'none' })
 }
 
-/* ---------- 运营轮播 ----------
- * 大图全部由 CSS 渐变 + SVG 线稿绘制，不引入外部图片；
- * 三屏各带一个明确落地动作（target 用字符串，避免函数进 data 被序列化丢弃）
- */
+/* 运营轮播：大图全部 CSS 渐变 + SVG 绘制；target 用字符串，函数进 data 会被序列化丢弃 */
 const promoIndex = ref(0)
 const PROMOS = [
   { key: 'explain', title: '不只给一个比例', desc: '逐段解释为什么像 AI，定位最可疑的句子', cta: '问小白', target: 'assistant' },

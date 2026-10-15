@@ -9,22 +9,6 @@ import AssistantAnalysisCard from '@/components/AssistantAnalysisCard.vue'
 import ZyIcon from '@/components/ZyIcon.vue'
 import { renderMarkdown } from '@/utils/markdown'
 
-/*
- * 论文检测助手 · 对话页（重构版）
- *
- * 结构（自上而下）：
- *   导航（返回 · 身份 · 历史 · 更多）
- *   上下文 pill（当前绑定的报告 / 通用咨询，点开报告面板）
- *   消息流
- *     - 空态：问候 + 4 张能力卡（解读报告 / 即时测一段 / 答辩准备 / 申诉指导）+ 快捷问题
- *     - 对话：日期分隔 · 工具三态 chip · 分析卡 · Markdown 气泡 · 操作行（复制 / 重新生成 / 有帮助 / 没帮助）· 追问建议
- *     - 流式：光标 + 「停止生成」浮条；离底部较远时出「回到底部」
- *   输入区：「+」工具面板（换报告 / 粘贴测一段 / 清空）· 自增高输入 · 圆形发送
- *   面板：报告选择 · 粘贴检测 · 历史会话（右侧抽屉）
- *
- * 数据链路不变：listTasks / getTaskDetail / chatStream(SSE) / listConversations / submitFeedback
- */
-
 const auth = useAuth()
 
 /* ---------- 常量 ---------- */

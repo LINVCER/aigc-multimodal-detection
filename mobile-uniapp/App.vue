@@ -16,11 +16,7 @@ function bindNetworkWatcher() {
   })
 }
 
-/* ---------- 深色模式（Wave 4.1 · 骨架）----------
- * 生产切换需将 uni.scss 里的语义 tokens 从 SCSS 变量重写为 CSS 变量（--xxx），
- * 页面走 var(--xxx)。当前 SCSS 变量编译时展开，运行时不可切换，只做检测骨架。
- * 见 docs/releases/v0.2.0/release-notes.md · Wave 4 备忘。
- */
+/* 深色模式骨架：tokens 仍是 SCSS 变量，运行时不可切换，这里只做检测上报 */
 function detectTheme() {
   const sys = uni.getSystemInfoSync()
   // H5 走 prefers-color-scheme；小程序端 pages.json 加 darkmode 后 sys.theme = 'dark' | 'light'
@@ -58,12 +54,7 @@ page {
 }
 view, text, button, input { box-sizing: border-box; }
 
-/* ========== H5 浏览器自动填充 ==========
- * Chrome 对自动填充过的 input 会强制加 #E8F0FE 蓝底 + 黑字，普通 background 覆盖不掉。
- * 组合拳：① background-clip:text 把底色裁进文字字形（框就没了）
- *        ② text-fill-color 固定字色 ③ 超长 transition 延迟底色上色。
- * 必须放全局样式：页面里的 scoped / 普通 <style> 都会被 uni 处理，命中不到内部 input。
- */
+/* Chrome 自动填充强制蓝底黑字，普通 background 盖不掉：用 background-clip:text 裁掉底色；必须放全局样式 */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
@@ -81,11 +72,7 @@ button::after { border: none; }
 
 
 /* ========== H5 端 tabBar 精修 · iOS 磨砂玻璃风 ========== */
-/*
- * pages.json 里的 tabBar.color / selectedColor 决定字色 icon 色（跨端一致），
- * 这里追加 H5 端视觉层：磨砂背景、hairline 分割线、按压反馈、字号/字重。
- * 小程序端由原生渲染，不受此段影响。
- */
+/* H5 端 tabBar 视觉层；小程序端原生渲染不受影响 */
 
 /* stylelint-disable-next-line selector-class-pattern */
 .uni-tabbar {

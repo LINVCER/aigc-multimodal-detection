@@ -3,11 +3,6 @@ import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { verifyReport } from '@/api/detect'
 
-/*
- * 验证报告真伪（公开页，不需登录）
- *   手动输入编号 + 验证码；小程序可扫 PDF 二维码直填（解析 /verify/{no}?code=）
- *   结果只展示摘要，不含论文正文
- */
 const reportNo = ref('')
 const code = ref('')
 const loading = ref(false)

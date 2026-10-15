@@ -9,11 +9,6 @@ import {
 } from '@/api/admin'
 import { useAuthStore } from '@/stores/auth'
 
-/**
- * 用户管理
- *   平台账号（auth_user）：KPI · 筛选排序 · 多选批量 · 表格 · 详情抽屉（资料编辑 / 角色 / 状态 / 重置密码 / 最近检测）· 导出 CSV
- *   用户画像（user_profile）：原 §3.2 demo，退为次 tab
- */
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()

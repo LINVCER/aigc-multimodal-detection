@@ -1,13 +1,6 @@
 <script setup>
 import { computed } from 'vue'
 
-/*
- * 助手结构化分析卡（product-feature-plan §2.1）
- * tool_result.card 直接渲染，助手文字作「翻译」。三种工具：
- *   explain_paragraph → 段卡：校准概率条 / 疑似来源 / 表层特征 z 值 / 最可疑句
- *   get_task_detail   → 报告卡：AI 率 vs 红线 / 红黄绿段数 / 贡献最大的段
- *   detect_text       → 即时检测卡：概率 + 表层特征
- */
 const props = defineProps({
   name: { type: String, required: true },
   data: { type: Object, default: null },

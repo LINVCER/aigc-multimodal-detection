@@ -1,9 +1,4 @@
 <script setup>
-/*
- * 论文检测助手 · 右下角悬浮入口
- * 挂在 4 个 tab 页；task/detail 用 hero 区按钮不用 FAB。
- * ENABLE_ASSISTANT=false 时整体不渲染（助手须等新 checkpoint 上线后再对用户开放）。
- */
 const ENABLE_ASSISTANT = true
 
 const props = defineProps({

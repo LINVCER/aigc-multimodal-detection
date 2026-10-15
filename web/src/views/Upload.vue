@@ -7,11 +7,6 @@ import { submitPaper, detectTextDirect, listTasks, type DirectDetectResp } from 
 import type { DetectTask } from '@/api/types'
 import { useAuthStore } from '@/stores/auth'
 
-/**
- * 论文检测 · 上传页（只做论文）
- * 左：场景 + 投放区 + 修改稿对比 + CTA；右：说明 / 最近检测。窄屏折叠为单列。
- */
-
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()

@@ -1,10 +1,5 @@
 <script setup>
-/*
- * SparkLine 星点图标（App 端）· 对齐 docs/design/202610-web-visual-redesign-plan.md §4
- *   24×24 细线、圆头圆角、主笔画末端带四角星点；颜色跟随 color 属性（默认继承文字色）。
- *   实现：SVG 作 mask + 背景色上色，一个组件覆盖全部图标，不引图标库、不用 emoji。
- *   小程序端不支持 mask，退化为单色方块；主线是 App / H5，可接受。
- */
+// SVG 作 mask、背景色上色；小程序端不支持 mask，会退化为色块
 import { computed } from 'vue'
 
 const props = defineProps({

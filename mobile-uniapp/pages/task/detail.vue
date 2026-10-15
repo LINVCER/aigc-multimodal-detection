@@ -8,17 +8,6 @@ import { SOURCE_MAP, COLOR, paragraphRisk, aiRateColor } from '@/utils/constants
 import Skeleton from '@/components/Skeleton.vue'
 import FeedbackSheet from '@/components/FeedbackSheet.vue'
 
-/*
- * 检测报告页（重构版）
- *   顶部：滚过 hero 后出现的紧凑摘要条（标题 · AI 率 · 问助手）
- *   hero：AI 率环 + 达标 + 红黄绿分布条 + 比上次
- *   锚点 tabs：概览 / 段落 / 来源
- *   概览：先改这几段（优先级列表）· 改进建议
- *   段落：筛选 chips（全部 / 高 / 中 / 低 / 已排除）· 全部展开 · 卡片（句级高亮 · 问助手）
- *   来源：溯源分布
- *   处理中：四步进度（上传 → 解析 → 推理 → 汇总）按时间推进
- */
-
 const feedbackOpen = ref(false)
 const detail = ref(null)
 const loading = ref(true)

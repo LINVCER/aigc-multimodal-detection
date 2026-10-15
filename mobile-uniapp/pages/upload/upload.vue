@@ -8,12 +8,7 @@ import { SCENARIO_MAP, paragraphRisk, aiRateColor } from '@/utils/constants'
 import { useAuth } from '@/store/auth'
 import AssistantFab from '@/components/AssistantFab.vue'
 
-/*
- * 论文检测（tab「上传」）· 只做论文，音频 / 图像入口已移除
- *
- * 结构：大标题 + 文件 / 粘贴分段 → 场景横滑 chips → 文件投放卡 / 粘贴区 → 修改稿对比 → 最近检测 → 底部固定 CTA
- * 入口参数：首页 quick-tile 通过 storage 传 pending_upload_mode（switchTab 不能带参）
- */
+// 首页 quick-tile 通过 storage 传 pending_upload_mode（switchTab 不能带参）
 
 // Wave 3.3 · 微信订阅消息模板 ID（占位 · 上线前替换）
 const DETECT_DONE_TMPL = 'PLACEHOLDER_DETECT_DONE'

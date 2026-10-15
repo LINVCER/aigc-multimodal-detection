@@ -38,10 +38,7 @@ const roleText = computed(() =>
     : '个人版 · AI 检测'
 )
 
-// Wave 4.4 · 版本号动态读：
-//   1) 优先 vite 编译期 env 注入的 VITE_APP_VERSION（部署方便统一改）
-//   2) 兜底小程序 uni.getAccountInfoSync().miniProgram.envVersion / manifest 硬写
-//   3) 最终兜底常量（H5 无 miniProgram）
+// 版本号：优先 VITE_APP_VERSION，其次小程序 envVersion，最后常量兜底
 function readAppVersion() {
   // 裸写 import.meta.env.XXX 让 Vite build 时静态替换；带 typeof 探测会残留到
   // 小程序运行时触发 utils/url.js 隐式 polyfill require（Wave 4 收官修复）

@@ -4,11 +4,6 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { getDetectAnalytics, rebuildDetectStatistics, listAdminTasks, type DetectAnalytics, type AdminTask } from '@/api/admin'
 
-/**
- * 检测分析（detect-analytics-plan §5）：筛选器 → KPI → 趋势 → 分布 → 明细
- * 趋势 / 分布读物化表 detect_statistics_daily，明细查 detect_task。
- */
-
 const router = useRouter()
 
 const SCENARIO_LABEL: Record<string, string> = {

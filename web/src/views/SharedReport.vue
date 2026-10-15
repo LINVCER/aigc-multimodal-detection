@@ -4,11 +4,6 @@ import { useRouter } from 'vue-router'
 import { getSharedReport } from '@/api/detect'
 import type { SharedReport } from '@/api/types'
 
-/**
- * 只读分享报告页 /s/:token（公开，不需登录）
- *   顶部提示条：只读 · 有效期 · 浏览次数；全页斜向水印；底部引导「免费检测我的论文」
- *   不提供申诉 / 助手 / 下载 / 修改稿等任何写操作入口
- */
 const props = defineProps<{ token: string }>()
 const router = useRouter()
 

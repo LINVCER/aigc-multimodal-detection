@@ -5,18 +5,6 @@ import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import { getCaptcha, checkUsername } from '@/api/auth'
 
-/**
- * 登录 / 注册页
- *
- * 逻辑约束：
- *   - 已登录直接跳转，不再展示表单
- *   - 验证码未加载 / 已过期（5 分钟）时禁止提交，提示点击刷新；每次提交失败换一张
- *   - 服务端锁定（「请 N 分钟后再试」）解析成倒计时，倒计时内禁用按钮
- *   - 注册用户名实时查重（防抖 400ms）；密码规则逐条勾选
- *   - redirect 只接受站内路径（以单个 / 开头）
- *   - 提交中屏蔽重复提交（按钮与回车两条路径）
- */
-
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
@@ -342,10 +330,7 @@ async function onSubmit() {
 </template>
 
 <style scoped>
-/* ============================================================
- * Sign in 版式 · 白卡 + 灰色填充输入框 + 黑色胶囊按钮
- *   画布 = 浅灰；卡片 = 纯白；输入 = 灰色填充；主色 = 近黑（单色）
- * ============================================================ */
+/* Sign in 版式：白卡 + 填充输入框 + 胶囊按钮 */
 .login-page {
   --si-canvas: #F2F2F7;
   --si-card: #FFFFFF;

@@ -9,14 +9,6 @@ import FeedbackDialog from '@/components/FeedbackDialog.vue'
 import AssistantDrawer from '@/components/AssistantDrawer.vue'
 import type { TaskDetail, ParagraphResult, TaskCompare, ReportShare } from '@/api/types'
 
-/**
- * 检测报告页（重构版）
- *   顶栏：滚过 hero 后显示 AI 率 pill；问助手 / 申诉 / 下载
- *   主列：hero（环 + 达标 + 红黄绿分布 + 比上次）→ 先改这几段 → 改进建议 → 段落（筛选 / 段落·章节视图 / 全部展开）
- *   侧栏（≥ 1000px 固定）：摘要 · 来源分布 · 快捷动作
- *   处理中：四步进度按时间推进
- */
-
 const props = defineProps<{ id: string }>()
 const router = useRouter()
 const auth = useAuthStore()

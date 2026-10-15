@@ -8,9 +8,6 @@ import {
 } from '@/api/feedback'
 import { useAuthStore } from '@/stores/auth'
 
-/**
- * 用户反馈：KPI（可点筛选）· 分类 / 状态 / 日期筛选 · 多选批量处置 · 处理抽屉（原文 · 申诉段级复核 · 快捷回复模板）· 误判样本池 tab（筛选 / 复核 / 导出 JSONL）
- */
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
