@@ -16,12 +16,14 @@ import com.paperaigc.detect.service.IHardSampleService;
 import com.paperaigc.detect.service.INotifyService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.Executor;
 
 /**
  * 用户反馈业务实现
@@ -34,6 +36,9 @@ public class FeedbackServiceImpl implements IFeedbackService {
     private final IFeedbackRepository feedbackRepository;
     private final IHardSampleService hardSampleService;
     private final INotifyService notifyService;
+    private final AssistantDraftClient draftClient;
+    @Qualifier("detectExecutor")
+    private final Executor detectExecutor;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -73,7 +78,50 @@ public class FeedbackServiceImpl implements IFeedbackService {
         }
 
         log.info("feedback submitted id={} category={} taskId={}", saved.getId(), saved.getCategory(), saved.getTaskId());
+
+        // AI 自动生成回复草稿（异步；草稿只存 ai_reply，管理员审核/编辑后才作为正式回复发出）
+        final Long feedbackId = saved.getId();
+        final String category = saved.getCategory();
+        final String content = saved.getContent();
+        final Long taskId = saved.getTaskId();
+        detectExecutor.execute(() -> generateDraftInternal(feedbackId, category, content, taskId));
         return saved.getId();
+    }
+
+    /** 生成/重新生成 AI 回复草稿（管理端手动触发）：同步执行并返回草稿 */
+    @Override
+    public String generateDraft(Long id) {
+        Feedback fb = feedbackRepository.findById(id)
+                .orElseThrow(() -> new BizException(ErrorCode.FEEDBACK_NOT_FOUND));
+        String draft = draftClient.draftReply(fb.getCategory(), fb.getContent(), fb.getTaskId());
+        if (draft != null) {
+            fb.setAiReply(draft);
+            fb.setAiReplyAt(LocalDateTime.now());
+            feedbackRepository.update(fb);
+            log.info("feedback ai-draft regenerated id={} len={}", id, draft.length());
+        }
+        return draft;
+    }
+
+    /** 异步草稿生成：任何失败只 warn，不影响用户提交 */
+    private void generateDraftInternal(Long id, String category, String content, Long taskId) {
+        try {
+            String draft = draftClient.draftReply(category, content, taskId);
+            if (draft == null) {
+                log.info("feedback ai-draft skipped id={} (assistant unavailable or empty)", id);
+                return;
+            }
+            feedbackRepository.findById(id).ifPresent(fb -> {
+                // 已有人工回复的反馈不再补草稿
+                if (FeedbackConstants.STATUS_REPLIED.equals(fb.getStatus())) return;
+                fb.setAiReply(draft);
+                fb.setAiReplyAt(LocalDateTime.now());
+                feedbackRepository.update(fb);
+                log.info("feedback ai-draft saved id={} len={}", id, draft.length());
+            });
+        } catch (Exception e) {
+            log.warn("feedback ai-draft failed id={}: {}", id, e.toString());
+        }
     }
 
     @Override

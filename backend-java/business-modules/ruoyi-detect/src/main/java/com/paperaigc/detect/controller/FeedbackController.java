@@ -56,13 +56,15 @@ public class FeedbackController {
         return R.ok(Map.of("id", id));
     }
 
-    /** C 端查自己反馈历史 */
+    /** C 端查自己反馈历史（AI 草稿不出 C 端：只回人工审核后的 handledReply） */
     @GetMapping("/api/v1/feedback/mine")
     public R<PageVO<FeedbackVO>> mine(@RequestParam("userId") Long userId) {
         FeedbackQueryDTO q = new FeedbackQueryDTO();
         q.setUserId(userId);
         q.setPageSize(100);
-        return R.ok(feedbackService.page(q));
+        PageVO<FeedbackVO> page = feedbackService.page(q);
+        page.getRows().forEach(v -> { v.setAiReply(null); v.setAiReplyAt(null); });
+        return R.ok(page);
     }
 
     /* ==================== 运营后台 ==================== */
@@ -95,6 +97,16 @@ public class FeedbackController {
     public R<Void> handle(@PathVariable Long id, @RequestBody FeedbackHandleDTO dto) {
         feedbackService.handle(id, dto);
         return R.ok();
+    }
+
+    /** 后台生成 / 重新生成 AI 回复草稿（草稿仅供管理员参考，审核后才作为正式回复发出） */
+    @PostMapping("/admin/feedback/{id}/ai-draft")
+    public R<Map<String, Object>> aiDraft(@PathVariable Long id) {
+        String draft = feedbackService.generateDraft(id);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("reply", draft);
+        data.put("generated", draft != null);
+        return R.ok(data);
     }
 
     /* ==================== 误判样本池（增长闭环 §2.2） ==================== */

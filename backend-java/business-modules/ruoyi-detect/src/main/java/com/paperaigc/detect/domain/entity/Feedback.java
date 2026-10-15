@@ -52,6 +52,10 @@ public class Feedback {
     private String handledReply;
     /** 处理时间 */
     private LocalDateTime handledAt;
+    /** AI 生成的回复草稿（仅供管理员参考，审核前不对外） */
+    private String aiReply;
+    /** AI 草稿生成时间 */
+    private LocalDateTime aiReplyAt;
     /** 提交时间 */
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdAt;

@@ -45,4 +45,13 @@ public interface IFeedbackService {
      * @return 成功条数
      */
     int batchHandle(java.util.List<Long> ids, FeedbackHandleDTO dto);
+
+    /**
+     * 生成 / 重新生成 AI 回复草稿（管理端手动触发，同步返回）
+     * <p>草稿只存 ai_reply；审核通过走 {@link #handle} 写入 handled_reply 才对用户可见。</p>
+     *
+     * @param id 反馈 id
+     * @return 草稿文本；助手不可用或生成失败返回 null
+     */
+    String generateDraft(Long id);
 }

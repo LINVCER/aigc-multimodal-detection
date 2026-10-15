@@ -33,9 +33,14 @@ public class FeedbackVO {
     private String status;
     private Long handledBy;
     private String handledReply;
+    /** AI 生成的回复草稿（仅管理端可见，审核前不对外） */
+    private String aiReply;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime handledAt;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime aiReplyAt;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;
@@ -55,7 +60,9 @@ public class FeedbackVO {
                 .status(f.getStatus())
                 .handledBy(f.getHandledBy())
                 .handledReply(f.getHandledReply())
+                .aiReply(f.getAiReply())
                 .handledAt(f.getHandledAt())
+                .aiReplyAt(f.getAiReplyAt())
                 .createdAt(f.getCreatedAt())
                 .build();
     }
