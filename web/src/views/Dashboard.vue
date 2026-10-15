@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ZyIcon from '@/components/ZyIcon.vue'
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -145,7 +146,7 @@ function goDetail(id: number) { router.push({ name: 'TaskDetail', params: { id }
 
 async function onRetry(id: number) {
   await retryTask(id)
-  ElMessage.success('已重新提交')
+  ElMessage.success('已重新排队检测')
   await load(); ensurePolling()
 }
 
@@ -193,8 +194,8 @@ const showEmptyFiltered = computed(() =>
         <div class="large-title-bar">
           <h1 class="large-title">检测记录</h1>
           <div class="title-actions">
-            <el-button round size="large" @click="router.push({ path: '/upload', query: { mode: 'paste' } })">粘贴一段试试</el-button>
-            <el-button type="primary" round size="large" @click="router.push('/upload')">+ 上传论文</el-button>
+            <el-button round size="large" @click="router.push({ path: '/upload', query: { mode: 'paste' } })"><ZyIcon name="pen-line" :size="17" />先贴一段看看</el-button>
+            <el-button type="primary" round size="large" @click="router.push('/upload')"><ZyIcon name="file-text" :size="17" />上传论文</el-button>
           </div>
         </div>
 
@@ -245,9 +246,9 @@ const showEmptyFiltered = computed(() =>
             <!-- 网格：3 条水平参考线 -->
             <line v-for="y in [0.25, 0.5, 0.75]" :key="y"
               :x1="4" :y1="trendChart.H * y" :x2="trendChart.W - 4" :y2="trendChart.H * y"
-              stroke="rgba(60,60,67,0.10)" stroke-width="1" stroke-dasharray="3 4"/>
+              stroke="rgba(23, 24, 28,0.10)" stroke-width="1" stroke-dasharray="3 4"/>
             <!-- 检测量：淡蓝面积 + 蓝线 -->
-            <path :d="trendChart.areaPath" fill="rgba(0,122,255,0.10)" />
+            <path :d="trendChart.areaPath" fill="rgba(20, 184, 166,0.10)" />
             <path :d="trendChart.countPath" fill="none" stroke="var(--system-blue)" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
             <circle v-for="p in trendChart.countPts" :key="'c-' + p.date"
               :cx="p.x" :cy="p.y" r="2.4" fill="var(--system-blue)"/>
@@ -281,22 +282,22 @@ const showEmptyFiltered = computed(() =>
         <!-- 错误 -->
         <EmptyState
           v-else-if="error && tasks.length === 0"
-          icon="⚠️" :title="error" desc="下拉刷新或检查网络后重试"
+          icon="alert" :title="error" desc="刷新一下，或检查网络后再试"
           action-text="重新加载" @action="load"
         />
 
         <!-- 空（无搜索）-->
         <EmptyState
           v-else-if="showEmpty && !showEmptyFiltered"
-          icon="📭" title="还没有检测记录"
-          desc="上传你的论文，几十秒内拿到 AI 率报告"
+          xiaobai title="还没有记录，交一篇试试？"
+          desc="几十秒出报告，小白陪你逐段看懂"
           action-text="去上传" @action="router.push('/upload')"
         />
 
         <!-- 空（有搜索无匹配）-->
         <EmptyState
           v-else-if="showEmptyFiltered"
-          icon="🔎" title="没有匹配的记录" desc="换个关键词或清空筛选"
+          icon="search" title="没有匹配的记录" desc="换个词再找找，或清空筛选"
         />
 
         <!-- 表格 -->
@@ -369,8 +370,8 @@ const showEmptyFiltered = computed(() =>
 .header-actions { display: flex; align-items: center; gap: 12px; }
 .header-nav { display: flex; align-items: center; gap: 4px; margin-left: 24px; margin-right: auto; }
 .nav-link { padding: 6px 12px; border-radius: 8px; font-size: 14px; color: var(--label-secondary); cursor: pointer; transition: background var(--dur-fast), color var(--dur-fast); }
-.nav-link:hover { background: rgba(120, 120, 128, 0.12); color: var(--label); }
-.nav-link.active { color: var(--label); font-weight: var(--fw-semibold); background: rgba(120, 120, 128, 0.12); }
+.nav-link:hover { background: rgba(23, 24, 28, 0.12); color: var(--label); }
+.nav-link.active { color: var(--label); font-weight: var(--fw-semibold); background: rgba(23, 24, 28, 0.12); }
 .title-actions { display: flex; gap: 10px; }
 @media (max-width: 760px) { .header-nav { display: none; } }
 .avatar-btn {
@@ -468,7 +469,7 @@ const showEmptyFiltered = computed(() =>
 .title-link:hover { text-decoration: underline; }
 
 .degree-tag {
-  background: rgba(0, 122, 255, 0.10);
+  background: rgba(20, 184, 166, 0.10);
   color: var(--system-blue);
   padding: 2px 10px;
   border-radius: 6px;

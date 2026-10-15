@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ZyIcon from '@/components/ZyIcon.vue'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -36,8 +37,8 @@ const compact = ref(false)
 
 const SOURCE_LABEL: Record<string, string> = { human: '人类', gpt: 'GPT', claude: 'Claude', qwen: '通义千问', deepseek: 'DeepSeek', glm: '智谱GLM', kimi: 'Kimi', ernie: '文心', other: '其他' }
 const SOURCE_COLOR: Record<string, string> = {
-  human: 'var(--system-green)', gpt: 'var(--system-purple)', claude: 'var(--system-pink)', qwen: 'var(--system-orange)',
-  deepseek: 'var(--system-blue)', glm: 'var(--system-teal)', kimi: 'var(--system-purple)', ernie: 'var(--system-red)', other: 'var(--system-gray)',
+  human: 'var(--system-green)', gpt: 'var(--chart-1)', claude: 'var(--chart-5)', qwen: 'var(--chart-2)',
+  deepseek: 'var(--chart-3)', glm: 'var(--ai-600)', kimi: 'var(--warning-fg)', ernie: 'var(--danger-fg)', other: 'var(--chart-4)',
 }
 const EXCLUDE_REASON_LABEL: Record<string, string> = { reference: '参考文献', acknowledgement: '致谢', appendix: '附录', sectionTitle: '章节标题', caption: '图表标题' }
 const STEPS = ['上传完成', '解析段落', '模型推理', '汇总报告']
@@ -67,7 +68,7 @@ onUnmounted(() => { stopPolling(); window.removeEventListener('scroll', onScroll
 const retrying = ref(false)
 async function onRetry() {
   retrying.value = true
-  try { await retryTask(Number(props.id)); ElMessage.success('已重新提交'); startedAt = Date.now(); await load(); if (shouldPoll()) startPolling() }
+  try { await retryTask(Number(props.id)); ElMessage.success('已重新排队检测'); startedAt = Date.now(); await load(); if (shouldPoll()) startPolling() }
   finally { retrying.value = false }
 }
 
@@ -100,7 +101,7 @@ const dist = computed(() => {
 })
 const priority = computed(() => bodyParas.value.filter((p) => (p.calibratedProb || 0) >= 0.5).sort((a, b) => (b.calibratedProb || 0) - (a.calibratedProb || 0)).slice(0, 3))
 
-function sentenceBg(prob: number) { return prob >= 0.7 ? 'rgba(255, 59, 48, 0.14)' : prob >= 0.4 ? 'rgba(255, 149, 0, 0.16)' : 'transparent' }
+function sentenceBg(prob: number) { return prob >= 0.7 ? 'rgba(229, 72, 77, 0.14)' : prob >= 0.4 ? 'rgba(245, 158, 11, 0.16)' : 'transparent' }
 function probColor(prob: number) { return prob >= 0.7 ? 'var(--system-red)' : prob >= 0.4 ? 'var(--system-orange)' : 'var(--system-green)' }
 
 /* 段落筛选 / 视图 / 展开 */
@@ -200,8 +201,8 @@ const suggestions = computed<Array<{ title: string; body: string; severity: 'inf
   return out
 })
 const SEV: Record<string, { fg: string; bg: string }> = {
-  danger: { fg: 'var(--system-red)', bg: 'rgba(255, 59, 48, 0.08)' }, warn: { fg: 'var(--system-orange)', bg: 'rgba(255, 149, 0, 0.08)' },
-  success: { fg: 'var(--system-green)', bg: 'rgba(52, 199, 89, 0.08)' }, info: { fg: 'var(--system-blue)', bg: 'rgba(0, 122, 255, 0.06)' },
+  danger: { fg: 'var(--danger-fg)', bg: 'rgba(229, 72, 77, 0.08)' }, warn: { fg: 'var(--warning-fg)', bg: 'rgba(245, 158, 11, 0.10)' },
+  success: { fg: 'var(--success-fg)', bg: 'rgba(22, 163, 74, 0.08)' }, info: { fg: 'var(--ai-700)', bg: 'var(--ai-100)' },
 }
 
 /* 只读分享 */
@@ -273,10 +274,10 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
           </transition>
         </div>
         <div v-if="detail && detail.status === 'DONE'" class="header-actions">
-          <el-button link size="small" @click="openAssistant()">💬 问助手</el-button>
-          <el-button link size="small" @click="feedbackOpen = true">🚩 申诉</el-button>
-          <el-button link size="small" @click="openShare">🔗 分享</el-button>
-          <el-button type="primary" round size="small" :loading="downloading" @click="onDownloadPdf">⬇ 下载 PDF</el-button>
+          <el-button link size="small" @click="openAssistant()"><ZyIcon name="xiaobai-spark" :size="15" />问小白</el-button>
+          <el-button link size="small" @click="feedbackOpen = true"><ZyIcon name="flag" :size="15" />申诉</el-button>
+          <el-button link size="small" @click="openShare"><ZyIcon name="link" :size="15" />分享</el-button>
+          <el-button type="primary" size="small" :loading="downloading" @click="onDownloadPdf"><ZyIcon name="download" :size="14" />下载 PDF</el-button>
         </div>
         <span v-else></span>
       </div>
@@ -300,10 +301,10 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
         </div>
         <div v-else-if="detail.status === 'FAILED'" class="wrap-narrow">
           <div class="state">
-            <div class="xmark">✕</div>
+            <div class="xmark"><ZyIcon name="alert" :size="28" /></div>
             <div class="state-title bad">检测失败</div>
             <div class="state-sub">推理服务暂时不可用，或文件无法解析出正文</div>
-            <el-button type="primary" round :loading="retrying" @click="onRetry">重新检测</el-button>
+            <el-button type="primary" :loading="retrying" @click="onRetry"><ZyIcon name="rotate" :size="15" />重新检测</el-button>
           </div>
         </div>
 
@@ -315,7 +316,7 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
               <div class="hero-grid">
                 <div class="ring-wrap">
                   <svg class="ring" viewBox="0 0 200 200">
-                    <circle cx="100" cy="100" r="86" fill="none" stroke="rgba(120, 120, 128, 0.16)" stroke-width="14" />
+                    <circle cx="100" cy="100" r="86" fill="none" stroke="rgba(23, 24, 28, 0.16)" stroke-width="14" />
                     <circle cx="100" cy="100" r="86" fill="none" :stroke="summaryColor" stroke-width="14" stroke-linecap="round" :stroke-dasharray="ringCircumference" :stroke-dashoffset="ringOffset" transform="rotate(-90 100 100)" style="transition: stroke-dashoffset 900ms cubic-bezier(0.32, 0.72, 0, 1)" />
                     <circle cx="100" cy="100" r="86" fill="none" :stroke="pass ? 'var(--system-green)' : 'var(--system-red)'" stroke-width="14" :stroke-dasharray="`3 ${ringCircumference - 3}`" :stroke-dashoffset="ringThresholdOffset" transform="rotate(-90 100 100)" opacity="0.9" />
                   </svg>
@@ -326,7 +327,7 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
                   </div>
                 </div>
                 <div class="hero-side">
-                  <div class="verdict" :class="pass ? 'ok' : 'bad'">{{ pass ? '✓ 低于红线，达标' : '⚠ 超过红线 ' + (detail.aiRate! - detail.threshold).toFixed(1) + ' 个百分点' }}</div>
+                  <div class="verdict" :class="pass ? 'ok' : 'bad'"><ZyIcon :name="pass ? 'check' : 'alert'" :size="15" />{{ pass ? '低于红线，达标' : '超过红线 ' + (detail.aiRate! - detail.threshold).toFixed(1) + ' 个百分点' }}</div>
                   <div class="hero-paper">{{ detail.paperTitle }}</div>
                   <div v-if="bodyStats" class="dist">
                     <div class="dist-bar"><i class="high" :style="{ width: dist.highPct + '%' }" /><i class="mid" :style="{ width: dist.midPct + '%' }" /><i class="low" :style="{ width: dist.lowPct + '%' }" /></div>
@@ -346,15 +347,15 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
                     <span v-if="detail.verifyCount" class="muted small">被验证 {{ detail.verifyCount }} 次</span>
                   </div>
                   <div class="hero-actions">
-                    <el-button type="primary" round @click="openAssistant()">💬 问助手解读</el-button>
-                    <el-button round @click="goSection('sec-paras')">看段落</el-button>
+                    <el-button type="primary" round @click="openAssistant()"><ZyIcon name="xiaobai-spark" :size="15" />让小白带我看</el-button>
+                    <el-button @click="goSection('sec-paras')">看段落</el-button>
                   </div>
                 </div>
               </div>
               <div v-if="showAssistantTip" class="assist-tip">
                 <img class="assist-tip-avatar" src="/xiaobai.gif" alt="小白" />
                 <span class="assist-tip-text" @click="dismissAssistantTip(true)">{{ pass ? '达标了。要不要我说说哪几段还是偏「机器」，下次写得更稳？' : '别急，超标不等于作弊。要我带你看哪几段贡献最大、先改哪段吗？' }} <b>和助手聊聊 ›</b></span>
-                <el-button link size="small" @click.stop="dismissAssistantTip(false)">✕</el-button>
+                <el-button link size="small" @click.stop="dismissAssistantTip(false)"><ZyIcon name="close" :size="14" /></el-button>
               </div>
             </el-card>
 
@@ -448,7 +449,7 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
               <div v-if="!filteredParas.length" class="empty">这一类没有段落</div>
               <el-card v-for="p in filteredParas" :key="p.paragraphIdx" :id="'para-' + p.paragraphIdx" class="para" :class="{ 'para-excluded': p.excluded }" body-style="padding: 0">
                 <div class="para-header" @click="toggleExpand(p.paragraphIdx)">
-                  <i class="para-bar" :style="{ background: p.excluded ? 'rgba(120,120,128,0.3)' : probColor(p.calibratedProb || 0) }" />
+                  <i class="para-bar" :style="{ background: p.excluded ? 'rgba(23, 24, 28,0.3)' : probColor(p.calibratedProb || 0) }" />
                   <span class="para-idx">段 {{ p.paragraphIdx + 1 }}</span>
                   <span v-if="p.excluded" class="excluded-badge">未参与计算 · {{ EXCLUDE_REASON_LABEL[p.excludeReason || ''] || '非正文' }}</span>
                   <b v-else class="para-prob" :style="{ color: probColor(p.calibratedProb || 0) }">{{ ((p.calibratedProb || 0) * 100).toFixed(0) }}%<span v-if="p.sourceLabel && p.sourceLabel !== 'human'" class="muted"> · 疑似 {{ SOURCE_LABEL[p.sourceLabel] || p.sourceLabel }}</span></b>
@@ -462,7 +463,7 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
                   <div v-else class="para-text"><span v-for="s in p.sentences" :key="s.sentenceIdx" :style="{ background: sentenceBg(s.aiProb) }">{{ s.text }}</span></div>
                   <div class="para-actions">
                     <el-button link size="small" @click="copyText(p.text)">复制</el-button>
-                    <el-button v-if="!p.excluded && (p.calibratedProb || 0) >= 0.4" link type="primary" size="small" @click="openAssistant(p.paragraphIdx)">💬 为什么这段像 AI？</el-button>
+                    <el-button v-if="!p.excluded && (p.calibratedProb || 0) >= 0.4" link type="primary" size="small" @click="openAssistant(p.paragraphIdx)"><ZyIcon name="xiaobai-spark" :size="14" />为什么这段像 AI？</el-button>
                   </div>
                 </div>
               </el-card>
@@ -493,11 +494,11 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
               <el-card class="side-card" body-style="padding: 16px 18px">
                 <div class="side-title">下一步</div>
                 <div class="side-actions">
-                  <el-button round @click="openAssistant()">💬 问助手为什么</el-button>
-                  <el-button round @click="router.push('/upload')">↻ 修改后再测一次</el-button>
-                  <el-button round @click="feedbackOpen = true">🚩 我觉得判错了</el-button>
-                  <el-button round :loading="downloading" @click="onDownloadPdf">⬇ 下载 PDF 报告</el-button>
-                  <el-button round @click="openShare">🔗 生成只读分享链接</el-button>
+                  <el-button @click="openAssistant()"><ZyIcon name="xiaobai-spark" :size="15" />问小白为什么</el-button>
+                  <el-button @click="router.push('/upload')"><ZyIcon name="rotate" :size="15" />修改后再测一次</el-button>
+                  <el-button @click="feedbackOpen = true"><ZyIcon name="flag" :size="15" />我觉得判错了</el-button>
+                  <el-button :loading="downloading" @click="onDownloadPdf"><ZyIcon name="download" :size="15" />下载 PDF 报告</el-button>
+                  <el-button @click="openShare"><ZyIcon name="link" :size="15" />生成只读分享链接</el-button>
                 </div>
               </el-card>
               <div class="side-note">助手只讲原则与方向，不代写、不改写原文。</div>
@@ -518,7 +519,7 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
         </div>
         <div class="share-row"><span class="share-label">水印</span><el-input v-model="shareWatermark" maxlength="40" show-word-limit placeholder="如：仅供张老师审阅" /></div>
         <div class="share-hint">对方打开只能看报告，不能申诉、下载或问助手；页面带斜向水印。随时可撤销。</div>
-        <el-button type="primary" round :loading="shareCreating" @click="doCreateShare">生成链接并复制</el-button>
+        <el-button type="primary" :loading="shareCreating" @click="doCreateShare">生成链接并复制</el-button>
         <div v-if="latestShare" class="share-result">
           <code class="share-url">{{ latestShare.url }}</code>
           <el-button link type="primary" size="small" @click="copyText(latestShare!.url)">复制</el-button>
@@ -563,7 +564,7 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
             <el-table-column label="本次" width="70"><template #default="{ row }">{{ pct(row.currProb) }}</template></el-table-column>
             <el-table-column label="变化" width="110"><template #default="{ row }"><el-tag :type="COMPARE_STATUS[row.status]?.type" size="small">{{ COMPARE_STATUS[row.status]?.text }}<template v-if="row.delta != null"> {{ row.delta > 0 ? '+' : '' }}{{ Math.round(row.delta * 100) }}pp</template></el-tag></template></el-table-column>
           </el-table>
-          <div class="cmp-foot"><span class="muted small">段落按文本相似度配对；改动很大的段会分别算作「新增」和「删除」。</span><el-button type="primary" round size="small" @click="askRevision">💬 让小白点评这次修改</el-button></div>
+          <div class="cmp-foot"><span class="muted small">段落按文本相似度配对；改动很大的段会分别算作「新增」和「删除」。</span><el-button type="primary" size="small" @click="askRevision"><ZyIcon name="xiaobai-spark" :size="14" />让小白点评这次修改</el-button></div>
         </template>
       </div>
     </el-dialog>
@@ -576,10 +577,10 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
 .header-inner { height: 56px; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; }
 .header-mid { display: flex; align-items: center; gap: 10px; }
 .header-title { font-size: var(--fs-headline); font-weight: var(--fw-semibold); }
-.header-pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 99px; background: rgba(120, 120, 128, 0.10); }
+.header-pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 99px; background: rgba(23, 24, 28, 0.10); }
 .header-pill-rate { font-weight: 700; font-variant-numeric: tabular-nums; }
 .header-pill-badge { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 99px; }
-.header-pill-badge.ok { background: rgba(52, 199, 89, 0.14); color: #1B7F3E; } .header-pill-badge.bad { background: rgba(255, 59, 48, 0.14); color: #C62A22; }
+.header-pill-badge.ok { background: rgba(22, 163, 74, 0.14); color: var(--success-fg); } .header-pill-badge.bad { background: rgba(229, 72, 77, 0.14); color: var(--danger-fg); }
 .fade-enter-active, .fade-leave-active { transition: opacity .2s; } .fade-enter-from, .fade-leave-to { opacity: 0; }
 .header-actions { display: flex; align-items: center; gap: 12px; }
 .main { padding: 28px 24px 64px; }
@@ -590,19 +591,19 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
 .muted { color: var(--label-secondary); } .small { font-size: 12px; } .flex-1 { flex: 1; }
 
 /* 状态 */
-.state { background: #fff; border-radius: 16px; padding: 56px 32px 40px; text-align: center; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04); }
-.spinner { width: 56px; height: 56px; border-radius: 50%; border: 5px solid rgba(255, 149, 0, 0.18); border-top-color: var(--system-orange); animation: spin 1s linear infinite; margin: 0 auto; }
+.state { background: #fff; border-radius: 16px; padding: 56px 32px 40px; text-align: center; box-shadow: 0 2px 12px rgba(23, 24, 28, 0.04); }
+.spinner { width: 56px; height: 56px; border-radius: 50%; border: 5px solid rgba(245, 158, 11, 0.18); border-top-color: var(--system-orange); animation: spin 1s linear infinite; margin: 0 auto; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.xmark { width: 56px; height: 56px; border-radius: 50%; background: rgba(255, 59, 48, 0.12); color: var(--system-red); font-size: 26px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin: 0 auto; }
+.xmark { width: 56px; height: 56px; border-radius: 50%; background: var(--danger-bg); color: var(--system-red); font-size: 26px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin: 0 auto; }
 .state-title { font-size: var(--fs-title-3); font-weight: 600; margin-top: 16px; }
 .state-title.warn { color: var(--system-orange); } .state-title.bad { color: var(--system-red); }
 .state-sub { color: var(--label-secondary); margin-top: 6px; }
 .state-paper { font-size: 13px; color: var(--label-secondary); margin: 16px 0 12px; }
 .steps { display: flex; justify-content: space-between; margin: 24px auto 0; max-width: 420px; }
 .step { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; font-size: 12px; color: var(--label-tertiary); }
-.step i { width: 10px; height: 10px; border-radius: 50%; background: rgba(120, 120, 128, 0.25); }
+.step i { width: 10px; height: 10px; border-radius: 50%; background: rgba(23, 24, 28, 0.25); }
 .step.done i { background: var(--system-green); } .step.done { color: var(--label-secondary); }
-.step.now i { background: var(--system-orange); box-shadow: 0 0 0 4px rgba(255, 149, 0, 0.18); } .step.now { color: var(--system-orange); font-weight: 600; }
+.step.now i { background: var(--system-orange); box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.18); } .step.now { color: var(--system-orange); font-weight: 600; }
 
 /* hero */
 .hero-grid { display: grid; grid-template-columns: 220px 1fr; gap: 28px; align-items: center; }
@@ -616,24 +617,24 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
 .ring-cap { font-size: 12px; color: var(--label-secondary); margin-top: 6px; }
 .hero-side { min-width: 0; }
 .verdict { display: inline-block; padding: 6px 14px; border-radius: 99px; font-weight: 600; }
-.verdict.ok { background: rgba(52, 199, 89, 0.14); color: #1B7F3E; } .verdict.bad { background: rgba(255, 59, 48, 0.14); color: #C62A22; }
+.verdict.ok { background: rgba(22, 163, 74, 0.14); color: var(--success-fg); } .verdict.bad { background: rgba(229, 72, 77, 0.14); color: var(--danger-fg); }
 .hero-paper { font-size: var(--fs-headline); font-weight: 600; margin-top: 10px; }
 .dist { margin-top: 14px; }
-.dist-bar { display: flex; height: 10px; border-radius: 99px; overflow: hidden; background: rgba(120, 120, 128, 0.12); }
+.dist-bar { display: flex; height: 10px; border-radius: 99px; overflow: hidden; background: rgba(23, 24, 28, 0.12); }
 .dist-bar i { height: 100%; } .dist-bar .high { background: var(--system-red); } .dist-bar .mid { background: var(--system-orange); } .dist-bar .low { background: var(--system-green); }
 .dist-legend { display: flex; gap: 14px; margin-top: 6px; font-size: 12px; }
-.dist-legend .high { color: #C62A22; } .dist-legend .mid { color: #B26200; } .dist-legend .low { color: #1B7F3E; } .dist-legend .muted { margin-left: auto; }
-.compare { margin-top: 12px; padding: 8px 12px; border-radius: 10px; background: rgba(120, 120, 128, 0.08); display: flex; align-items: center; gap: 10px; font-size: 13px; cursor: pointer; }
-.compare .down { color: #1B7F3E; } .compare .up { color: #C62A22; } .compare .link { margin-left: auto; color: var(--system-blue); font-weight: 500; }
+.dist-legend .high { color: var(--danger-fg); } .dist-legend .mid { color: var(--warning-fg); } .dist-legend .low { color: var(--success-fg); } .dist-legend .muted { margin-left: auto; }
+.compare { margin-top: 12px; padding: 8px 12px; border-radius: 10px; background: rgba(23, 24, 28, 0.08); display: flex; align-items: center; gap: 10px; font-size: 13px; cursor: pointer; }
+.compare .down { color: var(--success-fg); } .compare .up { color: var(--danger-fg); } .compare .link { margin-left: auto; color: var(--system-blue); font-weight: 500; }
 .hero-actions { margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
-.cred { margin-top: 12px; padding: 8px 12px; border-radius: 10px; background: rgba(52, 199, 89, 0.08); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }
+.cred { margin-top: 12px; padding: 8px 12px; border-radius: 10px; background: rgba(22, 163, 74, 0.08); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }
 .cred-k { color: var(--label-secondary); font-size: 12px; } .cred code { font-weight: 600; letter-spacing: .5px; user-select: all; } .cred-link { color: var(--system-blue); text-decoration: none; margin-left: 4px; }
-.assist-tip { margin-top: 18px; padding: 10px 12px; border-radius: 10px; background: rgba(0, 122, 255, 0.08); display: flex; align-items: center; gap: 10px; text-align: left; }
-.assist-tip-avatar { flex: none; width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg, #5E5CE6 0%, #64D2FF 100%); color: #fff; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+.assist-tip { margin-top: 18px; padding: 10px 12px; border-radius: 10px; background: rgba(20, 184, 166, 0.08); display: flex; align-items: center; gap: 10px; text-align: left; }
+.assist-tip-avatar { flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--brand-gradient); color: #fff; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
 .assist-tip-text { flex: 1; font-size: 13px; line-height: 1.5; cursor: pointer; } .assist-tip-text b { color: var(--system-blue); margin-left: 6px; }
 
 /* 锚点 / section */
-.anchors { display: flex; gap: 6px; margin: 14px 0 4px; padding: 3px; background: rgba(120, 120, 128, 0.10); border-radius: 10px; width: fit-content; }
+.anchors { display: flex; gap: 6px; margin: 14px 0 4px; padding: 3px; background: rgba(23, 24, 28, 0.10); border-radius: 10px; width: fit-content; }
 .anchor { border: none; background: transparent; padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--label); }
 .anchor:hover { background: #fff; }
 .section-head { display: flex; justify-content: space-between; align-items: center; padding: 24px 4px 8px; }
@@ -644,7 +645,7 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
 
 /* 先改这几段 */
 .prio-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--label-quaternary); cursor: pointer; }
-.prio-item:last-child { border-bottom: none; } .prio-item:hover { background: rgba(60, 60, 67, 0.04); }
+.prio-item:last-child { border-bottom: none; } .prio-item:hover { background: rgba(23, 24, 28, 0.04); }
 .prio-rank { flex: none; width: 26px; height: 26px; border-radius: 50%; color: #fff; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
 .prio-main { flex: 1; min-width: 0; }
 .prio-line { display: flex; align-items: baseline; gap: 8px; font-size: 13px; }
@@ -664,13 +665,13 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
 .filter.high.active { background: var(--system-red); border-color: var(--system-red); } .filter.mid.active { background: var(--system-orange); border-color: var(--system-orange); } .filter.low.active { background: var(--system-green); border-color: var(--system-green); }
 .filter-n { opacity: .7; font-size: 12px; }
 .legend { margin-left: auto; font-size: 12px; color: var(--label-secondary); }
-.sw { display: inline-block; width: 14px; height: 7px; border-radius: 2px; vertical-align: middle; } .sw.high { background: rgba(255, 59, 48, 0.3); } .sw.mid { background: rgba(255, 149, 0, 0.3); margin-left: 8px; }
+.sw { display: inline-block; width: 14px; height: 7px; border-radius: 2px; vertical-align: middle; } .sw.high { background: rgba(229, 72, 77, 0.3); } .sw.mid { background: rgba(245, 158, 11, 0.3); margin-left: 8px; }
 
 /* 段落卡 */
 .para { margin-top: 10px; overflow: hidden; }
 .para-excluded { opacity: .7; }
 .para-header { display: flex; align-items: center; gap: 10px; padding: 12px 16px 12px 0; cursor: pointer; }
-.para-header:hover { background: rgba(60, 60, 67, 0.04); }
+.para-header:hover { background: rgba(23, 24, 28, 0.04); }
 .para-bar { flex: none; width: 4px; align-self: stretch; border-radius: 0 2px 2px 0; margin-right: 6px; }
 .para-idx { font-size: 11px; font-weight: 600; color: var(--label-secondary); letter-spacing: .6px; text-transform: uppercase; }
 .para-prob { font-size: 13px; }
@@ -680,13 +681,13 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
 .para-text { font-size: 15px; line-height: 1.75; }
 .para-excluded-text { font-size: 14px; line-height: 1.6; color: var(--label-secondary); }
 .para-actions { display: flex; gap: 10px; margin-top: 10px; }
-.excluded-badge { font-size: 12px; color: var(--label-secondary); background: rgba(120, 120, 128, 0.14); padding: 2px 10px; border-radius: 99px; }
+.excluded-badge { font-size: 12px; color: var(--label-secondary); background: rgba(23, 24, 28, 0.14); padding: 2px 10px; border-radius: 99px; }
 
 /* 全文标注 */
 .annot { margin-top: 8px; overflow: hidden; }
 .annot-bar { position: sticky; top: 56px; z-index: 2; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 20px; background: rgba(250, 251, 252, 0.95); backdrop-filter: blur(8px); border-bottom: 1px solid var(--label-quaternary); font-size: 12px; }
 .annot-legend { display: inline-flex; align-items: center; gap: 6px; color: var(--label-secondary); }
-.a { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-left: 8px; } .a.high { background: #7C3AED; } .a.mid { background: #3B82F6; } .a.ex { background: rgba(120, 120, 128, 0.35); }
+.a { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-left: 8px; } .a.high { background: var(--system-red); } .a.mid { background: var(--system-orange); } .a.ex { background: rgba(23, 24, 28, 0.35); }
 .annot-doc { padding: 28px 44px 20px; font-family: 'Noto Serif SC', 'Songti SC', 'STSong', SimSun, serif; font-size: 15.5px; line-height: 2; color: var(--label); }
 .annot-h { font-family: inherit; font-size: 17px; font-weight: 700; margin: 22px 0 8px; text-align: center; }
 .annot-h:first-child { margin-top: 0; }
@@ -695,19 +696,19 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
 .annot-p.title { font-weight: 700; margin-top: 10px; }
 .annot-p.short { line-height: 1.9; }
 .annot-p.ex { color: var(--label-tertiary); }
-.annot-s { cursor: pointer; border-radius: 2px; transition: background .15s; } .annot-s:hover { background: rgba(0, 122, 255, 0.08); }
-.annot-s.high { color: #7C3AED; } .annot-s.mid { color: #3B82F6; }
+.annot-s { cursor: pointer; border-radius: 2px; transition: background .15s; } .annot-s:hover { background: rgba(20, 184, 166, 0.08); }
+.annot-s.high { color: var(--danger-fg); } .annot-s.mid { color: var(--warning-fg); }
 .annot-foot { padding: 10px 20px 14px; font-size: 12px; color: var(--label-tertiary); border-top: 1px solid var(--label-quaternary); }
 @media (max-width: 640px) { .annot-doc { padding: 20px 18px; font-size: 15px; } }
 
 /* 章节 */
 .sec-card { margin-top: 10px; overflow: hidden; }
 .sec-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; cursor: pointer; }
-.sec-head:hover { background: rgba(60, 60, 67, 0.04); }
+.sec-head:hover { background: rgba(23, 24, 28, 0.04); }
 .sec-name { font-weight: 600; }
 .sec-right { display: flex; align-items: center; gap: 14px; }
 .sec-rate { font-size: 24px; font-variant-numeric: tabular-nums; }
-.sec-body { padding: 6px 18px 12px; border-top: 1px solid var(--label-quaternary); background: rgba(60, 60, 67, 0.03); }
+.sec-body { padding: 6px 18px 12px; border-top: 1px solid var(--label-quaternary); background: rgba(23, 24, 28, 0.03); }
 .sec-para { display: flex; align-items: baseline; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--label-quaternary); font-size: 13px; cursor: pointer; }
 .sec-para:last-child { border-bottom: none; } .sec-para.excluded { opacity: .65; }
 .sec-para-text { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
@@ -730,7 +731,7 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
 .share { display: flex; flex-direction: column; gap: 12px; }
 .share-row { display: flex; align-items: center; gap: 12px; } .share-label { flex: none; width: 48px; color: var(--label-secondary); font-size: 13px; }
 .share-hint { font-size: 12px; color: var(--label-tertiary); line-height: 1.5; }
-.share-result { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px; background: rgba(52, 199, 89, 0.08); }
+.share-result { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px; background: rgba(22, 163, 74, 0.08); }
 .share-url { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; user-select: all; }
 .share-sub { font-size: 12px; color: var(--label-secondary); margin-top: 6px; }
 .share-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--label-quaternary); } .share-item:last-child { border-bottom: none; }
@@ -741,9 +742,9 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
 .cmp { display: flex; flex-direction: column; gap: 12px; }
 .cmp-sides { display: flex; align-items: center; justify-content: center; gap: 24px; }
 .cmp-side { text-align: center; }
-.cmp-side-rate { font-size: 28px; font-weight: 600; letter-spacing: -.5px; } .cmp-side-rate.ok { color: #1B7F3E; } .cmp-side-rate.bad { color: #C62A22; }
-.cmp-arrow { font-size: 24px; color: rgba(60, 60, 67, 0.30); }
+.cmp-side-rate { font-size: 28px; font-weight: 600; letter-spacing: -.5px; } .cmp-side-rate.ok { color: var(--success-fg); } .cmp-side-rate.bad { color: var(--danger-fg); }
+.cmp-arrow { font-size: 24px; color: rgba(23, 24, 28, 0.30); }
 .cmp-stats { display: flex; gap: 8px; justify-content: center; }
 .cmp-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-:deep(.cmp-row-down) { background: rgba(52, 199, 89, 0.06); } :deep(.cmp-row-up) { background: rgba(255, 59, 48, 0.06); }
+:deep(.cmp-row-down) { background: rgba(22, 163, 74, 0.06); } :deep(.cmp-row-up) { background: rgba(229, 72, 77, 0.06); }
 </style>

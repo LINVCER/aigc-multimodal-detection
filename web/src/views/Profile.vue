@@ -136,8 +136,8 @@ async function logout() {
         <div class="pwd-hint">修改成功后所有设备需重新登录</div>
       </el-form>
       <template #footer>
-        <el-button round @click="pwdOpen = false">取消</el-button>
-        <el-button type="primary" round :loading="auth.loading" :disabled="!!pwdError" @click="submitPassword">确认修改</el-button>
+        <el-button @click="pwdOpen = false">取消</el-button>
+        <el-button type="primary" :loading="auth.loading" :disabled="!!pwdError" @click="submitPassword">改好了</el-button>
       </template>
     </el-dialog>
   </el-container>
@@ -177,7 +177,7 @@ async function logout() {
   transition: background var(--dur-fast);
 }
 .row.clickable { cursor: pointer; }
-.row.clickable:hover { background: rgba(60, 60, 67, 0.06); }
+.row.clickable:hover { background: rgba(23, 24, 28, 0.06); }
 .row-title { font-size: var(--fs-body); color: var(--label); }
 .row-value { font-size: var(--fs-body); color: var(--label); }
 .row-value.muted { color: var(--label-secondary); }
