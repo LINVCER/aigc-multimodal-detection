@@ -38,7 +38,7 @@ const dist = computed(() => {
 const sources = computed(() => Object.entries(data.value?.sourceLabels || {}).sort(([, a], [, b]) => b - a))
 const watermarkCells = Array.from({ length: 60 })
 const probColor = (p: number) => (p >= 0.7 ? 'var(--system-red)' : p >= 0.4 ? 'var(--system-orange)' : 'var(--system-green)')
-const sentenceBg = (p: number) => (p >= 0.7 ? 'rgba(255, 59, 48, 0.14)' : p >= 0.4 ? 'rgba(255, 149, 0, 0.16)' : 'transparent')
+const sentenceBg = (p: number) => (p >= 0.7 ? 'rgba(229, 72, 77, 0.14)' : p >= 0.4 ? 'rgba(245, 158, 11, 0.16)' : 'transparent')
 const fmt = (s?: string | null) => (s ? String(s).replace('T', ' ').slice(0, 16) : '—')
 </script>
 
@@ -84,7 +84,7 @@ const fmt = (s?: string | null) => (s ? String(s).replace('T', ' ').slice(0, 16)
             <div class="sec">段落分析<span class="sec-sub">句子按 AI 概率着色</span></div>
             <el-card v-for="p in data.paragraphs" :key="p.paragraphIdx" class="para" :class="{ ex: p.excluded }" body-style="padding: 0">
               <div class="para-head">
-                <i class="bar-i" :style="{ background: p.excluded ? 'rgba(120,120,128,0.3)' : probColor(p.calibratedProb || 0) }" />
+                <i class="bar-i" :style="{ background: p.excluded ? 'rgba(23, 24, 28,0.3)' : probColor(p.calibratedProb || 0) }" />
                 <span class="idx">段 {{ p.paragraphIdx + 1 }}</span>
                 <span v-if="p.excluded" class="ex-badge">未参与计算 · {{ EXCLUDE_LABEL[p.excludeReason || ''] || '非正文' }}</span>
                 <b v-else :style="{ color: probColor(p.calibratedProb || 0) }">{{ ((p.calibratedProb || 0) * 100).toFixed(0) }}%<span v-if="p.sourceLabel && p.sourceLabel !== 'human'" class="muted"> · 疑似 {{ SOURCE_LABEL[p.sourceLabel] || p.sourceLabel }}</span></b>
@@ -122,7 +122,7 @@ const fmt = (s?: string | null) => (s ? String(s).replace('T', ' ').slice(0, 16)
 .watermark span { white-space: nowrap; }
 .bar { position: sticky; top: 0; z-index: 10; height: 52px; padding: 0 24px; display: flex; align-items: center; gap: 12px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); border-bottom: 1px solid var(--label-quaternary); }
 .bar-brand { font-weight: 700; cursor: pointer; }
-.bar-tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: rgba(0, 122, 255, 0.1); color: var(--system-blue); }
+.bar-tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: rgba(20, 184, 166, 0.1); color: var(--system-blue); }
 .bar-meta { margin-left: auto; font-size: 12px; color: var(--label-secondary); }
 .main { position: relative; z-index: 1; max-width: 1080px; margin: 0 auto; padding: 28px 24px 64px; }
 .state { text-align: center; padding: 80px 0; color: var(--label-secondary); }
@@ -134,10 +134,10 @@ const fmt = (s?: string | null) => (s ? String(s).replace('T', ' ').slice(0, 16)
 .rate-box { text-align: right; flex: none; }
 .rate { font-size: 48px; font-weight: 700; letter-spacing: -1.5px; line-height: 1; font-variant-numeric: tabular-nums; } .rate span { font-size: 20px; color: var(--label-secondary); margin-left: 2px; }
 .verdict { display: inline-block; margin-top: 8px; padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; }
-.verdict.ok { background: rgba(52, 199, 89, 0.14); color: #1B7F3E; } .verdict.bad { background: rgba(255, 59, 48, 0.14); color: #C62A22; }
+.verdict.ok { background: rgba(22, 163, 74, 0.14); color: var(--success-fg); } .verdict.bad { background: rgba(229, 72, 77, 0.14); color: var(--danger-fg); }
 .dist { margin-top: 18px; }
-.dist-bar { display: flex; height: 10px; border-radius: 99px; overflow: hidden; background: rgba(120, 120, 128, 0.12); } .dist-bar i { height: 100%; }
-.h { color: #C62A22; } .m { color: #B26200; } .l { color: #1B7F3E; }
+.dist-bar { display: flex; height: 10px; border-radius: 99px; overflow: hidden; background: rgba(23, 24, 28, 0.12); } .dist-bar i { height: 100%; }
+.h { color: var(--danger-fg); } .m { color: var(--warning-fg); } .l { color: var(--success-fg); }
 .dist-bar .h { background: var(--system-red); } .dist-bar .m { background: var(--system-orange); } .dist-bar .l { background: var(--system-green); }
 .dist-legend { display: flex; gap: 14px; margin-top: 6px; font-size: 12px; } .dist-legend .muted { margin-left: auto; }
 .grid { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 24px; margin-top: 20px; align-items: start; }
@@ -147,7 +147,7 @@ const fmt = (s?: string | null) => (s ? String(s).replace('T', ' ').slice(0, 16)
 .para-head { display: flex; align-items: center; gap: 10px; padding: 10px 16px 10px 0; }
 .bar-i { width: 4px; align-self: stretch; margin-right: 6px; border-radius: 0 2px 2px 0; }
 .idx { font-size: 11px; font-weight: 600; color: var(--label-secondary); text-transform: uppercase; letter-spacing: .6px; }
-.ex-badge { font-size: 12px; color: var(--label-secondary); background: rgba(120, 120, 128, 0.14); padding: 2px 10px; border-radius: 99px; }
+.ex-badge { font-size: 12px; color: var(--label-secondary); background: rgba(23, 24, 28, 0.14); padding: 2px 10px; border-radius: 99px; }
 .para-body { padding: 0 16px 14px 20px; font-size: 15px; line-height: 1.75; }
 .muted { color: var(--label-secondary); } .small { font-size: 12px; }
 .side { position: sticky; top: 68px; display: flex; flex-direction: column; gap: 14px; }

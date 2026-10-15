@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ZyIcon from '@/components/ZyIcon.vue'
 import { onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -7,9 +8,9 @@ const router = useRouter()
 const auth = useAuthStore()
 
 const PILLARS = [
-  { icon: '🔍', title: '可解释', desc: '逐段给出「为什么像 AI」：句长节奏、套话连接词、用词重复度，附具体数值；再定位最可疑的句子。' },
-  { icon: '🧭', title: '溯源', desc: '疑似来自哪家大模型（GPT / 通义 / DeepSeek …）。知道像谁，才知道怎么不像。' },
-  { icon: '🛡️', title: '救误判', desc: '原创被判 AI？助手帮你整理申诉材料与写作过程证明指引，而不是让你花钱「降 AI」。' },
+  { icon: 'search', title: '可解释', desc: '逐段给出「为什么像 AI」：句长节奏、套话连接词、用词重复度，附具体数值；再定位最可疑的句子。' },
+  { icon: 'compass', title: '溯源', desc: '疑似来自哪家大模型（GPT / 通义 / DeepSeek …）。知道像谁，才知道怎么不像。' },
+  { icon: 'shield', title: '救误判', desc: '原创被判 AI？助手帮你整理申诉材料与写作过程证明指引，而不是让你花钱「降 AI」。' },
 ]
 
 const STEPS = [
@@ -63,14 +64,19 @@ function go(path: string) { router.push(path) }
 
     <section class="hero">
       <div class="hero-inner">
-        <div class="eyebrow">免费 · 不代写 · 可申诉</div>
+        <div class="eyebrow"><ZyIcon name="sparkle" :size="13" />免费 · 不代写 · 被误判有路走</div>
         <h1>看得懂的论文 AI 率检测</h1>
         <p class="lead">不只告诉你 AI 率，还告诉你<b>为什么像、哪一段、怎么改</b>。溯源疑似哪家大模型，原创被误判可直接生成申诉材料。</p>
         <div class="cta">
-          <el-button type="primary" size="large" round @click="go('/upload')">免费检测我的论文</el-button>
-          <el-button size="large" round @click="go('/upload')">先粘贴一段试试</el-button>
+          <el-button type="primary" size="large" round @click="go('/upload')"><ZyIcon name="search" :size="17" />免费检测我的论文</el-button>
+          <el-button size="large" round @click="go('/upload')"><ZyIcon name="pen-line" :size="17" />先贴一段看看</el-button>
         </div>
-        <div class="trust">教育部 2026 学位论文 AI 率新规口径 · 本科 20% / 硕士 15% / 博士 10% 红线按场景切换</div>
+        <div class="trust"><ZyIcon name="shield" :size="14" />本科 20% / 硕士 15% / 博士 10%，按你学校的红线来 · 教育部 2026 新规口径</div>
+        <div class="spark-chips">
+          <span class="spark-chip" @click="go('/upload')"><ZyIcon name="search" :size="13" />赶 DDL 前自查</span>
+          <span class="spark-chip" @click="go('/upload')"><ZyIcon name="pen-line" :size="13" />导师让我改，改哪里？</span>
+          <span class="spark-chip" @click="go('/upload')"><ZyIcon name="shield" :size="13" />答辩前突击查一遍</span>
+        </div>
       </div>
       <div class="hero-card" aria-hidden="true">
         <div class="hc-top"><span class="hc-rate">23.4%</span><span class="hc-badge">超线 3.4 pp</span></div>
@@ -79,13 +85,13 @@ function go(path: string) { router.push(path) }
         <div class="hc-item"><span class="hc-n">1</span><span>段 7 · 86% · 疑似 GPT</span></div>
         <div class="hc-item"><span class="hc-n">2</span><span>段 12 · 74% · 句长变化 z −1.6</span></div>
         <div class="hc-item"><span class="hc-n">3</span><span>段 3 · 61% · 套话连接词 ×5</span></div>
-        <div class="hc-assist">💬 「这段句子长短很匀、读起来『平』，加一句你自己的实验细节会更像人写」</div>
+        <div class="hc-assist"><ZyIcon name="xiaobai-spark" :size="15" />「这段句子长短很匀、读起来『平』，加一句你自己的实验细节会更像人写」</div>
       </div>
     </section>
 
     <section class="pillars">
       <div v-for="p in PILLARS" :key="p.title" class="pillar">
-        <div class="pillar-icon">{{ p.icon }}</div>
+        <div class="pillar-icon"><ZyIcon :name="p.icon" :size="22" /></div>
         <h3>{{ p.title }}</h3>
         <p>{{ p.desc }}</p>
       </div>
@@ -113,7 +119,7 @@ function go(path: string) { router.push(path) }
           <div><h4>{{ r.title }}</h4><p>{{ r.desc }}</p></div>
         </div>
       </div>
-      <el-button type="primary" round @click="go('/upload')">上传报告，让助手带你看</el-button>
+      <el-button type="primary" @click="go('/upload')"><ZyIcon name="file-text" :size="16" />上传报告，让小白带你看</el-button>
     </section>
 
     <section class="block compare">
@@ -141,7 +147,7 @@ function go(path: string) { router.push(path) }
 
     <section class="final">
       <h2>先看懂，再动笔</h2>
-      <el-button type="primary" size="large" round @click="go('/upload')">免费检测我的论文</el-button>
+      <el-button type="primary" size="large" round @click="go('/upload')"><ZyIcon name="search" :size="17" />免费检测我的论文</el-button>
       <p class="final-sub">检测结果仅供参考，建议人工复核；最终以学校检测与规定为准。</p>
     </section>
 
@@ -160,34 +166,36 @@ function go(path: string) { router.push(path) }
 .nav-links a:hover { color: var(--label); }
 
 .hero { max-width: 1080px; margin: 0 auto; padding: 72px 24px 48px; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr); gap: 48px; align-items: center; }
-.eyebrow { display: inline-block; font-size: 12px; font-weight: 600; letter-spacing: 1px; color: var(--system-blue); background: rgba(0, 122, 255, 0.08); padding: 4px 12px; border-radius: 99px; }
+.eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; letter-spacing: .6px; color: var(--ai-700); background: var(--ai-100); padding: 5px 12px; border-radius: 99px; }
 h1 { font-size: 46px; line-height: 1.12; letter-spacing: -1.2px; margin: 18px 0 14px; font-weight: 700; }
 .lead { font-size: 18px; line-height: 1.6; color: var(--label-secondary); margin: 0 0 24px; }
 .lead b { color: var(--label); font-weight: 600; }
 .cta { display: flex; gap: 12px; flex-wrap: wrap; }
-.trust { margin-top: 18px; font-size: 13px; color: var(--label-tertiary); }
+.trust { margin-top: 18px; font-size: 13px; color: var(--label-secondary); display: flex; align-items: center; gap: 6px; } .trust .zy-icon { color: var(--system-green); }
+.spark-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+.spark-chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border-radius: 99px; background: #fff; border: 1px solid var(--separator); font-size: 13px; color: var(--label-secondary); cursor: pointer; transition: background var(--dur-fast); } .spark-chip .zy-icon { color: var(--ai-700); } .spark-chip:hover { background: var(--ai-100); color: var(--ai-700); }
 
-.hero-card { background: #fff; border-radius: 18px; padding: 22px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08); font-size: 13px; }
+.hero-card { background: #fff; border-radius: 18px; padding: 22px; border: 1px solid rgba(23, 24, 28, 0.06); box-shadow: var(--shadow-lift); font-size: 13px; }
 .hc-top { display: flex; align-items: baseline; gap: 10px; }
 .hc-rate { font-size: 40px; font-weight: 700; letter-spacing: -1px; color: var(--system-red); font-variant-numeric: tabular-nums; }
-.hc-badge { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: rgba(255, 59, 48, 0.12); color: #C62A22; }
-.hc-bar { display: flex; height: 8px; border-radius: 99px; overflow: hidden; margin: 12px 0 16px; background: rgba(120, 120, 128, 0.12); }
+.hc-badge { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: rgba(229, 72, 77, 0.12); color: var(--danger-fg); }
+.hc-bar { display: flex; height: 8px; border-radius: 99px; overflow: hidden; margin: 12px 0 16px; background: rgba(23, 24, 28, 0.12); }
 .hc-bar i { height: 100%; } .hc-bar .r { background: var(--system-red); } .hc-bar .y { background: var(--system-orange); } .hc-bar .g { background: var(--system-green); }
 .hc-row { display: flex; justify-content: space-between; margin-bottom: 6px; } .hc-row span { color: var(--label-tertiary); font-size: 12px; }
 .hc-item { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--label-quaternary); }
 .hc-n { width: 20px; height: 20px; border-radius: 50%; background: var(--system-red); color: #fff; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
-.hc-assist { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: rgba(0, 122, 255, 0.07); line-height: 1.5; }
+.hc-assist { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: var(--ai-100); color: var(--ai-700); line-height: 1.5; display: flex; gap: 6px; align-items: flex-start; } .hc-assist .zy-icon { margin-top: 2px; }
 
 .pillars { max-width: 1080px; margin: 0 auto; padding: 16px 24px 48px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.pillar { background: #fff; border-radius: 16px; padding: 22px; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04); }
-.pillar-icon { font-size: 26px; }
+.pillar { background: #fff; border-radius: 16px; padding: 22px; box-shadow: 0 2px 12px rgba(23, 24, 28, 0.04); }
+.pillar-icon { width: 40px; height: 40px; border-radius: 12px; background: var(--ai-100); color: var(--ai-700); display: grid; place-items: center; }
 .pillar h3 { margin: 10px 0 6px; font-size: 18px; }
 .pillar p { margin: 0; color: var(--label-secondary); line-height: 1.6; font-size: 14px; }
 
 .block { max-width: 1080px; margin: 0 auto; padding: 40px 24px; }
 .block h2 { font-size: 28px; letter-spacing: -0.6px; margin: 0 0 24px; }
 .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-.step { position: relative; padding: 20px 20px 20px 56px; background: #fff; border-radius: 16px; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04); }
+.step { position: relative; padding: 20px 20px 20px 56px; background: #fff; border-radius: 16px; box-shadow: 0 2px 12px rgba(23, 24, 28, 0.04); }
 .step-n { position: absolute; left: 18px; top: 20px; width: 26px; height: 26px; border-radius: 50%; background: var(--label); color: #fff; font-weight: 700; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; }
 .step h4 { margin: 0 0 6px; font-size: 16px; } .step p { margin: 0; color: var(--label-secondary); font-size: 14px; line-height: 1.6; }
 
@@ -195,14 +203,14 @@ h1 { font-size: 46px; line-height: 1.12; letter-spacing: -1.2px; margin: 18px 0 
 .rescue-head p { color: var(--label-secondary); margin: -12px 0 24px; font-size: 15px; }
 .rescue-list { display: flex; flex-direction: column; gap: 14px; margin-bottom: 24px; }
 .rescue-item { display: flex; gap: 14px; align-items: flex-start; }
-.rescue-n { flex: none; width: 30px; height: 30px; border-radius: 50%; background: rgba(255, 59, 48, 0.12); color: #C62A22; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+.rescue-n { flex: none; width: 30px; height: 30px; border-radius: 50%; background: rgba(229, 72, 77, 0.12); color: var(--danger-fg); font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
 .rescue-item h4 { margin: 4px 0 4px; font-size: 16px; } .rescue-item p { margin: 0; color: var(--label-secondary); line-height: 1.6; font-size: 14px; }
 
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 16px; overflow: hidden; font-size: 14px; }
 th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--label-quaternary); }
 th { font-size: 12px; color: var(--label-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
-td:first-child { font-weight: 600; } td.yes { color: #1B7F3E; font-weight: 600; } td.no { color: #C62A22; }
+td:first-child { font-weight: 600; } td.yes { color: var(--success-fg); font-weight: 600; } td.no { color: var(--danger-fg); }
 
 .faq { background: #fff; border-radius: 16px; padding: 4px 20px; }
 .faq-a { margin: 0; color: var(--label-secondary); line-height: 1.7; }

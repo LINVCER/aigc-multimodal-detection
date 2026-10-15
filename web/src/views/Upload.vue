@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ZyIcon from '@/components/ZyIcon.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -12,12 +13,12 @@ const router = useRouter()
 const route = useRoute()
 
 const SCENARIOS = [
-  { key: 'academic_bachelor', label: '学术·本科', threshold: 20, desc: '毕业论文自查', tint: '#007AFF' },
-  { key: 'academic_master',   label: '学术·硕士', threshold: 15, desc: '硕士毕业论文', tint: '#5856D6' },
-  { key: 'academic_phd',      label: '学术·博士', threshold: 10, desc: '博士毕业论文', tint: '#AF52DE' },
-  { key: 'job_report',        label: '职业报告',   threshold: 15, desc: '工作报告 / 项目文档', tint: '#00C7BE' },
-  { key: 'self_media',        label: '自媒体',     threshold: 30, desc: '公众号 / 小红书 / 头条', tint: '#FF2D55' },
-  { key: 'other',             label: '其他',       threshold: 25, desc: '通用文档', tint: '#8E8E93' },
+  { key: 'academic_bachelor', label: '学术·本科', threshold: 20, desc: '毕业论文自查', tint: '#0F766E' },
+  { key: 'academic_master',   label: '学术·硕士', threshold: 15, desc: '硕士毕业论文', tint: '#14B8A6' },
+  { key: 'academic_phd',      label: '学术·博士', threshold: 10, desc: '博士毕业论文', tint: '#3B82F6' },
+  { key: 'job_report',        label: '职业报告',   threshold: 15, desc: '工作报告 / 项目文档', tint: '#FF8A3D' },
+  { key: 'self_media',        label: '自媒体',     threshold: 30, desc: '公众号 / 小红书 / 头条', tint: '#B45309' },
+  { key: 'other',             label: '其他',       threshold: 25, desc: '通用文档', tint: '#8A8F98' },
 ] as const
 type ScenarioKey = typeof SCENARIOS[number]['key']
 const SCENARIO_LABEL: Record<string, string> = Object.fromEntries(SCENARIOS.map((s) => [s.key, s.label]))
@@ -69,7 +70,7 @@ async function submit() {
   submitting.value = true
   try {
     const resp = await submitPaper(file.value, scenario.value, undefined, auth.user?.id, parentTaskId.value)
-    ElMessage.success('已提交，正在检测')
+    ElMessage.success('收到，正在检测')
     router.push({ name: 'TaskDetail', params: { id: resp.taskId } })
   } finally { submitting.value = false }
 }
@@ -80,7 +81,7 @@ const pasteResult = ref<DirectDetectResp | null>(null)
 const pasteChecking = ref(false)
 const pasteTooLong = computed(() => pasteText.value.length > PASTE_MAX)
 const pasteShort = computed(() => pasteText.value.trim().length > 0 && pasteText.value.trim().length < 120)
-function pasteBg(prob: number) { return prob >= 0.7 ? 'rgba(255, 59, 48, 0.14)' : prob >= 0.4 ? 'rgba(255, 149, 0, 0.16)' : 'transparent' }
+function pasteBg(prob: number) { return prob >= 0.7 ? 'rgba(229, 72, 77, 0.14)' : prob >= 0.4 ? 'rgba(245, 158, 11, 0.16)' : 'transparent' }
 function pasteColor(prob: number) { return prob >= 0.7 ? 'var(--system-red)' : prob >= 0.4 ? 'var(--system-orange)' : 'var(--system-green)' }
 const pasteVerdict = computed(() => {
   const r = pasteResult.value
@@ -122,8 +123,8 @@ async function pasteFromClipboard() {
           <h1 class="large-title">论文检测</h1>
           <p class="large-sub">上传全文出完整报告，或粘贴一段即时看结果。只做论文，不做音频与图像。</p>
           <div class="seg">
-            <button class="seg-item" :class="{ active: mode === 'file' }" @click="mode = 'file'">📄 上传论文</button>
-            <button class="seg-item" :class="{ active: mode === 'paste' }" @click="mode = 'paste'">✍️ 粘贴一段</button>
+            <button class="seg-item" :class="{ active: mode === 'file' }" @click="mode = 'file'"><ZyIcon name="file-text" :size="15" />上传论文</button>
+            <button class="seg-item" :class="{ active: mode === 'paste' }" @click="mode = 'paste'"><ZyIcon name="pen-line" :size="15" />先贴一段看看</button>
           </div>
         </div>
 
@@ -202,10 +203,10 @@ async function pasteFromClipboard() {
                 <el-input v-model="pasteText" type="textarea" :rows="12" resize="vertical" :maxlength="PASTE_MAX + 500"
                   placeholder="粘贴 120–5000 字，立刻看到 AI 率、句子级高亮和疑似来源。不落库、不生成任务。" />
                 <div class="paste-tools">
-                  <el-button link type="primary" @click="pasteFromClipboard">📋 从剪贴板粘贴</el-button>
+                  <el-button link type="primary" @click="pasteFromClipboard"><ZyIcon name="clipboard" :size="14" />从剪贴板粘贴</el-button>
                   <el-button v-if="pasteText" link @click="clearPaste">清空</el-button>
                   <span class="flex-1" />
-                  <el-button type="primary" round :loading="pasteChecking" :disabled="!pasteText.trim() || pasteTooLong" @click="checkPaste">即时检测</el-button>
+                  <el-button type="primary" :loading="pasteChecking" :disabled="!pasteText.trim() || pasteTooLong" @click="checkPaste">即时检测</el-button>
                 </div>
                 <div v-if="pasteShort" class="paste-warn">不足 120 字时判定不可靠，结果仅供参考</div>
               </div>
@@ -230,7 +231,7 @@ async function pasteFromClipboard() {
                   <span v-for="(v, k) in pasteResult.branchScores" :key="k" class="branch">{{ k }} <b>{{ (Number(v) * 100).toFixed(0) }}%</b></span>
                 </div>
                 <div class="result-actions">
-                  <el-button round @click="mode = 'file'">上传全文出报告</el-button>
+                  <el-button @click="mode = 'file'"><ZyIcon name="file-text" :size="15" />上传全文出报告</el-button>
                 </div>
               </div>
               <div class="privacy">粘贴文本不落库、不生成任务，仅即时预览</div>
@@ -279,15 +280,15 @@ async function pasteFromClipboard() {
 }
 .header-inner { height: 56px; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; }
 .header-title { font-size: var(--fs-headline); font-weight: var(--fw-semibold); }
-.main { padding: 32px 24px 64px; background: linear-gradient(180deg, #EEF4FF 0%, transparent 260px); }
+.main { padding: 32px 24px 64px; background: linear-gradient(180deg, rgba(20, 184, 166, 0.08) 0%, transparent 260px); }
 .wrap { max-width: 1040px; margin: 0 auto; }
 
 .hero { margin-bottom: 20px; }
 .large-title { font-size: var(--fs-large-title); font-weight: var(--fw-bold); letter-spacing: -0.8px; margin: 0; }
 .large-sub { color: var(--label-secondary); margin: 6px 0 16px; font-size: var(--fs-subhead); }
-.seg { display: inline-flex; padding: 3px; background: rgba(120, 120, 128, 0.12); border-radius: 12px; }
-.seg-item { border: none; background: transparent; padding: 8px 18px; border-radius: 9px; font-size: var(--fs-subhead); font-weight: 500; color: var(--label-secondary); cursor: pointer; }
-.seg-item.active { background: #fff; color: var(--label); font-weight: 600; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08); }
+.seg { display: inline-flex; padding: 3px; background: var(--bg-deep); border-radius: 12px; }
+.seg-item { border: none; background: transparent; padding: 8px 18px; border-radius: 9px; font-size: var(--fs-subhead); font-weight: 500; color: var(--label-secondary); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; }
+.seg-item.active { background: #fff; color: var(--label); font-weight: 600; box-shadow: var(--shadow-card); } .seg-item.active .zy-icon { color: var(--ai-700); }
 
 .grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 24px; align-items: start; }
 @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } .col-side { order: 2; } }
@@ -299,33 +300,33 @@ async function pasteFromClipboard() {
 
 .sc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 @media (max-width: 640px) { .sc-grid { grid-template-columns: repeat(2, 1fr); } }
-.sc { text-align: left; border: 1.5px solid transparent; background: #fff; border-radius: 12px; padding: 12px 14px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04); transition: all .15s; }
+.sc { text-align: left; border: 1.5px solid transparent; background: #fff; border-radius: 12px; padding: 12px 14px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 2px 10px rgba(23, 24, 28, 0.04); transition: all .15s; }
 .sc:hover { transform: translateY(-1px); }
 .sc-label { font-size: var(--fs-subhead); font-weight: 600; }
 .sc-desc { font-size: 12px; color: var(--label-secondary); }
 .sc-th { font-size: 12px; font-weight: 600; opacity: .8; margin-top: 2px; }
 
-.drop { margin-top: 16px; border: 2px dashed rgba(0, 122, 255, 0.35); border-radius: 16px; background: rgba(255, 255, 255, 0.9); transition: all .15s; }
-.drop.over { background: rgba(0, 122, 255, 0.08); border-color: var(--system-blue); }
+.drop { margin-top: 16px; border: 2px dashed rgba(20, 184, 166, 0.35); border-radius: 16px; background: rgba(255, 255, 255, 0.9); transition: all .15s; }
+.drop.over { background: rgba(20, 184, 166, 0.08); border-color: var(--system-blue); }
 .drop-upload :deep(.el-upload) { width: 100%; }
 .drop-inner { padding: 40px 24px 28px; display: flex; flex-direction: column; align-items: center; text-align: center; cursor: pointer; }
 .drop-icon { position: relative; width: 64px; height: 64px; margin-bottom: 12px; }
-.drop-doc { position: absolute; left: 12px; top: 4px; width: 40px; height: 52px; border-radius: 6px; background: rgba(0, 122, 255, 0.10); border: 1.5px solid rgba(0, 122, 255, 0.45); }
-.drop-plus { position: absolute; right: 0; bottom: 0; width: 26px; height: 26px; border-radius: 50%; background: var(--system-blue); color: #fff; font-weight: 700; line-height: 26px; box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3); }
+.drop-doc { position: absolute; left: 12px; top: 4px; width: 40px; height: 52px; border-radius: 6px; background: rgba(20, 184, 166, 0.10); border: 1.5px solid rgba(20, 184, 166, 0.45); }
+.drop-plus { position: absolute; right: 0; bottom: 0; width: 26px; height: 26px; border-radius: 50%; background: var(--system-blue); color: #fff; font-weight: 700; line-height: 26px; box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3); }
 .drop-title { font-size: var(--fs-headline); font-weight: 600; }
 .drop-title em { color: var(--system-blue); font-style: normal; }
 .drop-sub { font-size: var(--fs-footnote); color: var(--label-secondary); margin-top: 4px; }
 .drop-badges { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 14px; }
-.drop-badges span { font-size: 11px; color: var(--label-secondary); background: rgba(120, 120, 128, 0.10); padding: 2px 8px; border-radius: 99px; }
+.drop-badges span { font-size: 11px; color: var(--label-secondary); background: rgba(23, 24, 28, 0.10); padding: 2px 8px; border-radius: 99px; }
 
-.picked { margin-top: 16px; background: #fff; border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04); }
+.picked { margin-top: 16px; background: #fff; border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 10px rgba(23, 24, 28, 0.04); }
 .picked-ext { flex: none; width: 44px; height: 44px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
 .picked-main { flex: 1; min-width: 0; }
 .picked-name { font-weight: 500; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .picked-meta { font-size: 12px; color: var(--label-secondary); margin-top: 2px; }
 
-.prev { margin-top: 12px; background: #fff; border-radius: 14px; padding: 14px 16px; border: 1.5px solid transparent; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04); }
-.prev.on { border-color: rgba(0, 122, 255, 0.35); }
+.prev { margin-top: 12px; background: #fff; border-radius: 14px; padding: 14px 16px; border: 1.5px solid transparent; box-shadow: 0 2px 10px rgba(23, 24, 28, 0.04); }
+.prev.on { border-color: rgba(20, 184, 166, 0.35); }
 .prev-head { margin-bottom: 8px; }
 .prev-title { font-weight: 600; font-size: var(--fs-subhead); }
 .prev-sub { font-size: 12px; color: var(--label-secondary); }
@@ -333,12 +334,12 @@ async function pasteFromClipboard() {
 .cta { width: 100%; margin-top: 20px; height: 50px; font-size: 17px; }
 .privacy { margin-top: 10px; font-size: var(--fs-caption-1); color: var(--label-secondary); text-align: center; }
 
-.paste { background: #fff; border-radius: 14px; padding: 12px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04); }
+.paste { background: #fff; border-radius: 14px; padding: 12px; box-shadow: 0 2px 10px rgba(23, 24, 28, 0.04); }
 .paste-tools { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
 .flex-1 { flex: 1; }
 .paste-warn { font-size: 12px; color: var(--system-orange); margin-top: 8px; }
 
-.result { margin-top: 16px; background: #fff; border-radius: 14px; padding: 18px 20px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04); }
+.result { margin-top: 16px; background: #fff; border-radius: 14px; padding: 18px 20px; box-shadow: 0 2px 10px rgba(23, 24, 28, 0.04); }
 .result-head { display: flex; align-items: center; gap: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--label-quaternary); margin-bottom: 14px; }
 .result-rate-wrap { flex: none; text-align: center; }
 .result-rate { font-size: 44px; font-weight: 700; letter-spacing: -1px; line-height: 1; font-variant-numeric: tabular-nums; }
@@ -351,15 +352,15 @@ async function pasteFromClipboard() {
 .result-text { font-size: 15px; line-height: 1.75; }
 .result-legend { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 12px; color: var(--label-secondary); }
 .sw { display: inline-block; width: 14px; height: 7px; border-radius: 2px; }
-.sw.high { background: rgba(255, 59, 48, 0.3); } .sw.mid { background: rgba(255, 149, 0, 0.3); margin-left: 8px; }
+.sw.high { background: rgba(229, 72, 77, 0.3); } .sw.mid { background: rgba(245, 158, 11, 0.3); margin-left: 8px; }
 .result-branches { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-.branch { background: rgba(120, 120, 128, 0.14); padding: 3px 10px; border-radius: 99px; font-size: 12px; color: var(--label-secondary); }
+.branch { background: rgba(23, 24, 28, 0.14); padding: 3px 10px; border-radius: 99px; font-size: 12px; color: var(--label-secondary); }
 .branch b { color: var(--label); margin-left: 4px; }
 .result-actions { margin-top: 14px; display: flex; gap: 8px; }
 
 .col-side { display: flex; flex-direction: column; gap: 14px; }
-.side-card { background: #fff; border-radius: 14px; padding: 16px 18px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04); }
-.side-card.soft { background: rgba(0, 122, 255, 0.06); box-shadow: none; }
+.side-card { background: #fff; border-radius: 14px; padding: 16px 18px; box-shadow: 0 2px 10px rgba(23, 24, 28, 0.04); }
+.side-card.soft { background: rgba(20, 184, 166, 0.06); box-shadow: none; }
 .side-title { font-weight: 600; margin-bottom: 8px; }
 .side-list { margin: 0; padding-left: 18px; font-size: 13px; color: var(--label-secondary); line-height: 1.7; }
 .side-list b { color: var(--label); font-weight: 600; }
