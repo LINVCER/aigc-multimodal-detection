@@ -10,6 +10,7 @@ import com.paperaigc.detect.domain.entity.DetectTask;
 import com.paperaigc.detect.domain.vo.DetectTaskDetailVO;
 import com.paperaigc.detect.domain.vo.DetectTaskVO;
 import com.paperaigc.detect.domain.vo.PageVO;
+import com.paperaigc.detect.domain.vo.ResolvedRuleVO;
 import com.paperaigc.detect.domain.vo.StatisticsVO;
 import com.paperaigc.detect.repository.IDetectTaskRepository;
 import com.paperaigc.detect.service.IDetectAnalyticsService;
@@ -17,6 +18,7 @@ import com.paperaigc.detect.service.IInferenceClient;
 import com.paperaigc.detect.service.INotifyService;
 import com.paperaigc.detect.service.IReportCredentialService;
 import com.paperaigc.detect.service.IScenarioThresholdService;
+import com.paperaigc.detect.service.ISchoolService;
 import com.paperaigc.detect.service.IStorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -29,6 +31,7 @@ import org.mockito.quality.Strictness;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -67,6 +70,7 @@ class DetectTaskServiceImplTest {
     @Mock private INotifyService notifyService;
     @Mock private IDetectAnalyticsService analyticsService;
     @Mock private IReportCredentialService credentialService;
+    @Mock private ISchoolService schoolService;
 
     // 直接执行器：让提交后异步入队的推理在测试线程内同步跑完，submit 返回时已是终态，便于断言 DONE/FAILED
     private final Executor directExecutor = Runnable::run;
@@ -77,7 +81,7 @@ class DetectTaskServiceImplTest {
     void setUp() {
         service = new DetectTaskServiceImpl(taskRepository, inferenceClient, storageService,
                 textProcessor, scenarioThresholdService, notifyService, analyticsService, credentialService,
-                directExecutor);
+                schoolService, directExecutor);
     }
 
     /* ==================== §3.1 提交 ==================== */
@@ -171,6 +175,51 @@ class DetectTaskServiceImplTest {
 
         assertThat(task.getScenario()).isEqualTo(ScenarioConstants.ACADEMIC_PHD);
         verify(scenarioThresholdService).threshold(ScenarioConstants.ACADEMIC_PHD);
+    }
+
+    @Test
+    @DisplayName("提交：命中学校红线 → 覆盖场景阈值并留痕 schoolRuleId/ruleLabel")
+    void submitSchoolRuleOverride() {
+        stubTextPipeline();
+        when(textProcessor.isAllowedFormat(any())).thenReturn(true);
+        when(textProcessor.filterNonBody(any())).thenReturn(List.of(meta("正文内容长度足够用于检测。", false, null)));
+        when(scenarioThresholdService.threshold(ScenarioConstants.ACADEMIC_MASTER)).thenReturn(20);
+        when(schoolService.resolveByUserId(7L)).thenReturn(ResolvedRuleVO.builder()
+                .resolved(true).ruleId(88L).aiRateLimit(new BigDecimal("9.4")).label("北航 · 硕士").build());
+        when(taskRepository.save(any())).thenAnswer(inv -> {
+            DetectTask t = inv.getArgument(0);
+            t.setId(50L);
+            return t;
+        });
+        when(inferenceClient.detectParagraph(anyString(), eq(true))).thenReturn(pyResult(0.5));
+
+        DetectTask task = service.submit(txt("body"), "academic_master", null, null, 7L, null, null);
+
+        assertThat(task.getThreshold()).isEqualTo(9);   // 9.4 HALF_UP → 9，覆盖场景默认 20
+        assertThat(task.getSchoolRuleId()).isEqualTo(88L);
+        assertThat(task.getRuleLabel()).isEqualTo("北航 · 硕士");
+    }
+
+    @Test
+    @DisplayName("提交：学校红线解析异常 → 回退场景阈值，不影响提交")
+    void submitSchoolRuleFallsBackOnError() {
+        stubTextPipeline();
+        when(textProcessor.isAllowedFormat(any())).thenReturn(true);
+        when(textProcessor.filterNonBody(any())).thenReturn(List.of(meta("正文内容长度足够用于检测。", false, null)));
+        when(scenarioThresholdService.threshold(ScenarioConstants.ACADEMIC_MASTER)).thenReturn(20);
+        when(schoolService.resolveByUserId(7L)).thenThrow(new RuntimeException("school service down"));
+        when(taskRepository.save(any())).thenAnswer(inv -> {
+            DetectTask t = inv.getArgument(0);
+            t.setId(51L);
+            return t;
+        });
+        when(inferenceClient.detectParagraph(anyString(), eq(true))).thenReturn(pyResult(0.5));
+
+        DetectTask task = service.submit(txt("body"), "academic_master", null, null, 7L, null, null);
+
+        assertThat(task.getThreshold()).isEqualTo(20);
+        assertThat(task.getRuleLabel()).isEqualTo("通用标准");
+        assertThat(task.getSchoolRuleId()).isNull();
     }
 
     @Test

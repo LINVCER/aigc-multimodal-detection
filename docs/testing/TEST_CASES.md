@@ -1,10 +1,13 @@
 # 知源 AIGC 检测平台 · 测试用例文档
 
-> 版本：v1.1 ｜ 生成日期：2026-10-09 ｜ 适用代码：`backend-java/standalone-app` + `web/`
+> 版本：v1.2 ｜ 生成日期：2026-10-15 ｜ 适用代码：`backend-java/standalone-app` + `web/`
 >
 > 本文档与自动化测试代码一一对应，可直接按「用例编号」定位到源码。
 >
 > v1.1 新增：真实 MySQL / Redis 集成冒烟测试（§2.14、§2.15），并修复 JDBC 字符集配置缺陷（DEF-03）。
+>
+> v1.2 新增：文本处理结构化行/章节标题/端到端过滤 3 条（BE-TXT-14…16）与学校红线解析 2 条（BE-TASK-23…24）；
+> 同步修复测试代码未随生产构造器变更导致的 `testCompile` 失败（DEF-04）与 Dashboard E2E 定位器随界面改版失效（DEF-05）。
 
 ---
 
@@ -48,15 +51,15 @@ cd web && npx playwright test
 | Maven | 3.9.x（build-helper-maven-plugin 3.5.0 要求 Maven ≥ 3.6.3） |
 | MySQL | 8.0，`127.0.0.1:3306`，库 `ry-vue`（集成冒烟用，可经 `SMOKE_MYSQL_*` 覆盖） |
 | Redis | `127.0.0.1:16379`，密码 `123456`（集成冒烟用，可经 `SMOKE_REDIS_*` 覆盖） |
-| Node | 22.x |
+| Node | 24.x |
 | 浏览器 | Google Chrome（Playwright `channel: chrome`） |
 | 前端 dev server | http://127.0.0.1:5173 |
 
 ---
 
-## 2. 后端测试用例（共 124 条）
+## 2. 后端测试用例（共 129 条）
 
-> 其中单元/契约测试 112 条（§2.1–§2.13），真实环境集成冒烟 12 条（§2.14–§2.15）。
+> 其中单元/契约测试 117 条（§2.1–§2.13），真实环境集成冒烟 12 条（§2.14–§2.15）。
 
 约定：**类型** U = 单元测试，C = 接口契约测试，I = 集成冒烟测试；**自动化** ✅ = 已纳入 `mvn test`（I 类需 `-Pintegration`）。
 
@@ -148,7 +151,7 @@ cd web && npx playwright test
 | BE-CAP-04 | 正确验证码通过（不区分大小写）且一次性消费 | 首次 true，复用 false | U ✅ |
 | BE-CAP-05 | 错误验证码失败 | 返回 false | U ✅ |
 
-### 2.8 DetectTaskServiceImplTest — 检测任务服务（22 条）
+### 2.8 DetectTaskServiceImplTest — 检测任务服务（24 条）
 
 | 编号 | 用例名称 | 输入/前置 | 预期结果 | 类型 |
 | --- | --- | --- | --- | --- |
@@ -174,6 +177,8 @@ cd web && npx playwright test
 | BE-TASK-20 | humanize：优先取任务段落原文 | 传 taskId | 取库中段落 | U ✅ |
 | BE-TASK-21 | humanize：无 taskId 时用请求体 text | 传 text | 使用请求体文本 | U ✅ |
 | BE-TASK-22 | detectParagraph / inferenceHealth 直接透传 | 正常调用 | 原样透传推理客户端 | U ✅ |
+| BE-TASK-23 | 命中学校红线 → 覆盖场景阈值并留痕 | 学校规则 aiRateLimit=9.4 | 阈值取整为 9（覆盖场景 20），`schoolRuleId`/`ruleLabel` 写入 | U ✅ |
+| BE-TASK-24 | 学校红线解析异常 → 回退场景阈值 | `resolveByUserId` 抛异常 | 阈值回退场景默认 20，`ruleLabel=通用标准`，提交不受影响 | U ✅ |
 
 ### 2.9 IpRateLimiterTest — IP 限流（3 条）
 
@@ -203,7 +208,7 @@ cd web && npx playwright test
 | BE-THR-05 | updateThreshold 后缓存失效 | 更新阈值 | 读到新值 | U ✅ |
 | BE-THR-06 | listAll 直接委托仓储 | 调用 | 返回仓储结果 | U ✅ |
 
-### 2.12 TextProcessorTest — 文本处理（13 条）
+### 2.12 TextProcessorTest — 文本处理（16 条）
 
 | 编号 | 用例名称 | 预期结果 | 类型 |
 | --- | --- | --- | --- |
@@ -220,6 +225,9 @@ cd web && npx playwright test
 | BE-TXT-11 | 图表 caption 识别为 caption | 标注正确 | U ✅ |
 | BE-TXT-12 | 命中「参考文献」后其后所有段落一并排除 | 后续段落全排除 | U ✅ |
 | BE-TXT-13 | 致谢起始段标注为 acknowledgement | 标注正确 | U ✅ |
+| BE-TXT-14 | 单独成行的「参考文献」「章节标题」不被并入相邻段落 | 结构化行独立成段 | U ✅ |
+| BE-TXT-15 | 「第N章 标题」同行写法识别为章节标题并归一章节名 | `sectionName=方法` | U ✅ |
+| BE-TXT-16 | 端到端：切分后过滤，参考文献起始行仍命中并排除其后条目 | 后续条目全排除 | U ✅ |
 
 ### 2.13 DetectControllerTest — 检测接口 HTTP 契约（13 条）
 
@@ -334,10 +342,11 @@ cd web && npx playwright test
 | 登录 / 注册 / 改密 | BE-AUTH-01…18、BE-PWD-01…05、BE-CAP-01…05、BE-LOCK-01…04、BE-IP-01…03 | E2E-AUTH-01…09 |
 | 上传论文（格式/大小/场景） | BE-TASK-01…05、BE-TXT-01…03、BE-CONST-01…05 | E2E-UP-01…04 |
 | 文本粘贴即时检测 | BE-API-10、BE-API-11 | E2E-UP-05、E2E-UP-06 |
-| 段落切分与非正文过滤 | BE-TXT-04…13 | E2E-TASK-02 |
+| 段落切分与非正文过滤 | BE-TXT-04…16 | E2E-TASK-02 |
 | 检测任务生命周期 | BE-TASK-06…17 | E2E-DASH-01…05、E2E-TASK-01…03 |
 | 统计与趋势 | BE-TASK-18、BE-TASK-19、BE-API-08 | E2E-DASH-01 |
 | 场景阈值配置 | BE-SCN-01…04、BE-THR-01…06、BE-API-12 | E2E-UP-02 |
+| 学校红线解析（提交生效） | BE-TASK-23…24 | E2E-UP-02 |
 | 报告签发与验证 | BE-TASK-11 | E2E-VER-01…04 |
 | 错误码与参数工具 | BE-ERR-01…04、BE-PARAM-01…10 | — |
 | 部署环境连通性（MySQL/Redis） | BE-INT-MY-01…05、BE-INT-RD-01…07 | — |
@@ -351,6 +360,8 @@ cd web && npx playwright test
 | DEF-01 | 缺陷（已修复） | `ScenarioConstants.threshold(null)` 在 `Map.of(...).getOrDefault(null, ...)` 上抛 NPE | 未传/传空场景时 500 | 已修复：入口增加 null/blank 判断，兜底 OTHER(25)，见 BE-SCN-02、BE-THR-03 |
 | DEF-02 | 体验缺陷（待修复） | 登录页账号框自动聚焦；若账号为空，点击底部「立即注册」时 blur 立即插入「请输入账号」错误文案导致布局位移，使 `mousedown`/`mouseup` 落在不同元素上，点击落空 | 空账号下首次点击「立即注册」无响应 | 待修复（E2E 用例 E2E-AUTH-05 已规避并记录） |
 | DEF-03 | 缺陷（已修复） | JDBC 连接串使用 `characterEncoding=utf8mb4`，但 `utf8mb4` 不是合法 Java 字符集名，Connector/J 抛 `UnsupportedEncodingException: utf8mb4`，导致数据源**完全无法建连** | 应用/容器一旦访问 MySQL 即失败（`mvn test` 全 Mock 时不可见，集成冒烟测试暴露） | 已修复：`utf8mb4` → `utf8`（Java 别名，Connector/J 8 映射为服务端 utf8mb4）。涉及 `application.yml`、`application-integration.yml`、`deploy/docker-compose.yml` 三处 |
+| DEF-04 | 测试工程缺陷（已修复） | `DetectTaskServiceImpl` 新增学校红线依赖（构造器第 10 参 `ISchoolService`）后，`DetectTaskServiceImplTest` 未同步，导致 `testCompile` 直接失败、后端测试整批无法运行 | 合并门禁失效：`mvn test` 编译不过，回归能力归零 | 已修复：补齐 mock 依赖并新增 BE-TASK-23…24 覆盖学校红线分支 |
+| DEF-05 | 测试工程缺陷（已修复） | Dashboard 界面改版后，`dashboard.spec.ts` 仍断言旧文案「还没有检测记录」与旧按钮「+ 上传论文」，2 条 E2E 用例失败 | 前端回归集出现假失败，掩盖真实改动 | 已修复：同步为现文案「还没有记录，交一篇试试？」与按钮「上传论文」，27 条全部通过 |
 | RISK-01 | 测试盲区（已缓解） | 后端原为纯 Mock 单测，未覆盖真实 MySQL/Redis 联调 | 集成层问题可能漏检 | 已缓解：新增 12 条集成冒烟（§2.14、§2.15），覆盖真实库连通、表结构、主子表事务、JSON 列与 Redis 基础语义；推理服务联调仍为后续项 |
 | RISK-02 | 测试盲区 | 前端 E2E 拦截了全部 API，未做前后端契约联调 | 接口字段不一致可能漏检 | 已知，建议补充契约测试 |
 | RISK-03 | 覆盖缺口 | 运营后台（`/admin/*`）、移动端 uni-app 未纳入本轮 | 相关回归风险 | 已知，后续迭代补充 |
@@ -359,6 +370,6 @@ cd web && npx playwright test
 
 ## 6. 结论
 
-- 后端 124 条用例（112 单元/契约 + 12 集成冒烟）、前端 27 条用例全部通过，主链路（登录 → 上传/粘贴 → 检测 → 报告 → 验证）具备自动化回归能力。
+- 后端 129 条用例（117 单元/契约 + 12 集成冒烟）、前端 27 条用例全部通过，主链路（登录 → 上传/粘贴 → 检测 → 报告 → 验证）具备自动化回归能力。
 - 发现 2 个功能性缺陷（DEF-01、DEF-03，均已修复）与 1 个体验缺陷（DEF-02，待修复）；其中 DEF-03（JDBC 字符集非法导致数据源无法建连）由本轮集成冒烟测试首次暴露，纯 Mock 单测无法发现。
 - 建议下一步：`mvn test` 作为合并门禁（零外部依赖，稳定快跑）；真实环境联调冒烟以 `mvn test -Pintegration` 在具备 MySQL/Redis 的流水线阶段执行；推理服务联调与前后端契约测试作为后续补充。

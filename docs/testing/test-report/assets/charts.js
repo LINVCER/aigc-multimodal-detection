@@ -46,7 +46,7 @@
 
   function renderScope(t) {
     var data = [
-      { name: '后端单元测试', value: 99 },
+      { name: '后端单元测试', value: 104 },
       { name: '后端接口契约', value: 13 },
       { name: '后端集成冒烟', value: 12 },
       { name: '前端 E2E', value: 27 }
@@ -82,10 +82,10 @@
   function renderBackend(t) {
     // 按用例数降序；数据来自 target/surefire-reports 汇总；第三列为 true 表示集成冒烟（需真实 MySQL/Redis）
     var rows = [
-      ['检测任务服务', 22, false],
+      ['检测任务服务', 24, false],
       ['认证服务', 18, false],
+      ['文本处理', 16, false],
       ['检测接口契约', 13, false],
-      ['文本处理', 13, false],
       ['参数取值工具', 10, false],
       ['Redis 集成冒烟', 7, true],
       ['场景阈值服务', 6, false],

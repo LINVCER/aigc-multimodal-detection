@@ -355,13 +355,13 @@
           <span class="report-intro__eyebrow">Test Report</span>
           <h1>知源 AIGC 检测平台 · 功能测试报告</h1>
           <p class="report-intro__summary">
-            本轮针对文本/论文 AIGC 检测主链路完成全栈自动化测试：后端 124 条（单元 + 接口契约 + 真实 MySQL/Redis 集成冒烟）
-            与前端 27 条 E2E 用例<strong>全部通过，通过率 100%</strong>；过程中发现 2 个已修复的功能性缺陷与 1 个待修复的体验缺陷，
+            本轮针对文本/论文 AIGC 检测主链路完成全栈自动化测试：后端 129 条（单元 + 接口契约 + 真实 MySQL/Redis 集成冒烟）
+            与前端 27 条 E2E 用例<strong>全部通过，通过率 100%</strong>；过程中发现 2 个已修复的功能性缺陷、2 个已修复的测试工程缺陷与 1 个待修复的体验缺陷，
             其中 JDBC 字符集缺陷由集成冒烟测试首次暴露，主链路已具备自动化回归能力。
           </p>
           <div class="intro-meta">
-            <span><b>版本</b> v1.1</span>
-            <span><b>报告日期</b> 2026-10-09</span>
+            <span><b>版本</b> v1.2</span>
+            <span><b>报告日期</b> 2026-10-15</span>
             <span><b>测试对象</b> backend-java/standalone-app · web/</span>
             <span><b>执行方式</b> Maven(JUnit 5) · Playwright</span>
           </div>
@@ -376,13 +376,13 @@
           <h2>1. 执行摘要</h2>
           <p class="lead">
             本轮测试覆盖「登录注册 → 上传/粘贴 → 检测任务 → 报告详情 → 报告验证」完整业务闭环，共设计并执行
-            <strong>151 条</strong>自动化用例，<strong>全部通过</strong>。后端以 Mock 仓储与推理客户端实现零外部依赖的快速回归，
+            <strong>156 条</strong>自动化用例，<strong>全部通过</strong>。后端以 Mock 仓储与推理客户端实现零外部依赖的快速回归，
             并新增真实 MySQL / Redis 集成冒烟；前端以接口拦截（<code>page.route</code>）实现与后端解耦的 UI 行为验证。
           </p>
 
           <div class="metrics">
             <div class="metric">
-              <div class="metric__value">124 <small>/ 124</small></div>
+              <div class="metric__value">129 <small>/ 129</small></div>
               <div class="metric__label">后端用例通过（单元 + 契约 + 集成）</div>
             </div>
             <div class="metric">
@@ -391,20 +391,20 @@
             </div>
             <div class="metric metric--ok">
               <div class="metric__value">100%</div>
-              <div class="metric__label">整体通过率（151 条）</div>
+              <div class="metric__label">整体通过率（156 条）</div>
             </div>
             <div class="metric">
-              <div class="metric__value">3</div>
-              <div class="metric__label">缺陷数（已修复 2 / 待修复 1）</div>
+              <div class="metric__value">5</div>
+              <div class="metric__label">缺陷数（已修复 4 / 待修复 1）</div>
             </div>
           </div>
 
           <figure class="chart-card">
             <div class="chart-card__title">用例分层构成</div>
-            <div class="chart-card__sub">按测试层次统计的用例分布（共 151 条）</div>
-            <div id="chart-scope" class="chart" role="img" aria-label="用例分层构成环形图：后端单元测试 99 条、后端接口契约 13 条、后端集成冒烟 12 条、前端 E2E 27 条"></div>
+            <div class="chart-card__sub">按测试层次统计的用例分布（共 156 条）</div>
+            <div id="chart-scope" class="chart" role="img" aria-label="用例分层构成环形图：后端单元测试 104 条、后端接口契约 13 条、后端集成冒烟 12 条、前端 E2E 27 条"></div>
             <p class="chart-empty" id="chart-scope-empty" hidden>暂无数据。</p>
-            <figcaption>后端以单元测试为主（99 条），接口契约守住 API 边界，集成冒烟（12 条）守住真实 MySQL/Redis 部署环境，前端 E2E 覆盖用户旅程。</figcaption>
+            <figcaption>后端以单元测试为主（104 条），接口契约守住 API 边界，集成冒烟（12 条）守住真实 MySQL/Redis 部署环境，前端 E2E 覆盖用户旅程。</figcaption>
           </figure>
 
           <p>
@@ -448,17 +448,17 @@
         <section id="backend">
           <h2>3. 后端测试结果</h2>
           <p class="lead">
-            后端共 15 个测试类、124 条用例，全部通过（<strong>0 失败 / 0 错误 / 0 跳过</strong>）。
+            后端共 15 个测试类、129 条用例，全部通过（<strong>0 失败 / 0 错误 / 0 跳过</strong>）。
             覆盖范围从常量与工具类的基础断言，到认证、检测任务、文本处理等核心服务的分支逻辑，再到 13 个 HTTP 端点的契约校验，
             以及真实 MySQL / Redis 的集成冒烟。
           </p>
 
           <figure class="chart-card">
             <div class="chart-card__title">后端各测试类用例数</div>
-            <div class="chart-card__sub">按用例数量降序排列（合计 124 条；紫色为集成冒烟类）</div>
-            <div id="chart-backend" class="chart chart--tall" role="img" aria-label="后端各测试类用例数横向柱状图，检测任务服务 22 条居首，Redis 与 MySQL 集成冒烟以紫色标示"></div>
+            <div class="chart-card__sub">按用例数量降序排列（合计 129 条；紫色为集成冒烟类）</div>
+            <div id="chart-backend" class="chart chart--tall" role="img" aria-label="后端各测试类用例数横向柱状图，检测任务服务 24 条居首，Redis 与 MySQL 集成冒烟以紫色标示"></div>
             <p class="chart-empty" id="chart-backend-empty" hidden>暂无数据。</p>
-            <figcaption>用例密度与业务复杂度正相关：检测任务服务（22）、认证服务（18）、检测接口契约（13）与文本处理（13）构成主体；两个集成冒烟类（共 12 条，紫色）需真实 MySQL/Redis。</figcaption>
+            <figcaption>用例密度与业务复杂度正相关：检测任务服务（24）、认证服务（18）、文本处理（16）与检测接口契约（13）构成主体；两个集成冒烟类（共 12 条，紫色）需真实 MySQL/Redis。</figcaption>
           </figure>
 
           <h3>3.1 测试类执行明细</h3>
@@ -475,22 +475,22 @@
                 </tr>
               </thead>
               <tbody>
-                <tr><td><code>DetectTaskServiceImplTest</code></td><td>检测任务提交/列表/详情/重试/取消/删除/统计/降 AIGC</td><td class="num">22</td><td class="num">0.43</td><td><span class="tag tag--pass">通过</span></td></tr>
-                <tr><td><code>AuthServiceImplTest</code></td><td>登录、注册、改密、token 校验与失败锁定</td><td class="num">18</td><td class="num">0.61</td><td><span class="tag tag--pass">通过</span></td></tr>
-                <tr><td><code>DetectControllerTest</code></td><td>13 个检测/推理 HTTP 端点的契约校验</td><td class="num">13</td><td class="num">3.04</td><td><span class="tag tag--pass">通过</span></td></tr>
-                <tr><td><code>TextProcessorTest</code></td><td>格式校验、分段、非正文过滤</td><td class="num">13</td><td class="num">1.46</td><td><span class="tag tag--pass">通过</span></td></tr>
-                <tr><td><code>ParamUtilsTest</code></td><td>参数取值、类型转换、空值兜底</td><td class="num">10</td><td class="num">0.05</td><td><span class="tag tag--pass">通过</span></td></tr>
-                <tr><td><code>ScenarioThresholdServiceImplTest</code></td><td>场景阈值读取、兜底、缓存失效</td><td class="num">6</td><td class="num">0.07</td><td><span class="tag tag--pass">通过</span></td></tr>
-                <tr><td><code>DetectConstantsTest</code></td><td>后缀/MIME 白名单、大小与状态常量</td><td class="num">5</td><td class="num">0.11</td><td><span class="tag tag--pass">通过</span></td></tr>
-                <tr><td><code>PasswordHasherTest</code></td><td>加盐散列格式、校验、临时密码</td><td class="num">5</td><td class="num">0.11</td><td><span class="tag tag--pass">通过</span></td></tr>
+                <tr><td><code>DetectTaskServiceImplTest</code></td><td>检测任务提交（含学校红线覆盖/回退）/列表/详情/重试/取消/删除/统计/降 AIGC</td><td class="num">24</td><td class="num">0.66</td><td><span class="tag tag--pass">通过</span></td></tr>
+                <tr><td><code>AuthServiceImplTest</code></td><td>登录、注册、改密、token 校验与失败锁定</td><td class="num">18</td><td class="num">0.68</td><td><span class="tag tag--pass">通过</span></td></tr>
+                <tr><td><code>TextProcessorTest</code></td><td>格式校验、分段（含结构化行/超长段）、非正文过滤（含章节标题/端到端）</td><td class="num">16</td><td class="num">1.44</td><td><span class="tag tag--pass">通过</span></td></tr>
+                <tr><td><code>DetectControllerTest</code></td><td>13 个检测/推理 HTTP 端点的契约校验</td><td class="num">13</td><td class="num">4.29</td><td><span class="tag tag--pass">通过</span></td></tr>
+                <tr><td><code>ParamUtilsTest</code></td><td>参数取值、类型转换、空值兜底</td><td class="num">10</td><td class="num">0.07</td><td><span class="tag tag--pass">通过</span></td></tr>
+                <tr><td><code>ScenarioThresholdServiceImplTest</code></td><td>场景阈值读取、兜底、缓存失效</td><td class="num">6</td><td class="num">0.08</td><td><span class="tag tag--pass">通过</span></td></tr>
+                <tr><td><code>DetectConstantsTest</code></td><td>后缀/MIME 白名单、大小与状态常量</td><td class="num">5</td><td class="num">0.17</td><td><span class="tag tag--pass">通过</span></td></tr>
+                <tr><td><code>PasswordHasherTest</code></td><td>加盐散列格式、校验、临时密码</td><td class="num">5</td><td class="num">0.16</td><td><span class="tag tag--pass">通过</span></td></tr>
                 <tr><td><code>CaptchaServiceTest</code></td><td>验证码生成、校验、一次性消费</td><td class="num">5</td><td class="num">0.33</td><td><span class="tag tag--pass">通过</span></td></tr>
                 <tr><td><code>ErrorCodeTest</code></td><td>错误码唯一性、非空、分段约定</td><td class="num">4</td><td class="num">0.02</td><td><span class="tag tag--pass">通过</span></td></tr>
-                <tr><td><code>LoginAttemptGuardTest</code></td><td>失败计数、锁定、归并、配置夹紧</td><td class="num">4</td><td class="num">0.01</td><td><span class="tag tag--pass">通过</span></td></tr>
+                <tr><td><code>LoginAttemptGuardTest</code></td><td>失败计数、锁定、归并、配置夹紧</td><td class="num">4</td><td class="num">0.02</td><td><span class="tag tag--pass">通过</span></td></tr>
                 <tr><td><code>ScenarioConstantsTest</code></td><td>场景红线默认值、旧字段迁移、兜底</td><td class="num">4</td><td class="num">0.01</td><td><span class="tag tag--pass">通过</span></td></tr>
-                <tr><td><code>IpRateLimiterTest</code></td><td>IP 限流放行/拒绝/维度隔离</td><td class="num">3</td><td class="num">0.05</td><td><span class="tag tag--pass">通过</span></td></tr>
-                <tr><td><code>RedisIntegrationSmokeTest</code></td><td>真实 Redis 连通 / 读写 / TTL / 原子自增 / Hash / 多库隔离</td><td class="num">7</td><td class="num">1.97</td><td><span class="tag tag--pass">通过</span></td></tr>
-                <tr><td><code>MySqlIntegrationSmokeTest</code></td><td>真实 MySQL 连通 / 表结构 / 主子表事务 / JSON 列 / 排序</td><td class="num">5</td><td class="num">6.62</td><td><span class="tag tag--pass">通过</span></td></tr>
-                <tr><td colspan="2"><strong>合计</strong></td><td class="num"><strong>124</strong></td><td class="num"><strong>≈14.9</strong></td><td><span class="tag tag--pass">全部通过</span></td></tr>
+                <tr><td><code>IpRateLimiterTest</code></td><td>IP 限流放行/拒绝/维度隔离</td><td class="num">3</td><td class="num">0.08</td><td><span class="tag tag--pass">通过</span></td></tr>
+                <tr><td><code>RedisIntegrationSmokeTest</code></td><td>真实 Redis 连通 / 读写 / TTL / 原子自增 / Hash / 多库隔离</td><td class="num">7</td><td class="num">2.19</td><td><span class="tag tag--pass">通过</span></td></tr>
+                <tr><td><code>MySqlIntegrationSmokeTest</code></td><td>真实 MySQL 连通 / 表结构 / 主子表事务 / JSON 列 / 排序</td><td class="num">5</td><td class="num">8.11</td><td><span class="tag tag--pass">通过</span></td></tr>
+                <tr><td colspan="2"><strong>合计</strong></td><td class="num"><strong>129</strong></td><td class="num"><strong>≈18.3</strong></td><td><span class="tag tag--pass">全部通过</span></td></tr>
               </tbody>
             </table>
           </div>
@@ -515,13 +515,24 @@
               <code>deploy/docker-compose.yml</code> 三处。
             </p>
           </div>
+
+          <div class="callout">
+            <div class="callout__title">维护项 DEF-04（本轮回归时暴露）</div>
+            <p>
+              生产代码 <code>DetectTaskServiceImpl</code> 新增学校红线依赖后，构造器由 9 参变为 10 参（新增
+              <code>ISchoolService</code>），但 <code>DetectTaskServiceImplTest</code> 未同步构造签名，导致
+              <code>mvn test</code> 在 <code>testCompile</code> 阶段直接失败、后端测试整批无法执行——即「零外部依赖的合并门禁」
+              在功能演进中静默失效。已补齐 mock 依赖，并借机新增 <code>BE-TASK-23</code>／<code>BE-TASK-24</code>
+              覆盖「命中学校红线覆盖阈值」与「解析异常回退场景阈值」两条分支，使学校红线这一新增主链路行为纳入回归。
+            </p>
+          </div>
         </section>
 
         <!-- ===================== 4. 前端 E2E 测试结果 ===================== -->
         <section id="e2e">
           <h2>4. 前端 E2E 测试结果</h2>
           <p class="lead">
-            前端 5 个 spec、27 条用例全部通过，总执行时长约 <strong>26.7 秒</strong>。所有 <code>/api/v1/**</code> 请求由
+            前端 5 个 spec、27 条用例全部通过，总执行时长约 <strong>30.3 秒</strong>。所有 <code>/api/v1/**</code> 请求由
             Playwright 拦截并返回固定 fixture，用例只验证前端渲染、交互与路由，与后端实现解耦。
           </p>
 
@@ -546,9 +557,9 @@
                 <tr class="group-row"><td colspan="3">dashboard.spec.ts — 检测记录（5 条）</td></tr>
                 <tr><td>渲染统计卡片、趋势图与列表</td><td>4 张统计卡 + 趋势卡 + 2 条任务可见</td><td><span class="tag tag--pass">通过</span></td></tr>
                 <tr><td>任务状态中文标签</td><td>列表含「已完成」「检测中」</td><td><span class="tag tag--pass">通过</span></td></tr>
-                <tr><td>无任务空状态</td><td>展示「还没有检测记录」与「去上传」</td><td><span class="tag tag--pass">通过</span></td></tr>
+                <tr><td>无任务空状态</td><td>展示「还没有记录，交一篇试试？」与「去上传」</td><td><span class="tag tag--pass">通过</span></td></tr>
                 <tr><td>点击标题进入详情</td><td>跳转 <code>/task/101</code></td><td><span class="tag tag--pass">通过</span></td></tr>
-                <tr><td>顶部导航进入上传页</td><td>跳转 <code>/upload</code></td><td><span class="tag tag--pass">通过</span></td></tr>
+                <tr><td>页头「上传论文」按钮进入上传页</td><td>跳转 <code>/upload</code></td><td><span class="tag tag--pass">通过</span></td></tr>
 
                 <tr class="group-row"><td colspan="3">upload.spec.ts — 论文检测 · 上传 / 粘贴（6 条）</td></tr>
                 <tr><td>默认上传模式渲染</td><td>场景卡 + 投放区可见，CTA 禁用</td><td><span class="tag tag--pass">通过</span></td></tr>
@@ -578,6 +589,7 @@
               <li><strong>布局位移</strong>：登录页账号框自动聚焦，空值 blur 会插入错误文案导致按钮位移。用例先填充账号再点击，规避 <code>mousedown/mouseup</code> 落点漂移。</li>
               <li><strong>不可见控件</strong>：隐私政策勾选框本体 <code>opacity: 0</code>，用例改为点击其可见样式元素 <code>&lt;i&gt;</code>。</li>
               <li><strong>浏览器来源</strong>：沙箱环境无法下载 Chromium，改为复用本机 Chrome（<code>channel: 'chrome'</code>）。</li>
+              <li><strong>定位器随改版同步（DEF-05）</strong>：Dashboard 界面改版后，空状态文案由「还没有检测记录」变为「还没有记录，交一篇试试？」，页头按钮由「+ 上传论文」变为「上传论文」，导致 2 条用例失败。已同步定位器，27 条用例全部通过——纯文案/结构类改版需同步维护 E2E 选择器。</li>
             </ul>
           </div>
         </section>
@@ -598,10 +610,11 @@
                 <tr><td>登录 / 注册 / 改密</td><td>BE-AUTH-01…18、BE-PWD-01…05、BE-CAP-01…05、BE-LOCK-01…04、BE-IP-01…03</td><td>E2E-AUTH-01…09</td></tr>
                 <tr><td>上传论文（格式/大小/场景）</td><td>BE-TASK-01…05、BE-TXT-01…03、BE-CONST-01…05</td><td>E2E-UP-01…04</td></tr>
                 <tr><td>文本粘贴即时检测</td><td>BE-API-10、BE-API-11</td><td>E2E-UP-05、E2E-UP-06</td></tr>
-                <tr><td>段落切分与非正文过滤</td><td>BE-TXT-04…13</td><td>E2E-TASK-02</td></tr>
+                <tr><td>段落切分与非正文过滤</td><td>BE-TXT-04…16</td><td>E2E-TASK-02</td></tr>
                 <tr><td>检测任务生命周期</td><td>BE-TASK-06…17</td><td>E2E-DASH-01…05、E2E-TASK-01…03</td></tr>
                 <tr><td>统计与趋势</td><td>BE-TASK-18、BE-TASK-19、BE-API-08</td><td>E2E-DASH-01</td></tr>
                 <tr><td>场景阈值配置</td><td>BE-SCN-01…04、BE-THR-01…06、BE-API-12</td><td>E2E-UP-02</td></tr>
+                <tr><td>学校红线解析（提交生效）</td><td>BE-TASK-23…24</td><td>E2E-UP-02</td></tr>
                 <tr><td>报告签发与验证</td><td>BE-TASK-11</td><td>E2E-VER-01…04</td></tr>
                 <tr><td>错误码与参数工具</td><td>BE-ERR-01…04、BE-PARAM-01…10</td><td>—</td></tr>
                 <tr><td>部署环境连通性（MySQL/Redis）</td><td>BE-INT-MY-01…05、BE-INT-RD-01…07</td><td>—</td></tr>
@@ -614,7 +627,7 @@
         <section id="risk">
           <h2>6. 缺陷与风险</h2>
           <p class="lead">
-            本轮共记录 2 个功能性缺陷（均已修复）、1 个体验缺陷（待修复），以及 1 项已缓解、2 项待跟进的测试盲区。
+            本轮共记录 2 个功能性缺陷（均已修复）、2 个测试工程缺陷（均已修复）、1 个体验缺陷（待修复），以及 1 项已缓解、2 项待跟进的测试盲区。
           </p>
           <div class="table-wrap">
             <table>
@@ -636,6 +649,16 @@
                 <tr>
                   <td>DEF-03</td>
                   <td>功能性缺陷：JDBC 连接串 <code>characterEncoding=utf8mb4</code> 中 <code>utf8mb4</code> 不是合法 Java 字符集名，Connector/J 抛 <code>UnsupportedEncodingException</code>，数据源无法建连。纯 Mock 单测不可见，由新增集成冒烟测试首次暴露。</td>
+                  <td><span class="tag tag--pass">已修复</span></td>
+                </tr>
+                <tr>
+                  <td>DEF-04</td>
+                  <td>测试工程缺陷：<code>DetectTaskServiceImpl</code> 新增第 10 个构造参数 <code>ISchoolService</code>（学校红线）后，<code>DetectTaskServiceImplTest</code> 未同步，<code>mvn test</code> 在 <code>testCompile</code> 阶段失败，后端测试整批不可执行（合并门禁静默失效）。</td>
+                  <td><span class="tag tag--pass">已修复</span></td>
+                </tr>
+                <tr>
+                  <td>DEF-05</td>
+                  <td>测试工程缺陷：Dashboard 界面改版后，<code>dashboard.spec.ts</code> 仍断言旧文案「还没有检测记录」与旧按钮「+ 上传论文」，2 条 E2E 用例失败（前端回归集假失败）。</td>
                   <td><span class="tag tag--pass">已修复</span></td>
                 </tr>
                 <tr>
@@ -662,7 +685,7 @@
         <section id="conclusion">
           <h2>7. 结论与建议</h2>
           <p>
-            后端 124 条（单元 + 契约 + 集成冒烟）、前端 27 条用例全部通过，主链路（登录 → 上传/粘贴 → 检测 → 报告 → 验证）
+            后端 129 条（单元 + 契约 + 集成冒烟）、前端 27 条用例全部通过，主链路（登录 → 上传/粘贴 → 检测 → 报告 → 验证）
             已具备自动化回归能力；本轮发现并修复了 2 个功能性缺陷，其中 JDBC 字符集缺陷（DEF-03）会导致数据源完全无法建连，
             仅靠纯 Mock 单测无法发现，由新增的集成冒烟测试首次暴露。
           </p>
@@ -670,6 +693,7 @@
             <li><strong>接入 CI</strong>：将 <code>mvn -f backend-java/standalone-app/pom.xml test</code>（零外部依赖，稳定快跑）与 <code>npx playwright test</code> 纳入流水线，作为合并前置门禁。</li>
             <li><strong>集成冒烟独立成阶段</strong>：以 <code>mvn -f backend-java/standalone-app/pom.xml test -Pintegration</code> 在具备真实 MySQL/Redis 的流水线阶段执行，与单测门禁解耦，兼顾稳定性与集成覆盖。</li>
             <li><strong>修复 DEF-02</strong>：为登录页账号框的 blur 校验增加「非空才提示」或防抖处理，避免空值点击被布局位移吞掉。</li>
+            <li><strong>保持测试工程卫生</strong>：功能演进（如新增服务依赖、界面改版）时须同步更新测试构造签名与 E2E 定位器；本轮 DEF-04（构造签名不同步致 <code>testCompile</code> 失败）与 DEF-05（定位器随改版失效）正是此类维护缺口的体现。</li>
             <li><strong>补齐剩余盲区</strong>：针对 RISK-02/RISK-03，补充前后端契约测试、推理服务联调冒烟，并将运营后台与移动端 uni-app 关键路径纳入回归集。</li>
           </ul>
         </section>
@@ -702,10 +726,10 @@ cd web &amp;&amp; npx playwright test</code></pre>
                 <tr><td>Maven</td><td>3.9.x（build-helper-maven-plugin 3.5.0 要求 Maven ≥ 3.6.3）</td></tr>
                 <tr><td>MySQL</td><td>8.0 · <code>127.0.0.1:3306</code> · 库 <code>ry-vue</code>（可经 <code>SMOKE_MYSQL_*</code> 覆盖）</td></tr>
                 <tr><td>Redis</td><td><code>127.0.0.1:16379</code> · 密码 <code>123456</code>（可经 <code>SMOKE_REDIS_*</code> 覆盖）</td></tr>
-                <tr><td>Node</td><td>22.x</td></tr>
+                <tr><td>Node</td><td>24.x</td></tr>
                 <tr><td>浏览器</td><td>Google Chrome（Playwright <code>channel: chrome</code>）</td></tr>
                 <tr><td>前端 dev server</td><td><code>http://127.0.0.1:5173</code></td></tr>
-                <tr><td>E2E 执行时长</td><td>约 26.7 秒（27 条用例）</td></tr>
+                <tr><td>E2E 执行时长</td><td>约 30.3 秒（27 条用例）</td></tr>
               </tbody>
             </table>
           </div>
@@ -716,7 +740,7 @@ cd web &amp;&amp; npx playwright test</code></pre>
         <div class="sources">
           <h2>附录 B · 测试产物与证据来源</h2>
           <ol>
-            <li>测试用例文档：<code>docs/testing/TEST_CASES.md</code>（后端 124 条 + 前端 27 条用例与覆盖矩阵）</li>
+            <li>测试用例文档：<code>docs/testing/TEST_CASES.md</code>（后端 129 条 + 前端 27 条用例与覆盖矩阵）</li>
             <li>后端执行报告：<code>backend-java/standalone-app/target/surefire-reports/</code>（覆盖 15 个测试类）</li>
             <li>后端测试代码：<code>backend-java/standalone-app/src/test/java/com/paperaigc/detect/</code></li>
             <li>集成冒烟测试代码：<code>.../src/test/java/com/paperaigc/detect/integration/</code>（<code>MySqlIntegrationSmokeTest</code>、<code>RedisIntegrationSmokeTest</code>）与 <code>.../src/test/resources/application-integration.yml</code></li>

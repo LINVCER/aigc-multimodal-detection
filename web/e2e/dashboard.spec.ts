@@ -30,7 +30,7 @@ test.describe('检测记录 · Dashboard', () => {
     await seedAuth(page)
     await page.goto('/dashboard')
 
-    await expect(page.getByText('还没有检测记录')).toBeVisible()
+    await expect(page.getByText('还没有记录，交一篇试试？')).toBeVisible()
     await expect(page.getByText('去上传')).toBeVisible()
   })
 
@@ -48,7 +48,7 @@ test.describe('检测记录 · Dashboard', () => {
     await seedAuth(page)
     await page.goto('/dashboard')
 
-    await page.getByRole('button', { name: '+ 上传论文' }).click()
+    await page.getByRole('button', { name: '上传论文' }).click()
     await expect(page).toHaveURL(/\/upload/)
   })
 })
