@@ -16,6 +16,9 @@ export interface FeedbackItem {
   handledBy?: number | null
   handledReply?: string | null
   handledAt?: string | null
+  /** AI 生成的回复草稿（仅管理端可见；审核通过写入 handledReply 才对用户可见） */
+  aiReply?: string | null
+  aiReplyAt?: string | null
   createdAt: string
 }
 
@@ -123,4 +126,10 @@ export async function handleFeedback(
   payload: { status?: FeedbackStatus; reply?: string; handledBy?: number },
 ): Promise<void> {
   await http.post(`/admin/feedback/${id}/handle`, payload)
+}
+
+/** 生成 / 重新生成 AI 回复草稿（草稿仅供审核参考，不直接发给用户） */
+export async function generateFeedbackAiDraft(id: number): Promise<{ reply: string | null; generated: boolean }> {
+  const resp = await http.post(`/admin/feedback/${id}/ai-draft`)
+  return resp.data.data
 }

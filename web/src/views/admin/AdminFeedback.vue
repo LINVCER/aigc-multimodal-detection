@@ -3,9 +3,10 @@ import { onMounted, reactive, ref, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter, useRoute } from 'vue-router'
 import {
-  listFeedbackAdmin, handleFeedback, getFeedbackStats, batchHandleFeedback, listFeedbackSamples, setHardSampleVerdict, listHardSamples, hardSampleExportUrl,
+  listFeedbackAdmin, handleFeedback, getFeedbackStats, batchHandleFeedback, listFeedbackSamples, setHardSampleVerdict, listHardSamples, hardSampleExportUrl, generateFeedbackAiDraft,
   type FeedbackItem, type FeedbackStatus, type FeedbackCategory, type FeedbackStats, type HardSample, type HardSampleVerdict,
 } from '@/api/feedback'
+import ZyIcon from '@/components/ZyIcon.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
@@ -72,7 +73,7 @@ const QUICK_REPLIES = [
   { t: '建议已记录', c: '感谢反馈，这个建议已记录到产品需求池。如有进展会在版本说明中体现。' },
   { t: 'Bug 已修复', c: '感谢反馈，这个问题已定位并修复，将在下个版本上线。' },
 ]
-const drawer = reactive<{ open: boolean; item: FeedbackItem | null; status: FeedbackStatus; reply: string; submitting: boolean; samples: HardSample[]; samplesLoading: boolean }>({ open: false, item: null, status: 'REPLIED', reply: '', submitting: false, samples: [], samplesLoading: false })
+const drawer = reactive<{ open: boolean; item: FeedbackItem | null; status: FeedbackStatus; reply: string; submitting: boolean; samples: HardSample[]; samplesLoading: boolean; aiDrafting: boolean }>({ open: false, item: null, status: 'REPLIED', reply: '', submitting: false, samples: [], samplesLoading: false, aiDrafting: false })
 const VERDICT_LABEL: Record<HardSampleVerdict, string> = { confirm_fp: '确认误判', confirm_tp: '确认是 AI', unsure: '拿不准' }
 const drawerDone = computed(() => drawer.item?.status === 'REPLIED' || drawer.item?.status === 'IGNORED')
 
@@ -89,6 +90,26 @@ async function openItem(row: FeedbackItem) {
 }
 async function verdict(s: HardSample, v: HardSampleVerdict) { await setHardSampleVerdict(s.id, v); s.opsVerdict = v; ElMessage.success(`第 ${s.paragraphIdx + 1} 段：${VERDICT_LABEL[v]}`) }
 function useQuick(c: string) { drawer.reply = c; drawer.status = 'REPLIED' }
+/* ---------- AI 草稿（审核前不对外） ---------- */
+async function regenDraft() {
+  if (!drawer.item || drawer.aiDrafting) return
+  drawer.aiDrafting = true
+  try {
+    const r = await generateFeedbackAiDraft(drawer.item.id)
+    if (r.reply) {
+      drawer.item.aiReply = r.reply
+      drawer.item.aiReplyAt = new Date().toISOString().slice(0, 19).replace('T', ' ')
+      ElMessage.success('草稿已生成，审核后再发给用户')
+    } else {
+      ElMessage.warning('小白这会儿没起草出来，稍后再试或手写回复')
+    }
+  } finally { drawer.aiDrafting = false }
+}
+function adoptDraft() {
+  if (!drawer.item?.aiReply) return
+  drawer.reply = drawer.item.aiReply
+  drawer.status = 'REPLIED'
+}
 async function submit() {
   if (!drawer.item) return
   if (drawer.status === 'REPLIED' && !drawer.reply.trim()) { ElMessage.warning('回复内容不能为空'); return }
@@ -207,6 +228,25 @@ onMounted(() => {
         </div>
 
         <div class="sec-title">处置</div>
+        <div class="ai-draft">
+          <div class="ai-draft-head">
+            <ZyIcon name="xiaobai-spark" :size="15" />
+            <span class="ai-draft-title">小白建议回复</span>
+            <span class="muted small">AI 起草 · 审核后才发给用户</span>
+          </div>
+          <div v-if="drawer.aiDrafting" class="ai-draft-loading">小白正在读这条反馈…</div>
+          <template v-else-if="drawer.item.aiReply">
+            <div class="ai-draft-body">{{ drawer.item.aiReply }}</div>
+            <div class="ai-draft-actions">
+              <el-button size="small" type="primary" @click="adoptDraft">采用到回复框</el-button>
+              <el-button size="small" @click="regenDraft">重新生成</el-button>
+            </div>
+          </template>
+          <div v-else class="ai-draft-empty">
+            <el-button size="small" @click="regenDraft">让小白起草</el-button>
+            <span class="muted small">没自动生成出来时可以手动补一份</span>
+          </div>
+        </div>
         <el-radio-group v-model="drawer.status"><el-radio value="REPLIED">已回复</el-radio><el-radio value="PROCESSING">处理中</el-radio><el-radio value="IGNORED">已忽略</el-radio></el-radio-group>
         <div class="quick"><span class="muted small">快捷模板：</span><el-button v-for="q in QUICK_REPLIES" :key="q.t" size="small" @click="useQuick(q.c)">{{ q.t }}</el-button></div>
         <el-input v-model="drawer.reply" type="textarea" :rows="5" maxlength="2000" show-word-limit placeholder="回复内容（已回复状态必填），用户会在「我的反馈」看到" />
@@ -274,6 +314,15 @@ onMounted(() => {
 .sample { border: 1px solid var(--label-quaternary); border-radius: 10px; padding: 10px 12px; } .sample-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; } .sample-tag { font-size: 12px; color: var(--danger-fg); font-weight: 600; }
 .sample-text { font-size: 13px; white-space: pre-wrap; max-height: 120px; overflow-y: auto; margin-bottom: 8px; line-height: 1.6; } .sample-actions { display: flex; gap: 6px; }
 .quick { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+/* AI 建议草稿：仅供审核，青 tint 底与人工回复区隔 */
+.ai-draft { margin: 10px 0 12px; padding: 12px 14px; border-radius: 12px; background: var(--ai-100); border: 1px dashed rgba(15, 118, 110, .35); }
+.ai-draft-head { display: flex; align-items: center; gap: 6px; }
+.ai-draft-head .zy-icon { color: var(--ai-700); }
+.ai-draft-title { font-size: 13px; font-weight: 600; color: var(--ai-700); }
+.ai-draft-loading { margin-top: 8px; font-size: 13px; color: var(--label-secondary); }
+.ai-draft-body { margin-top: 8px; font-size: 14px; line-height: 1.6; color: var(--label); white-space: pre-wrap; }
+.ai-draft-actions { margin-top: 10px; display: flex; gap: 8px; }
+.ai-draft-empty { margin-top: 8px; display: flex; align-items: center; gap: 10px; }
 .dr-foot { display: flex; align-items: center; gap: 8px; }
 @media (max-width: 1200px) { .kpi-row { grid-template-columns: repeat(3, 1fr); } }
 </style>
