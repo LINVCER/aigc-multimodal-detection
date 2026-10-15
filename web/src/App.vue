@@ -17,8 +17,8 @@ onMounted(() => {
 html, body, #app {
   height: 100%;
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  color: #111827;
-  background: #f3f4f6;
+  font-family: var(--el-font-family);
+  color: var(--label);
+  background: var(--system-grouped-background);
 }
 </style>
