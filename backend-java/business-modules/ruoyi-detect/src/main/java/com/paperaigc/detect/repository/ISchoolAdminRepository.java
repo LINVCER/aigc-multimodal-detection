@@ -24,6 +24,8 @@ public interface ISchoolAdminRepository {
 
     // 候选
     List<EduSchoolRuleCandidate> listCandidates(String status, Long schoolId);
+    boolean candidateExists(String contentHash);
+    void insertCandidate(EduSchoolRuleCandidate c);
     Optional<EduSchoolRuleCandidate> findCandidate(Long id);
     void updateCandidate(EduSchoolRuleCandidate c);
 

@@ -128,3 +128,7 @@ export async function adminMergeCandidate(id: number, dto: CandidateMerge): Prom
 export async function adminRejectCandidate(id: number): Promise<void> {
   await http.post(`/api/v1/admin/school/candidates/${id}/reject`)
 }
+export async function adminSyncCandidates(): Promise<{ synced: number }> {
+  const resp = await http.post('/api/v1/admin/school/candidates/sync')
+  return resp.data.data
+}

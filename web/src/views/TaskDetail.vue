@@ -74,6 +74,11 @@ async function onRetry() {
 
 /* ---------- 派生 ---------- */
 const pass = computed(() => { const d = detail.value; return !!(d && d.aiRate != null && d.aiRate <= d.threshold) })
+// 学校红线标签：命中学校规则时报告文案带校名；通用口径留空，文案回落到原样
+const redlineLabel = computed(() => {
+  const l = detail.value?.ruleLabel
+  return l && l !== '通用标准' ? l.replace(/\s*·\s*/g, '') : ''
+})
 const summaryColor = computed(() => {
   const d = detail.value
   if (!d || d.aiRate == null) return 'var(--label-tertiary)'
@@ -323,11 +328,11 @@ const pct = (v: number | null | undefined) => (v == null ? '—' : Math.round(v 
                   <div class="ring-center">
                     <div class="ring-label">整体 AI 率</div>
                     <div class="ring-rate" :style="{ color: summaryColor }">{{ detail.aiRate?.toFixed(1) }}<span class="ring-unit">%</span></div>
-                    <div class="ring-cap">红线 {{ detail.threshold }}%</div>
+                    <div class="ring-cap">{{ redlineLabel || '红线' }} {{ detail.threshold }}%</div>
                   </div>
                 </div>
                 <div class="hero-side">
-                  <div class="verdict" :class="pass ? 'ok' : 'bad'"><ZyIcon :name="pass ? 'check' : 'alert'" :size="15" />{{ pass ? '低于红线，达标' : '超过红线 ' + (detail.aiRate! - detail.threshold).toFixed(1) + ' 个百分点' }}</div>
+                  <div class="verdict" :class="pass ? 'ok' : 'bad'"><ZyIcon :name="pass ? 'check' : 'alert'" :size="15" />{{ pass ? ('低于' + (redlineLabel || '') + '红线，达标') : ('超过' + (redlineLabel || '') + '红线 ' + (detail.aiRate! - detail.threshold).toFixed(1) + ' 个百分点') }}</div>
                   <div class="hero-paper">{{ detail.paperTitle }}</div>
                   <div v-if="bodyStats" class="dist">
                     <div class="dist-bar"><i class="high" :style="{ width: dist.highPct + '%' }" /><i class="mid" :style="{ width: dist.midPct + '%' }" /><i class="low" :style="{ width: dist.lowPct + '%' }" /></div>

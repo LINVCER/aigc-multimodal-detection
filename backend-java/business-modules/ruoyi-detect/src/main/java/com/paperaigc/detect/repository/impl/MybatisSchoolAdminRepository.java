@@ -99,6 +99,18 @@ public class MybatisSchoolAdminRepository implements ISchoolAdminRepository {
     }
 
     @Override
+    public boolean candidateExists(String contentHash) {
+        if (contentHash == null || contentHash.isBlank()) return false;
+        return candidateMapper.selectCount(Wrappers.lambdaQuery(EduSchoolRuleCandidate.class)
+                .eq(EduSchoolRuleCandidate::getContentHash, contentHash)) > 0;
+    }
+
+    @Override
+    public void insertCandidate(EduSchoolRuleCandidate c) {
+        candidateMapper.insert(c);
+    }
+
+    @Override
     public long insertRule(EduSchoolRule rule) {
         ruleMapper.insert(rule);
         return rule.getId();

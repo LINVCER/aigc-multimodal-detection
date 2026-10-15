@@ -55,6 +55,7 @@ export interface ReportVerify {
   paperTitle?: string
   scenario?: string
   threshold?: number
+  ruleLabel?: string
   aiRate?: number | null
   pass?: boolean
   modelVersion?: string

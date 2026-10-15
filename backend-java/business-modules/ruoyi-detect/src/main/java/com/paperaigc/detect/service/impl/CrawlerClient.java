@@ -34,6 +34,26 @@ public class CrawlerClient {
             .build();
 
     /**
+     * 从爬取服务拉候选（人工审核前的原始候选）。失败返回空列表，不抛。
+     * @param status pending / merged / rejected
+     */
+    @SuppressWarnings("unchecked")
+    public java.util.List<java.util.Map<String, Object>> pullCandidates(String status) {
+        try {
+            String url = "http://" + host + ":" + port + "/api/v1/candidates?status=" + (status == null ? "pending" : status) + "&limit=500";
+            HttpRequest req = HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(10)).GET().build();
+            HttpResponse<String> resp = http.send(req, HttpResponse.BodyHandlers.ofString());
+            if (resp.statusCode() / 100 != 2) return java.util.List.of();
+            Map<String, Object> body = objectMapper.readValue(resp.body(), Map.class);
+            Object list = body.get("candidates");
+            return list instanceof java.util.List ? (java.util.List<java.util.Map<String, Object>>) list : java.util.List.of();
+        } catch (Exception e) {
+            log.warn("pull candidates failed: {}", e.getMessage());
+            return java.util.List.of();
+        }
+    }
+
+    /**
      * 投一个爬取任务。
      * @return 服务返回的 jobId 文本，失败返回 null（不抛，后台记 lastStatus）
      */

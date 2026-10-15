@@ -110,6 +110,33 @@ public class SchoolAdminServiceImpl implements ISchoolAdminService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int syncCandidates() {
+        int n = 0;
+        for (var m : crawlerClient.pullCandidates("pending")) {
+            String hash = str(m.get("content_hash"));
+            if (hash.isBlank() || repo.candidateExists(hash)) continue;
+            String sourceUrl = str(m.get("source_url"));
+            if (sourceUrl.isBlank()) continue;   // 必带原文地址
+            repo.insertCandidate(EduSchoolRuleCandidate.builder()
+                    .schoolId(lng(m.get("school_id"))).schoolName(str(m.get("school_name")))
+                    .degreeType(str(m.getOrDefault("degree_type", "unknown"))).metric(str(m.get("metric")))
+                    .limitPct(bd(m.get("limit_pct"))).platform(str(m.get("platform")))
+                    .effectiveYear(intg(m.get("effective_year"))).snippet(str(m.get("snippet")))
+                    .sourceUrl(sourceUrl).confidence(intg(m.get("confidence"))).contentHash(hash)
+                    .status("pending").createdAt(LocalDateTime.now()).build());
+            n++;
+        }
+        log.info("sync candidates from crawler: {} new", n);
+        return n;
+    }
+
+    private static String str(Object o) { return o == null ? "" : String.valueOf(o); }
+    private static Long lng(Object o) { return o instanceof Number x ? x.longValue() : null; }
+    private static Integer intg(Object o) { return o instanceof Number x ? x.intValue() : null; }
+    private static BigDecimal bd(Object o) { return o instanceof Number x ? BigDecimal.valueOf(x.doubleValue()) : null; }
+
+    @Override
     public PageVO<EduSchoolRuleCandidate> pageCandidates(CandidateQueryDTO q) {
         String status = q.getStatus() == null || q.getStatus().isBlank() ? "pending" : q.getStatus();
         List<EduSchoolRuleCandidate> all = repo.listCandidates(status, q.getSchoolId());

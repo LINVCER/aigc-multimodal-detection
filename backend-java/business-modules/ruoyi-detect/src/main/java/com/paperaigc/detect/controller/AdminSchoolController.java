@@ -89,6 +89,12 @@ public class AdminSchoolController {
 
     /* ---------- 候选审核（数据维护） ---------- */
 
+    /** 从爬取服务拉候选入审核队列（content_hash 去重） */
+    @PostMapping("/candidates/sync")
+    public R<Map<String, Integer>> syncCandidates() {
+        return R.ok(Map.of("synced", adminService.syncCandidates()));
+    }
+
     @GetMapping("/candidates")
     public R<PageVO<EduSchoolRuleCandidate>> candidates(CandidateQueryDTO query) {
         return R.ok(adminService.pageCandidates(query));

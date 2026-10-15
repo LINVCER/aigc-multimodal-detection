@@ -4,7 +4,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   adminListSchools, adminSaveSchool, adminSetSchoolStatus, adminImportSchools,
   adminListSeeds, adminSaveSeed, adminRunSeed,
-  adminListCandidates, adminMergeCandidate, adminRejectCandidate,
+  adminListCandidates, adminMergeCandidate, adminRejectCandidate, adminSyncCandidates,
   type School, type CrawlSeed, type RuleCandidate,
 } from '@/api/school'
 
@@ -95,6 +95,12 @@ async function reject(c: RuleCandidate) {
   await ElMessageBox.confirm('驳回这条候选？', '确认', { confirmButtonText: '驳回', cancelButtonText: '算了', confirmButtonClass: 'el-button--danger' })
   await adminRejectCandidate(c.id); ElMessage.success('已驳回'); loadCandidates()
 }
+const syncing = ref(false)
+async function syncCandidates() {
+  syncing.value = true
+  try { const r = await adminSyncCandidates(); ElMessage.success(`拉取入库 ${r.synced} 条`); candPage.value = 1; loadCandidates() }
+  finally { syncing.value = false }
+}
 
 function onTab() {
   if (tab.value === 'schools' && !schools.value.length) loadSchools()
@@ -173,6 +179,8 @@ onMounted(loadSchools)
             <el-radio-button value="rejected">已驳回</el-radio-button>
           </el-radio-group>
           <span class="muted">按置信度排序；核对原文后再发布</span>
+          <div class="spacer" />
+          <el-button :loading="syncing" @click="syncCandidates">拉取爬虫候选</el-button>
         </div>
         <el-card>
           <el-table :data="candidates" v-loading="loadingCand">

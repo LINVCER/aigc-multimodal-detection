@@ -27,6 +27,9 @@ public interface ISchoolAdminService {
     /** 立即爬取：投任务到常驻服务，回写 lastStatus */
     String runSeed(Long id);
 
+    /** 从爬取服务拉候选入 MySQL 审核队列（content_hash 去重），返回新入库条数 */
+    int syncCandidates();
+
     // 候选审核（数据维护）
     PageVO<EduSchoolRuleCandidate> pageCandidates(CandidateQueryDTO q);
     /** 合并发布为 edu_school_rule（人工确认，sourceUrl 必填），标候选 merged，返回规则 id */
