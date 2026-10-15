@@ -15,7 +15,9 @@ const CAPTCHA_TTL_MS = 5 * 60 * 1000
 const USERNAME_RE = /^[A-Za-z0-9_.@-]{2,64}$/
 
 type Mode = 'login' | 'register'
-const mode = ref<Mode>(route.query.mode === 'register' ? 'register' : 'login')
+/** 管理端独立实例（dev:admin）：只留登录窗口，无品牌栏 / 注册入口 */
+const isAdminApp = import.meta.env.MODE === 'admin'
+const mode = ref<Mode>(route.query.mode === 'register' && !isAdminApp ? 'register' : 'login')
 const username = ref('')
 const password = ref('')
 const confirmPassword = ref('')
@@ -224,8 +226,8 @@ async function onSubmit() {
 </script>
 
 <template>
-  <div class="login-page">
-    <aside class="side">
+  <div class="login-page" :class="{ 'admin-only': isAdminApp }">
+    <aside v-if="!isAdminApp" class="side">
       <router-link to="/" class="side-brand"><img src="/logo-mark.png" alt="" class="side-logo" /><span>知源</span><small>看得懂的 AI 率检测</small></router-link>
       <div class="side-body">
         <h1 class="side-title">不只告诉你 AI 率，<br />还告诉你为什么、哪一段、怎么改。</h1>
@@ -243,8 +245,8 @@ async function onSubmit() {
     <main class="panel">
       <div class="card">
         <div class="card-head">
-          <div class="card-title">{{ mode === 'login' ? '登录' : '注册' }}</div>
-          <div class="card-sub">{{ mode === 'login' ? '登录后即可检测报告、问小白~' : '一分钟注册，课题阶段免费使用' }}</div>
+          <div class="card-title">登录</div>
+          <div class="card-sub">{{ isAdminApp ? '运营后台' : mode === 'login' ? '登录后即可检测报告、问小白~' : '一分钟注册，课题阶段免费使用' }}</div>
         </div>
 
         <form class="form" novalidate @submit.prevent="onSubmit">
@@ -317,7 +319,7 @@ async function onSubmit() {
             <span v-else>{{ lockLeft > 0 ? `已锁定 ${lockText}` : mode === 'login' ? '登 录' : '注册并登录' }}</span>
           </button>
 
-          <div class="foot">
+          <div v-if="!isAdminApp" class="foot">
             <span class="foot-label">{{ mode === 'login' ? '还没有账号？' : '已有账号？' }}</span>
             <a class="foot-action" @click="mode = mode === 'login' ? 'register' : 'login'">{{ mode === 'login' ? '立即注册' : '去登录' }}</a>
           </div>
@@ -325,7 +327,7 @@ async function onSubmit() {
           <span class="terms">登录即表示你已阅读并同意<router-link to="/privacy" target="_blank" class="terms-link">《隐私政策》</router-link></span>
         </form>
       </div>
-      <router-link to="/" class="back-home">返回首页</router-link>
+      <router-link v-if="!isAdminApp" to="/" class="back-home">返回首页</router-link>
     </main>
   </div>
 </template>
@@ -470,6 +472,9 @@ async function onSubmit() {
 
 .drop-enter-active, .drop-leave-active { transition: all .22s ease; }
 .drop-enter-from, .drop-leave-to { opacity: 0; transform: translateY(-6px); }
+
+/* ---------- 管理端独立实例：单列居中，只留登录窗口 ---------- */
+.login-page.admin-only { grid-template-columns: 1fr; }
 
 @media (max-width: 960px) {
   .login-page { grid-template-columns: 1fr; }
