@@ -17,6 +17,7 @@ const menus = [
   { path: '/admin/assistant', icon: 'xiaobai-spark', text: '助手运营' },
   { path: '/admin/analytics', icon: 'trend', text: '检测分析' },
   { path: '/admin/schools',   icon: 'graduation', text: '院校数据' },
+  { path: '/admin/config',    icon: 'tool', text: '参数配置' },
 ]
 const activePath = computed(() => route.path)
 
