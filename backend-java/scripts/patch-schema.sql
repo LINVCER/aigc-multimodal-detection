@@ -318,3 +318,8 @@ PREPARE s FROM @sql; EXECUTE s; DEALLOCATE PREPARE s;
 SET @c1 := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'detect_task' AND COLUMN_NAME = 'fail_reason');
 SET @sql := IF(@c1 = 0, 'ALTER TABLE detect_task ADD COLUMN fail_reason VARCHAR(512) NULL COMMENT ''失败原因（异步推理失败兜底）'' AFTER finished_at', 'SELECT 1');
 PREPARE s FROM @sql; EXECUTE s; DEALLOCATE PREPARE s;
+
+-- V0.3.0.015 · user_feedback AI 回复草稿（人工审核后才作为正式回复发出）
+SET @c1 := (SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'user_feedback' AND COLUMN_NAME = 'ai_reply');
+SET @sql := IF(@c1 = 0, 'ALTER TABLE user_feedback ADD COLUMN ai_reply TEXT NULL COMMENT ''AI 生成的回复草稿（仅供管理员参考，审核前不对外）'' AFTER handled_at, ADD COLUMN ai_reply_at DATETIME NULL COMMENT ''AI 草稿生成时间'' AFTER ai_reply', 'SELECT 1');
+PREPARE s FROM @sql; EXECUTE s; DEALLOCATE PREPARE s;
