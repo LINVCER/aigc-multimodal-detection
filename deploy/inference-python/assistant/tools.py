@@ -122,6 +122,11 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         "parameters": {"type": "object", "properties": {"scenario": {"type": "string", "description": "academic_bachelor | academic_master | academic_phd | job_report | self_media | other，也可传中文如『硕士』"}}, "required": []},
     }},
     {"type": "function", "function": {
+        "name": "get_school_policy",
+        "description": "查当前用户所在学校的学位论文红线：AIGC 率、查重率、检测平台、来源文件。用户问『我们学校要求多少』『我们学校红线』『我们学校用什么查』时用。用户没设学校会返回通用口径，这时要建议 ta 去设置学校。",
+        "parameters": {"type": "object", "properties": {}, "required": []},
+    }},
+    {"type": "function", "function": {
         "name": "search_knowledge",
         "description": "检索知识库：检测原理、校准与置信区间、为什么规范化学术文体容易被误判、答辩材料清单、学术规范、申诉流程、人类写作特征。用户问原理性或流程性问题时用。",
         "parameters": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]},
@@ -151,6 +156,7 @@ TOOL_LABELS = {
     "explain_paragraph": "正在分析这一段…",
     "detect_text": "正在检测这段文字…",
     "get_threshold_policy": "正在查阈值…",
+    "get_school_policy": "正在查你学校的红线…",
     "search_knowledge": "正在查资料…",
     "create_appeal": "正在提交申诉…",
     "compare_revision": "正在对比修改前后…",
@@ -457,6 +463,24 @@ class ToolRunner:
         if hits:
             data["policyExcerpt"] = hits[0][0].text[:400]
         return ToolResult(ok=True, data=data, summary=f"{label} 红线 {data['threshold']}%")
+
+    async def tool_get_school_policy(self, args: dict[str, Any]) -> ToolResult:
+        if self.user_id is None:
+            return ToolResult(ok=True, data={"resolved": False},
+                              summary="还不知道你是哪个学校，去设置里选一下学校吧")
+        data = await self._java("GET", "/api/v1/assistant/school-policy")
+        data = data or {"resolved": False}
+        if not data.get("resolved"):
+            return ToolResult(ok=True, data=data, summary="你还没设置学校，先选学校我就能按你学校的红线说")
+        name = data.get("schoolName") or "你学校"
+        ai = data.get("aiRateLimit")
+        plag = data.get("plagiarismLimit")
+        parts = []
+        if ai is not None:
+            parts.append(f"AI 率不超过 {ai}%")
+        if plag is not None:
+            parts.append(f"查重不超过 {plag}%")
+        return ToolResult(ok=True, data=data, summary=f"{name}：{('，'.join(parts)) or '已收录红线'}")
 
     async def tool_search_knowledge(self, args: dict[str, Any]) -> ToolResult:
         q = (args.get("query") or "").strip()

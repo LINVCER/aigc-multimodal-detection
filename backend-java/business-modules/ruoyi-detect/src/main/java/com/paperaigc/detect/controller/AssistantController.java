@@ -38,6 +38,15 @@ import java.util.Map;
 public class AssistantController {
 
     private final IAssistantService assistantService;
+    private final com.paperaigc.detect.service.ISchoolService schoolService;
+
+    /** 小白 get_school_policy 工具回调：按 X-User-Id 返回其学校红线（未设学校返回通用口径） */
+    @GetMapping("/school-policy")
+    public R<com.paperaigc.detect.domain.vo.ResolvedRuleVO> schoolPolicy(
+            @RequestParam(value = "userId", required = false) Long userId,
+            @RequestHeader(value = "X-User-Id", required = false) Long headerUserId) {
+        return R.ok(schoolService.resolveByUserId(userId != null ? userId : headerUserId));
+    }
 
     /**
      * 流式对话（SSE）。事件：meta / token / tool_call / tool_result / done / error

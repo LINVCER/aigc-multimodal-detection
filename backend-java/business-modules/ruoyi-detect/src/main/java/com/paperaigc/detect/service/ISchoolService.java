@@ -20,4 +20,7 @@ public interface ISchoolService {
 
     /** 当前用户生效的红线；未命中返回 resolved=false 的通用口径兜底 */
     ResolvedRuleVO resolveForUser(String bearerToken);
+
+    /** 按 userId 解析生效红线（提交检测、助手回调用，没有 token 时走此） */
+    ResolvedRuleVO resolveByUserId(Long userId);
 }

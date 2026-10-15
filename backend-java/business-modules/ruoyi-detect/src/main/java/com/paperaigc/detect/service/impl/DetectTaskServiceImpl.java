@@ -56,6 +56,7 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
     private final com.paperaigc.detect.service.INotifyService notifyService;
     private final com.paperaigc.detect.service.IDetectAnalyticsService analyticsService;
     private final com.paperaigc.detect.service.IReportCredentialService credentialService;
+    private final com.paperaigc.detect.service.ISchoolService schoolService;
     @Qualifier("detectExecutor")
     private final Executor detectExecutor;
 
@@ -108,13 +109,31 @@ public class DetectTaskServiceImpl implements IDetectTaskService {
         }
 
         String paperTitle = (title != null && !title.isBlank()) ? title : file.getOriginalFilename();
+
+        // 红线：优先用户学校规则，其次场景默认。按校解析失败绝不影响提交（兜底场景阈值）
+        int threshold = scenarioThresholdService.threshold(sc);
+        Long schoolRuleId = null;
+        String ruleLabel = "通用标准";
+        try {
+            com.paperaigc.detect.domain.vo.ResolvedRuleVO rule = schoolService.resolveByUserId(userId);
+            if (rule != null && rule.isResolved() && rule.getAiRateLimit() != null) {
+                threshold = rule.getAiRateLimit().setScale(0, java.math.RoundingMode.HALF_UP).intValue();
+                schoolRuleId = rule.getRuleId();
+                ruleLabel = rule.getLabel();
+            }
+        } catch (Exception e) {
+            log.warn("resolve school rule failed for user {}, fallback scenario threshold", userId, e);
+        }
+
         DetectTask task = DetectTask.builder()
                 .userId(userId)
                 .modality(DetectConstants.MODALITY_TEXT)
                 .paperTitle(paperTitle)
                 .status(DetectConstants.STATUS_PENDING)
                 .scenario(sc)
-                .threshold(scenarioThresholdService.threshold(sc))
+                .threshold(threshold)
+                .schoolRuleId(schoolRuleId)
+                .ruleLabel(ruleLabel)
                 .modelVersion("stub-v0")
                 .parentTaskId(parentTaskId)
                 .originalFilename(file.getOriginalFilename())

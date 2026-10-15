@@ -17,6 +17,8 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class ResolvedRuleVO {
     private boolean resolved;
+    /** 命中的 edu_school_rule.id，供 detect_task 留痕 */
+    private Long ruleId;
     private Long schoolId;
     private String schoolName;
     private String degreeType;

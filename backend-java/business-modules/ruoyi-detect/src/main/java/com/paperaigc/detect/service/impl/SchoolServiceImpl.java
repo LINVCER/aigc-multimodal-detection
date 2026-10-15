@@ -81,7 +81,12 @@ public class SchoolServiceImpl implements ISchoolService {
     @Override
     public ResolvedRuleVO resolveForUser(String bearerToken) {
         AuthUser me = authService.me(bearerToken);
-        UserAccount account = accountMapper.selectById(me.getId());
+        return resolveByUserId(me == null ? null : me.getId());
+    }
+
+    @Override
+    public ResolvedRuleVO resolveByUserId(Long userId) {
+        UserAccount account = userId == null ? null : accountMapper.selectById(userId);
         Long schoolId = account == null ? null : account.getSchoolId();
         String degree = account == null ? null : account.getDegreeType();
         if (schoolId == null || degree == null || degree.isBlank()) {
@@ -91,7 +96,7 @@ public class SchoolServiceImpl implements ISchoolService {
         String shortName = school == null ? "" : (school.getShortName() != null ? school.getShortName() : school.getName());
         return repository.resolve(schoolId, degree)
                 .map(r -> ResolvedRuleVO.builder()
-                        .resolved(true).schoolId(schoolId).schoolName(shortName).degreeType(degree)
+                        .resolved(true).ruleId(r.getId()).schoolId(schoolId).schoolName(shortName).degreeType(degree)
                         .aiRateLimit(r.getAiRateLimit()).plagiarismLimit(r.getPlagiarismLimit())
                         .platform(r.getPlatform()).effectiveYear(r.getEffectiveYear())
                         .sourceUrl(r.getSourceUrl()).sourceType(r.getSourceType())
