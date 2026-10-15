@@ -29,6 +29,7 @@ public class AssistantDraftClient {
 
     private final ObjectMapper mapper = new ObjectMapper();
     private final HttpClient http = HttpClient.newBuilder()
+            .version(HttpClient.Version.HTTP_1_1)   // uvicorn 不支持 h2c，强制 1.1 避免升级失败连接损坏
             .connectTimeout(Duration.ofSeconds(5))
             .build();
 

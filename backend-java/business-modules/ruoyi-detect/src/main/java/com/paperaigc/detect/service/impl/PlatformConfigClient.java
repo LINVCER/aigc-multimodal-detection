@@ -27,6 +27,7 @@ public class PlatformConfigClient {
 
     private final ObjectMapper mapper = new ObjectMapper();
     private final HttpClient http = HttpClient.newBuilder()
+            .version(HttpClient.Version.HTTP_1_1)   // uvicorn 不支持 h2c，JDK 默认 HTTP/2 upgrade 会偶发连接损坏（422 坏 body）
             .connectTimeout(Duration.ofSeconds(5))
             .build();
 
@@ -35,12 +36,12 @@ public class PlatformConfigClient {
         return exchange("GET", "/api/v1/admin/config", null);
     }
 
-    /** POST 切换检测模型（推理服务同步重载 checkpoint，耗时数秒到十几秒） */
+    /** POST 切换检测模型（推理服务同步重载 checkpoint，耗时数秒到十几秒）；失败抛 IllegalStateException 带推理服务原始原因 */
     public JsonNode switchModel(Map<String, Object> body) {
         return exchange("POST", "/api/v1/admin/model/switch", body);
     }
 
-    /** POST 更新助手 LLM 配置 */
+    /** POST 更新助手 LLM 配置；失败抛 IllegalStateException 带推理服务原始原因 */
     public JsonNode updateAssistantConfig(Map<String, Object> body) {
         return exchange("POST", "/api/v1/admin/assistant/config", body);
     }
@@ -57,13 +58,20 @@ public class PlatformConfigClient {
             }
             HttpResponse<String> resp = http.send(req.build(), HttpResponse.BodyHandlers.ofString());
             if (resp.statusCode() >= 400) {
-                log.warn("platform config {} -> http {}: {}", method, path, resp.statusCode());
-                return null;
+                // 透出推理服务的原始错误（FastAPI {detail: "..."}），不让前端只看到笼统文案
+                String detail = resp.body();
+                try {
+                    JsonNode d = mapper.readTree(resp.body()).path("detail");
+                    if (d.isTextual()) detail = d.asText();
+                } catch (Exception ignore) { /* 非 JSON 响应体原样返回 */ }
+                throw new IllegalStateException(detail);
             }
             return mapper.readTree(resp.body());
+        } catch (IllegalStateException e) {
+            throw e;
         } catch (Exception e) {
             log.warn("platform config {} {} failed: {}", method, path, e.toString());
-            return null;
+            throw new IllegalStateException("推理服务不可达：" + e.getMessage(), e);
         }
     }
 }

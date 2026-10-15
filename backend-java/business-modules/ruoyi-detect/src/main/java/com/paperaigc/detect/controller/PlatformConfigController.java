@@ -40,20 +40,20 @@ public class PlatformConfigController {
     /** 切换检测模型：body { checkpoint, baseModelPath?, modelVersion? }（推理服务同步重载） */
     @PostMapping("/model/switch")
     public R<Object> switchModel(@RequestBody Map<String, Object> body) {
-        Object data = configClient.switchModel(body);
-        if (data == null) {
-            return R.fail("切换失败：checkpoint 不存在或推理服务不可达");
+        try {
+            return R.ok(configClient.switchModel(body));
+        } catch (IllegalStateException e) {
+            return R.fail("切换失败：" + e.getMessage());
         }
-        return R.ok(data);
     }
 
     /** 更新助手 LLM 配置：body { baseUrl?, model?, apiKey?, maxTokens? }（null=不改，apiKey 空串=清空） */
     @PostMapping("/assistant/config")
     public R<Object> updateAssistantConfig(@RequestBody Map<String, Object> body) {
-        Object data = configClient.updateAssistantConfig(body);
-        if (data == null) {
-            return R.fail("保存失败：推理服务不可达");
+        try {
+            return R.ok(configClient.updateAssistantConfig(body));
+        } catch (IllegalStateException e) {
+            return R.fail("保存失败：" + e.getMessage());
         }
-        return R.ok(data);
     }
 }
