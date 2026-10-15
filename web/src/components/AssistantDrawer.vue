@@ -392,6 +392,13 @@ function formatTime(t: number | string): string {
 </script>
 
 <template>
+  <!-- 页边把手：抽屉收起时常驻右缘，点击展开（样式对齐 App 端小白 FAB） -->
+  <button v-if="!visible" class="ad-edge" aria-label="问小白" @click="visible = true">
+    <ZyIcon class="ad-edge-arrow" name="arrow-left" :size="13" />
+    <span class="ad-edge-text">问小白</span>
+    <img class="ad-edge-avatar" src="/xiaobai.gif" alt="" />
+  </button>
+
   <el-drawer v-model="visible" size="480px" :with-header="false" class="assistant-drawer">
     <div class="ad">
       <!-- ① 头部：只留身份 + 全局操作 -->
@@ -519,6 +526,49 @@ function formatTime(t: number | string): string {
 </template>
 
 <style scoped lang="scss">
+/* ---- 页边把手：抽屉收起后常驻右缘 ----
+ * 视觉对齐 App 端 AssistantFab：青色环境光 + 3s 呼吸 + hover 降温，reduce-motion 关闭 */
+.ad-edge {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 9px;
+  border: 1px solid rgba(23, 24, 28, 0.08);
+  border-right: none;
+  border-radius: 16px 0 0 16px;
+  background: var(--system-background);
+  color: var(--label-secondary);
+  cursor: pointer;
+  filter: drop-shadow(0 6px 18px rgba(15, 118, 110, 0.16));
+  animation: ad-breathe 3s ease-in-out infinite;
+  transition: background var(--dur-fast), color var(--dur-fast);
+}
+.ad-edge:hover { background: var(--ai-100); color: var(--ai-700); }
+.ad-edge:active { transform: translateY(-50%) scale(0.97); animation: none; }
+.ad-edge-arrow { color: var(--ai-500); }
+.ad-edge:hover .ad-edge-arrow { color: var(--ai-700); }
+.ad-edge-text {
+  writing-mode: vertical-rl;
+  letter-spacing: 3px;
+  font-size: var(--fs-caption-1);
+  font-weight: var(--fw-semibold);
+}
+.ad-edge-avatar { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; }
+/* 小白呼吸：空闲时才感知得到（同 App 端 breathe） */
+@keyframes ad-breathe {
+  0%, 100% { transform: translateY(-50%) scale(1); }
+  50% { transform: translateY(-50%) scale(1.02); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ad-edge { animation: none; }
+}
+
 .ad { height: 100%; display: flex; flex-direction: column; }
 
 /* ① 头部 */
