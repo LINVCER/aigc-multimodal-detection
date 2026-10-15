@@ -5,9 +5,6 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { listAdminTasks, getTaskStats, batchDeleteTasks, batchRetryTasks, type AdminTask, type TaskStats } from '@/api/admin'
 import { retryTask, cancelTask, deleteTask } from '@/api/detect'
 
-/**
- * 任务列表：状态 KPI（可点筛选）· 筛选条（含日期 / 达标 / 模型版本）· 服务端排序 · 多选批量重试 / 删除 · 行内重试 / 取消 / 删除 · 详情抽屉 · 导出 CSV
- */
 const router = useRouter()
 const route = useRoute()
 

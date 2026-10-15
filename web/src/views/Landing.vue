@@ -3,12 +3,6 @@ import { onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
-/**
- * 公开落地页（marketing-plan §3 定位 + §4 方向 A/B/C）
- * 面向搜索与分享进来的陌生用户：一屏讲清「不只给 AI 率，还告诉你为什么、哪段、怎么改（自己改）」，
- * CTA 进上传页（未登录由路由守卫带 redirect 去登录）。FAQ 同步注入 schema.org FAQPage 供搜索引擎抓取。
- */
-
 const router = useRouter()
 const auth = useAuthStore()
 

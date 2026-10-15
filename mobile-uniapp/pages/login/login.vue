@@ -4,11 +4,6 @@ import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { useAuth } from '@/store/auth'
 import { http, MOCK_MODE } from '@/utils/request'
 
-/*
- * 登录 / 注册页
- *   逻辑：已登录直跳 · 验证码 5 分钟过期禁提交 · 失败换图 · 锁定倒计时 · 注册用户名查重 · 规则逐条勾选 · 来源页回跳只接受 /pages/ 路径 · 防重复提交
- *   视觉：近白画布 + 极淡色晕 + 毛玻璃白卡 + 单色 accent（system-blue）
- */
 const auth = useAuth()
 const REMEMBER_KEY = 'remember_username'
 const CAPTCHA_TTL_MS = 5 * 60 * 1000
@@ -313,10 +308,7 @@ function goPrivacy() { uni.navigateTo({ url: '/pages/about/privacy' }) }
 </template>
 
 <style lang="scss" scoped>
-/* ============================================================
- * Sign in 版式 · 暖白画布 + 白卡 + 填充输入框 + 智能青胶囊按钮
- *   文字用墨色，操作色只有智能青（style-prompt §二）
- * ============================================================ */
+/* Sign in 版式：暖白画布 + 白卡，文字墨色，操作色只有智能青 */
 $si-canvas:    $bg-grouped-primary;
 $si-card:      $bg-primary;
 $si-field:     $bg-deep;

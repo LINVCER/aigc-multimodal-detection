@@ -9,11 +9,6 @@ import {
   type ConversationRow, type ConversationDetail, type QualityTag,
 } from '@/api/admin'
 
-/**
- * 助手运营 · 增长闭环 P0
- * 三个 tab：概览（assistant_log 聚合）/ 知识缺口（低分问题 → 转成知识）/ 知识库（knowledge_chunk 编辑 + 热加载）
- */
-
 const tab = ref<'stats' | 'gaps' | 'kb' | 'qa'>('stats')
 
 const INTENT_LABEL: Record<string, string> = {

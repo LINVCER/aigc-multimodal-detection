@@ -8,13 +8,6 @@ import { listTasks, getTaskDetail } from '@/api/detect'
 import { submitFeedback } from '@/api/feedback'
 import type { DetectTask, TaskDetail } from '@/api/types'
 
-/**
- * 论文检测助手 · 右侧抽屉（Web 端）
- * 布局按 docs/design/202610-assistant-chat-ui-redesign.md §2.2 分四区：
- *   头部（身份 + 历史/新对话/关闭）→ 报告选择（紧凑下拉）→ 上下文卡（绑定报告时）→ 消息流 + 输入
- * 数据来源不变：listTasks 选报告、getTaskDetail 出段落 chips、chatStream 走 SSE
- */
-
 interface ToolChip { name: string; label: string; status: 'running' | 'done' | 'failed' }
 interface AnalysisCard { name: string; data: any }
 interface Msg {

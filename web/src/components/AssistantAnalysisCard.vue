@@ -1,9 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-/**
- * 助手结构化分析卡（product-feature-plan §2.1）：tool_result.card 直接渲染，助手文字作「翻译」
- */
 const props = defineProps<{ name: string; data: any }>()
 
 const SOURCE_LABEL: Record<string, string> = { human: '人写', gpt: 'GPT', claude: 'Claude', qwen: '通义千问', deepseek: 'DeepSeek', glm: '智谱', kimi: 'Kimi', ernie: '文心', other: '其它' }

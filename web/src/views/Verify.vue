@@ -4,11 +4,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { verifyReport } from '@/api/detect'
 import type { ReportVerify } from '@/api/types'
 
-/**
- * 报告真伪验证（公开页）
- *   /verify            手动输入编号 + 验证码
- *   /verify/ZY-…?code= 扫 PDF 二维码直达，自动验证
- */
 const props = defineProps<{ reportNo?: string }>()
 const route = useRoute()
 const router = useRouter()
