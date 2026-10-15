@@ -80,33 +80,33 @@ export async function getMyRule(): Promise<ResolvedRule> {
 
 /* ===================== 后台 ===================== */
 export async function adminListSchools(q?: string): Promise<School[]> {
-  const resp = await http.get('/api/v1/admin/school/list', { params: { q } })
+  const resp = await http.get('/admin/school/list', { params: { q } })
   return resp.data.data
 }
 export async function adminSaveSchool(dto: Partial<School>): Promise<void> {
-  await http.post('/api/v1/admin/school/save', dto)
+  await http.post('/admin/school/save', dto)
 }
 export async function adminSetSchoolStatus(id: number, status: string): Promise<void> {
-  await http.post(`/api/v1/admin/school/${id}/status`, null, { params: { status } })
+  await http.post(`/admin/school/${id}/status`, null, { params: { status } })
 }
 export async function adminImportSchools(list: Partial<School>[]): Promise<{ imported: number }> {
-  const resp = await http.post('/api/v1/admin/school/import', list)
+  const resp = await http.post('/admin/school/import', list)
   return resp.data.data
 }
 export async function adminListSeeds(schoolId?: number): Promise<CrawlSeed[]> {
-  const resp = await http.get('/api/v1/admin/school/seeds', { params: { schoolId } })
+  const resp = await http.get('/admin/school/seeds', { params: { schoolId } })
   return resp.data.data
 }
 export async function adminSaveSeed(dto: Partial<CrawlSeed>): Promise<void> {
-  await http.post('/api/v1/admin/school/seeds/save', dto)
+  await http.post('/admin/school/seeds/save', dto)
 }
 export async function adminRunSeed(id: number): Promise<{ job: string }> {
-  const resp = await http.post(`/api/v1/admin/school/seeds/${id}/run`)
+  const resp = await http.post(`/admin/school/seeds/${id}/run`)
   return resp.data.data
 }
 export interface CandidatePage { total: number; rows: RuleCandidate[] }
 export async function adminListCandidates(params: { status?: string; schoolId?: number; pageNum?: number; pageSize?: number } = {}): Promise<CandidatePage> {
-  const resp = await http.get('/api/v1/admin/school/candidates', {
+  const resp = await http.get('/admin/school/candidates', {
     params: { status: 'pending', pageNum: 1, pageSize: 20, ...params },
   })
   return resp.data.data
@@ -122,13 +122,13 @@ export interface CandidateMerge {
   sourceUrl: string
 }
 export async function adminMergeCandidate(id: number, dto: CandidateMerge): Promise<{ ruleId: number }> {
-  const resp = await http.post(`/api/v1/admin/school/candidates/${id}/merge`, dto)
+  const resp = await http.post(`/admin/school/candidates/${id}/merge`, dto)
   return resp.data.data
 }
 export async function adminRejectCandidate(id: number): Promise<void> {
-  await http.post(`/api/v1/admin/school/candidates/${id}/reject`)
+  await http.post(`/admin/school/candidates/${id}/reject`)
 }
 export async function adminSyncCandidates(): Promise<{ synced: number }> {
-  const resp = await http.post('/api/v1/admin/school/candidates/sync')
+  const resp = await http.post('/admin/school/candidates/sync')
   return resp.data.data
 }

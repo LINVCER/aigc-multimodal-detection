@@ -19,6 +19,15 @@ export default defineConfig(({ mode }) => {
       open: isAdmin ? '/admin/dashboard' : false,
       proxy: {
         '/api': { target: apiTarget, changeOrigin: true },
+        // 后台 admin 接口无 /api 前缀（@RequestMapping("/admin/...")），dev 需单独代理；
+        // 浏览器导航到 /admin/*（SPA 路由）不转发，交给 vite history fallback
+        '/admin': {
+          target: apiTarget,
+          changeOrigin: true,
+          bypass: (req) => {
+            if (req.headers.accept?.includes('text/html')) return req.url
+          },
+        },
       },
     },
   }
