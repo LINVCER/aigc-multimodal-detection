@@ -51,7 +51,6 @@ async function logout() {
         <div class="crumb">{{ menus.find(m => m.path === activePath)?.text || '' }}</div>
         <div class="user">
           <span class="user-name">{{ auth.user?.realName || auth.user?.username || 'OPS' }}</span>
-          <el-button link @click="router.push('/dashboard')"><ZyIcon name="arrow-left" :size="15" />返回 C 端</el-button>
           <el-button link type="danger" @click="logout"><ZyIcon name="logout" :size="15" />退出</el-button>
         </div>
       </el-header>
