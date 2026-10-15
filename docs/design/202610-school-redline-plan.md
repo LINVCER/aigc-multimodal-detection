@@ -149,3 +149,136 @@
 3. `/schools/:id` 不登录可访问，未收录学校有上报入口。
 4. 后台能审核上报并发布，发布后前端即时生效。
 5. 文案无「您 / 请勿 / 提交」。
+
+---
+
+# 11. 爬虫接入与按需爬取闭环（highschool-spider）
+
+数据从哪来：`tools/highschool-spider/`（礼貌版爬虫，仅爬高校公开通知页，遵守 robots、限速限页、只读 HTML）。
+四张表见 `docs/releases/v0.3.0/sql/V0.3.0.014__init_school_redline.sql`：
+`edu_school`（学校）、`edu_school_rule`（已发布规则）、`edu_school_rule_candidate`（爬虫候选 = 审核队列）、`edu_school_crawl_seed`（爬取种子）。
+
+## 11.1 两条数据通道
+
+- **批量离线**：运营拿目标学校清单跑 `spider.py`，`to_sql.py` 转成 `edu_school_rule_candidate` 的 INSERT，上库进审核队列。首批 50 所走这条。
+- **按需触发**（用户填学校后）：见 §11.2。
+
+## 11.2 按需爬取闭环（用户填学校 → 触发 → 爬取 → 转化 → 入库 → 生效）
+
+借 spider-v2 的 task + worker 模型，把爬虫做成一个可被后台触发的异步作业，而不是只有 CLI：
+
+```
+用户在 App/Web 填「我是北航·硕士」 (PUT /me/school)
+        │
+        ▼
+后台解析该校红线：命中 published 规则？
+  命中 → 直接返回，报告按校红线算（闭环结束）
+  未命中 → 若该校有 crawl_seed 且近 N 天未爬 → 投一个爬取任务 crawl_job(school_id)
+        │
+        ▼
+爬虫 worker 领任务：按 seed.entry_url 跑 highschool-spider（限速礼貌），产出候选
+        │
+        ▼
+候选转化入 edu_school_rule_candidate（status=pending）
+        │
+        ├─ 高置信直通（见决策四）：confidence≥90 且同校同学位同指标无冲突 → 自动合并成 edu_school_rule(status=published, source_type=user_triggered)
+        └─ 否则留审核队列，前端先给用户「通用口径」并提示「你学校的红线我们正在收录，核实后通知你」
+        │
+        ▼
+规则落库后：① 该用户下次检测按校红线算；② 转成知识库块供小白检索（§14）；③ 若之前给了通用口径，推一条小白消息「北航硕士红线核实了，15%」
+```
+
+关键约束：
+- 爬虫作业**全局限频**（每校最多每 7 天触发一次，整体并发 1~2），避免用户一填学校就猛爬；触发只入队，不同步等结果。
+- 用户侧**绝不阻塞**：填完学校立即返回通用口径或已有规则，爬取是后台补齐，异步通知。
+- 爬虫 worker 本身不写 `edu_school_rule`，只写候选；是否自动发布由转化层按决策四定。
+
+## 11.3 作业载体
+
+一期可不引入独立服务：后台用一张 `crawl_job` 轻表（或复用现有异步任务机制）+ 一个定时/队列 worker，worker 内部 `subprocess` 调 `spider.py --seeds <临时单校种子> --out <临时目录>` 再读 `candidates.csv` 转化入库。
+二期若量大，再把 highschool-spider 拆成常驻服务（对齐 spider-v2 的 uvicorn + worker + HTTP 提交），后台只投任务。
+
+# 12. 后台管理页面（运营后台新增「学校红线」）
+
+三个 tab，对应你要的「管理爬取的高校」+「数据维护」：
+
+| tab | 功能 |
+|---|---|
+| 学校 | `edu_school` 列表：搜索、按省/层次筛、新增/编辑/隐藏；显示每校已发布规则数与待审候选数 |
+| 爬取种子 | `edu_school_crawl_seed` 列表：维护 entry_url / adapter / 开关；「立即爬取」按钮投一个 crawl_job；显示 last_crawl_at / last_status |
+| 数据维护 | `edu_school_rule_candidate` 审核队列（pending 优先、按 confidence 降序）：每条显示 snippet + 打开 source_url；操作「合并发布」「驳回」「改学校/学位」；已发布 `edu_school_rule` 列表可编辑/下线/标 stale |
+
+KPI：已收录学校数、published 规则数、待审候选数、选了学校的用户占比、近 7 天触发爬取数。
+页面与现有 admin 风格一致（已按知源小白主题改过），按钮不用 pill，候选置信度用语义色标签。
+
+# 13. 预留接口清单
+
+C 端 / 公开（§6 已列的基础上补全）：
+
+| 接口 | 用途 |
+|---|---|
+| `PUT /api/v1/me/school` | 用户设学校+学位；内部触发 §11.2 的红线解析与按需爬取 |
+| `GET /api/v1/me/rule` | 当前用户生效红线（上传页卡片/报告页） |
+| `GET /api/v1/schools?q=&province=&level=` | 学校搜索（含别名） |
+| `GET /api/v1/schools/{id}` | 学校详情 + published 规则（公开查询页） |
+| `POST /api/v1/schools/{id}/rules/report` | 用户上报红线 |
+
+后台：
+
+| 接口 | 用途 |
+|---|---|
+| `GET /api/v1/admin/schools` `POST/PUT /.../{id}` | 学校 CRUD |
+| `POST /api/v1/admin/schools/import` | 高校名单批量导入 |
+| `GET/POST/PUT /api/v1/admin/crawl-seeds` | 爬取种子维护 |
+| `POST /api/v1/admin/crawl-seeds/{id}/run` | 立即投爬取任务（返回 jobId） |
+| `GET /api/v1/admin/crawl-jobs?status=` | 爬取任务状态 |
+| `GET /api/v1/admin/rule-candidates?status=` | 候选审核队列 |
+| `POST /api/v1/admin/rule-candidates/{id}/merge` | 合并发布为 edu_school_rule |
+| `POST /api/v1/admin/rule-candidates/{id}/reject` | 驳回 |
+
+爬虫 worker ↔ 后台（内部，预留）：
+
+| 接口 | 用途 |
+|---|---|
+| `POST /internal/crawl-jobs/claim` | worker 领任务 |
+| `POST /internal/crawl-jobs/{id}/result` | 回传候选（等价 to_sql 的入库动作，带内部鉴权） |
+
+# 14. 知识库转化（edu_school_rule → knowledge_chunk）
+
+规则发布后，同步镜像一条知识块进 `knowledge_chunk`（现有助手知识库，推理服务启动全量载入 + 运营可编辑）：
+
+- `doc = school-redline`，`title = "<学校短名>-<学位>红线"`（如「北航-硕士红线」），`tags = 学校名,别名,学位,AI率,查重`
+- `body` 用口语模板拼：「北京航空航天大学 硕士学位论文：AIGC 率不超过 15%，查重率不超过 15%，用知网检测；来源：<source_url>，2026 届。」
+- `enabled` 跟随规则 status；规则改/下线时同步刷新或下线对应块。
+
+好处：小白的既有 `search_knowledge` 工具不用改就能答「北航硕士查重多少」，而精确结构化回答走 §15 的专用工具。
+
+## 14.1 转化触发
+
+规则 `merge/publish` 时在 service 层同步 upsert knowledge_chunk（`uk_doc_title` 保证幂等）；下线/stale 时置 `enabled=0`。
+
+# 15. 小白接入
+
+两条路径互补：
+
+1. **结构化专用工具 `get_school_policy`**（预留，优先）：入参 `school`(可空，默认取当前用户的 school_id) + `degree`(可空)，返回 `{ai_rate_limit, plagiarism_limit, platform, effective_year, source_url, resolved_label, source_type}`。命中 published 规则时小白直接口语回答并给来源；未命中时回「还没收录，我帮你记下来去查」，并触发 §11.2 的按需爬取。
+2. **知识库兜底**：§14 的镜像块让 `search_knowledge` 也能召回，用于模糊问法（「航空航天大学那个要求」）。
+
+上下文注入：用户已设学校时，助手系统提示带上「当前用户：北航·硕士，红线 AI 15% / 查重 15%」，让小白所有回答自带校情，不必每次调工具。
+
+工具实现位置与现有 `get_threshold_policy` / `search_knowledge` 同层（推理侧工具执行 + Java 侧 `AssistantServiceImpl` 审计），新增 `get_school_policy` 走同一注册路径。
+
+# 16. 构建顺序（代码分批，均不本地构建，静态检查后分批提交）
+
+1. SQL 迁移（已出 `V0.3.0.014`）+ highschool-spider 爬虫与候选转 SQL（已出，带自测）。
+2. Java：`edu_school` / `edu_school_rule` / `candidate` / `crawl_seed` 实体 + mapper + service + 后台 controller（§12/§13）。
+3. Java：`PUT /me/school` 红线解析 + 按需触发 + `crawl_job` worker（§11.2）+ 规则→知识块转化（§14）。
+4. Web 后台「学校红线」三 tab（§12）；C 端选学校、上传页/报告页按校红线、公开查询页（§4）。
+5. 小白 `get_school_policy` 工具与上下文注入（§15）。
+
+# 17. 待拍板（补充）
+
+| 决策 | 选项 | 建议 |
+|---|---|---|
+| 四 · 按需爬取的候选是否自动发布 | A 高置信(≥90、无冲突)直通发布，其余人工 / B 一律人工审核 | A，否则「填完学校马上要看红线」的闭环断在人工环节；A 也保留冲突与低置信走人工 |
+| 五 · 爬虫作业载体 | A 一期 subprocess 调 CLI + 轻 crawl_job 表 / B 直接上常驻服务（对齐 spider-v2） | A，先跑通闭环，量大再拆服务 |
