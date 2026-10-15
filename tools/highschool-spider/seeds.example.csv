@@ -1,0 +1,6 @@
+school_id,school_name,entry_url,note
+# 每行一所学校。entry_url 填研究生院/教务处的「通知公告」列表页或站点根，爬虫在该校 edu.cn 域内按关键词跟进。
+# 下面是占位示例，请替换成你要收录的学校的真实公开通知列表页；以 # 开头的行会被跳过。
+# 1,北京大学研究生院,https://grs.pku.edu.cn/tzgg/index.htm,先填目标用户最多的学校
+# 2,清华大学研究生院,https://yjsy.tsinghua.edu.cn/tzgg.htm,
+# 3,浙江大学研究生院,http://grs.zju.edu.cn/,
