@@ -40,7 +40,13 @@ const router = createRouter({
   routes,
 })
 
+/** 管理端独立实例（npm run dev:admin，端口 5174）：本实例只开放后台与登录页 */
+const ADMIN_ONLY = import.meta.env.MODE === 'admin'
+
 router.beforeEach((to) => {
+  if (ADMIN_ONLY && !to.path.startsWith('/admin') && to.name !== 'Login') {
+    return { path: '/admin/dashboard' }
+  }
   if (to.meta.public) return true
   const auth = useAuthStore()
   if (!auth.token) auth.restore()
