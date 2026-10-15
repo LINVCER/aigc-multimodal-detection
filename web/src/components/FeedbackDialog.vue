@@ -61,7 +61,7 @@ async function onSubmit() {
       consentImprove: isAppeal.value && pickedIdxs.value.length ? consentImprove.value : undefined,
       userId: auth.user?.id ? Number(auth.user.id) : undefined,
     })
-    ElMessage.success('反馈已提交，我们会尽快查看')
+    ElMessage.success('收到了，我们会尽快看')
     close()
   } catch (e: any) {
     // client 拦截器已弹 ElMessage.error
@@ -122,7 +122,7 @@ async function onSubmit() {
     <template #footer>
       <el-button @click="close">取消</el-button>
       <el-button type="primary" :loading="submitting" :disabled="!canSubmit" @click="onSubmit">
-        提交
+        发给我们
       </el-button>
     </template>
   </el-dialog>
@@ -133,18 +133,18 @@ async function onSubmit() {
 .cat-group { align-self: flex-start; }
 .appeal-hint {
   font-size: var(--fs-subhead, 14px);
-  color: var(--label-secondary, rgba(60, 60, 67, 0.6));
+  color: var(--label-secondary, rgba(23, 24, 28, 0.6));
   padding: 10px 14px;
-  background: rgba(0, 122, 255, 0.08);
+  background: rgba(20, 184, 166, 0.08);
   border-radius: 10px;
 }
 .contact-input { max-width: 320px; }
-.para-pick { background: #F2F2F7; border-radius: 10px; padding: 12px 14px; }
+.para-pick { background: var(--system-grouped-background); border-radius: 10px; padding: 12px 14px; }
 .para-pick-title { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
 .para-list { display: flex; flex-direction: column; gap: 4px; max-height: 180px; overflow-y: auto; }
 .para-item :deep(.el-checkbox__label) { display: inline-flex; gap: 8px; align-items: baseline; }
-.para-tag { font-size: 12px; color: #C62A22; font-weight: 600; white-space: nowrap; }
-.para-preview { font-size: 12px; color: rgba(60,60,67,0.72); }
+.para-tag { font-size: 12px; color: var(--danger-fg); font-weight: 600; white-space: nowrap; }
+.para-preview { font-size: 12px; color: rgba(23, 24, 28,0.72); }
 .consent { margin-top: 8px; font-size: 12px; }
 .consent :deep(.el-checkbox__label) { font-size: 12px; white-space: normal; line-height: 1.4; }
 </style>

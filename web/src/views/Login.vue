@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ZyIcon from '@/components/ZyIcon.vue'
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -31,9 +32,9 @@ const passwordInput = ref<HTMLInputElement | null>(null)
 const captchaInput = ref<HTMLInputElement | null>(null)
 
 const VALUE_PROPS = [
-  { icon: '🔍', t: '不只给一个比例', d: '逐段解释为什么像 AI，定位最可疑的句子' },
-  { icon: '🧭', t: '溯源哪家大模型', d: '疑似 GPT / 通义 / DeepSeek，知道像谁才知道怎么不像' },
-  { icon: '🛡️', t: '原创被误判有路可走', d: '一键整理申诉材料，不推销「降 AI」' },
+  { icon: 'search', t: '不只给一个比例', d: '逐段解释为什么像 AI，定位最可疑的句子' },
+  { icon: 'compass', t: '溯源哪家大模型', d: '疑似 GPT / 通义 / DeepSeek，知道像谁才知道怎么不像' },
+  { icon: 'shield', t: '原创被误判有路可走', d: '一键整理申诉材料，不推销「降 AI」' },
 ]
 const LINES = ['本科 20%', '硕士 15%', '博士 10%']
 
@@ -229,7 +230,7 @@ async function onSubmit() {
       <div class="side-body">
         <h1 class="side-title">不只告诉你 AI 率，<br />还告诉你为什么、哪一段、怎么改。</h1>
         <div class="props">
-          <div v-for="p in VALUE_PROPS" :key="p.t" class="prop"><span class="prop-icon">{{ p.icon }}</span><div class="prop-text"><b>{{ p.t }}</b><span>{{ p.d }}</span></div></div>
+          <div v-for="p in VALUE_PROPS" :key="p.t" class="prop"><span class="prop-icon"><ZyIcon :name="p.icon" :size="18" /></span><div class="prop-text"><b>{{ p.t }}</b><span>{{ p.d }}</span></div></div>
         </div>
         <div class="lines"><span class="lines-label">教育部 2026 新规红线</span><span v-for="l in LINES" :key="l" class="line-chip">{{ l }}</span></div>
       </div>
@@ -332,14 +333,15 @@ async function onSubmit() {
 <style scoped>
 /* Sign in 版式：白卡 + 填充输入框 + 胶囊按钮 */
 .login-page {
-  --si-canvas: #F2F2F7;
+  --si-canvas: var(--system-grouped-background);
   --si-card: #FFFFFF;
-  --si-field: #F2F2F4;
-  --si-ink: #0A0A0A;
-  --si-ink-soft: #6E6E73;
-  --si-ink-faint: #8E8E93;
-  --si-line: #E5E5EA;
-  --si-ring: rgba(10, 10, 10, .08);
+  --si-field: var(--bg-deep);
+  --si-ink: var(--label);
+  --si-ink-soft: var(--label-secondary);
+  --si-ink-faint: var(--label-tertiary);
+  --si-line: var(--separator);
+  --si-ring: var(--ai-200);
+  --si-accent: var(--ai-700);
 
   position: relative;
   min-height: 100vh;
@@ -361,7 +363,7 @@ async function onSubmit() {
 
 .props { display: flex; flex-direction: column; gap: 18px; }
 .prop { display: flex; gap: 14px; align-items: flex-start; }
-.prop-icon { flex: none; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; border-radius: 10px; background: #fff; }
+.prop-icon { flex: none; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; color: var(--ai-700); border-radius: 10px; background: #fff; }
 .prop-text b { display: block; font-size: 15px; font-weight: 600; margin-bottom: 3px; color: var(--si-ink); }
 .prop-text span { font-size: 13px; color: var(--si-ink-soft); line-height: 1.55; }
 
@@ -382,7 +384,7 @@ async function onSubmit() {
   padding: 36px 32px 30px;
   border-radius: 20px;
   background: var(--si-card);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 12px 32px rgba(0, 0, 0, .06);
+  box-shadow: 0 1px 2px rgba(23, 24, 28, .04), 0 12px 32px rgba(23, 24, 28, .06);
 }
 .card-head { margin-bottom: 26px; }
 .card-title { font-size: 26px; font-weight: 700; letter-spacing: -0.6px; color: var(--si-ink); }
@@ -391,13 +393,13 @@ async function onSubmit() {
 /* ---------- 表单 ---------- */
 .form { display: flex; flex-direction: column; gap: 14px; }
 .fld { display: flex; flex-direction: column; gap: 6px; }
-.caps { font-size: 12px; color: #B26200; }
+.caps { font-size: 12px; color: var(--warning-fg); }
 
 /* 输入框：灰色填充，默认无边框，聚焦出黑描边 */
 .ctl { display: flex; align-items: center; gap: 10px; box-sizing: border-box; height: 48px; padding: 0 14px; border-radius: 12px; background: var(--si-field); border: 1.5px solid transparent; transition: border-color .2s, box-shadow .2s; }
-.ctl:focus-within { border-color: var(--si-ink); box-shadow: 0 0 0 3px var(--si-ring); }
+.ctl:focus-within { border-color: var(--si-accent); box-shadow: 0 0 0 3px var(--si-ring); }
 .ctl.error { border-color: var(--system-red); }
-.ctl.ok { border-color: rgba(52, 199, 89, .6); }
+.ctl.ok { border-color: rgba(22, 163, 74, .6); }
 
 .lead { flex: none; width: 18px; height: 18px; background-repeat: no-repeat; background-position: center; background-size: contain; }
 .lead-user { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236E6E73' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='4'/><path d='M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6'/></svg>"); }
@@ -417,7 +419,7 @@ async function onSubmit() {
 .inp { flex: 1; min-width: 0; border: none; background: transparent; outline: none; font-size: 15px; color: var(--si-ink); font-family: inherit; height: 100%; }
 .inp::placeholder { color: var(--si-ink-soft); }
 .ctl-side { flex: none; font-size: 12px; }
-.okmark { color: #1B7F3E; font-weight: 600; }
+.okmark { color: var(--success-fg); font-weight: 600; }
 .eye { flex: none; border: none; background: transparent; color: var(--si-ink-soft); cursor: pointer; padding: 4px; display: inline-flex; border-radius: 6px; }
 .eye:hover { color: var(--si-ink); }
 .err { font-size: 12px; color: var(--system-red); }
@@ -425,7 +427,7 @@ async function onSubmit() {
 .rules { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 2px; }
 .rule { font-size: 12px; color: var(--si-ink-faint); display: inline-flex; align-items: center; gap: 4px; }
 .rule i { font-style: normal; width: 14px; text-align: center; }
-.rule.ok { color: #1B7F3E; }
+.rule.ok { color: var(--success-fg); }
 
 .cap-row { display: flex; gap: 10px; }
 .cap-ctl { flex: 1; }
@@ -439,17 +441,17 @@ async function onSubmit() {
 .chk { display: inline-flex; align-items: center; gap: 6px; color: var(--si-ink-soft); cursor: pointer; user-select: none; }
 .chk input { position: absolute; opacity: 0; width: 0; height: 0; }
 .chk i { width: 16px; height: 16px; border-radius: 5px; border: 1.5px solid var(--si-ink-faint); display: inline-flex; align-items: center; justify-content: center; transition: all .15s; }
-.chk input:checked + i { background: var(--si-ink); border-color: var(--si-ink); }
+.chk input:checked + i { background: var(--si-accent); border-color: var(--si-accent); }
 .chk input:checked + i::after { content: ''; width: 4px; height: 8px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg) translate(-1px, -1px); }
 .link { color: var(--si-ink); text-decoration: underline; cursor: pointer; margin-left: 2px; }
 .muted { color: var(--si-ink-faint); }
 
-.alert { display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; border-radius: 10px; background: rgba(255, 59, 48, .08); color: #C62A22; font-size: 13px; line-height: 1.5; }
+.alert { display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; border-radius: 10px; background: rgba(229, 72, 77, .08); color: var(--danger-fg); font-size: 13px; line-height: 1.5; }
 .alert svg { flex: none; margin-top: 2px; }
 .lock { display: block; font-weight: 600; margin-top: 2px; }
 
 /* 主按钮：黑色胶囊 */
-.primary { position: relative; height: 50px; border: none; border-radius: 9999px; color: #fff; font-size: 16px; font-weight: 600; font-family: inherit; cursor: pointer; background: var(--si-ink); transition: background .2s, transform .15s, opacity .2s; margin-top: 6px; }
+.primary { position: relative; height: 46px; border: none; border-radius: var(--radius-btn); color: #fff; font-size: 16px; font-weight: 600; font-family: inherit; cursor: pointer; background: var(--si-accent); transition: background .2s, transform .15s, opacity .2s; margin-top: 6px; }
 .primary:hover:not(:disabled) { background: #262626; }
 .primary:active:not(:disabled) { transform: scale(.985); }
 .primary:disabled { opacity: .35; cursor: not-allowed; }
