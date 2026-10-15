@@ -11,8 +11,8 @@ const SCENARIO_LABEL: Record<string, string> = {
   job_report: '职业报告', self_media: '自媒体', other: '其他',
 }
 const SCENARIO_COLOR: Record<string, string> = {
-  academic_bachelor: '#007AFF', academic_master: '#5AC8FA', academic_phd: '#AF52DE',
-  job_report: '#FF9500', self_media: '#FF2D55', other: '#8E8E93',
+  academic_bachelor: '#0F766E', academic_master: '#14B8A6', academic_phd: '#3B82F6',
+  job_report: '#FF8A3D', self_media: '#B45309', other: '#8A8F98',
 }
 const STATUS_LABEL: Record<string, string> = { PENDING: '排队中', RUNNING: '检测中', DONE: '已完成', FAILED: '失败' }
 const SOURCE_LABEL: Record<string, string> = { human: '人写', gpt: 'GPT', claude: 'Claude', qwen: '通义千问', deepseek: 'DeepSeek', glm: '智谱', kimi: 'Kimi', ernie: '文心', other: '其它' }
@@ -65,7 +65,7 @@ function bars(dist: Record<string, number> | undefined, label: Record<string, st
   const entries = Object.entries(dist)
   const max = Math.max(1, ...entries.map(([, v]) => v))
   const total = entries.reduce((s, [, v]) => s + v, 0)
-  return entries.map(([k, v]) => ({ key: k, label: label[k] || k, value: v, width: (v / max) * 100, pct: total ? (v / total) * 100 : 0, color: color?.[k] || '#007AFF' }))
+  return entries.map(([k, v]) => ({ key: k, label: label[k] || k, value: v, width: (v / max) * 100, pct: total ? (v / total) * 100 : 0, color: color?.[k] || '#0F766E' }))
 }
 const scenarioBars = computed(() => bars(data.value?.scenarioDist, SCENARIO_LABEL, SCENARIO_COLOR))
 const bucketBars = computed(() => bars(data.value?.rateBuckets, BUCKET_LABEL))
@@ -98,8 +98,8 @@ function reset() {
 }
 const pct = (v: number | null | undefined) => (v == null ? '—' : (v * 100).toFixed(1) + '%')
 function rateColor(rate: number | null, threshold: number) {
-  if (rate == null) return 'rgba(60,60,67,0.60)'
-  return rate <= threshold ? '#34C759' : rate <= threshold * 1.5 ? '#FF9500' : '#FF3B30'
+  if (rate == null) return 'rgba(23, 24, 28,0.60)'
+  return rate <= threshold ? '#16A34A' : rate <= threshold * 1.5 ? '#F59E0B' : '#E5484D'
 }
 
 onMounted(load)
@@ -141,14 +141,14 @@ onMounted(load)
     <el-card class="trend-card">
       <template #header>
         <div class="card-title"><span>趋势</span>
-          <div class="legend"><span class="dot" style="background:#007AFF"></span><span>检测量</span><span class="dot" style="background:#FF9500"></span><span>平均 AI 率</span></div>
+          <div class="legend"><span class="dot" style="background:var(--ai-700)"></span><span>检测量</span><span class="dot" style="background:var(--system-orange)"></span><span>平均 AI 率</span></div>
         </div>
       </template>
       <svg :viewBox="`0 0 ${trendW} ${trendH}`" width="100%" :style="{ height: trendH + 'px' }">
-        <line :x1="pad.l" :y1="pad.t" :x2="pad.l" :y2="trendH - pad.b" stroke="#E5E5EA" />
-        <line :x1="pad.l" :y1="trendH - pad.b" :x2="trendW - pad.r" :y2="trendH - pad.b" stroke="#E5E5EA" />
-        <polyline :points="line('total')" fill="none" stroke="#007AFF" stroke-width="2" />
-        <polyline :points="line('avgAiRate')" fill="none" stroke="#FF9500" stroke-width="2" />
+        <line :x1="pad.l" :y1="pad.t" :x2="pad.l" :y2="trendH - pad.b" stroke="var(--separator)" />
+        <line :x1="pad.l" :y1="trendH - pad.b" :x2="trendW - pad.r" :y2="trendH - pad.b" stroke="var(--separator)" />
+        <polyline :points="line('total')" fill="none" stroke="#0F766E" stroke-width="2" />
+        <polyline :points="line('avgAiRate')" fill="none" stroke="#F59E0B" stroke-width="2" />
       </svg>
       <div class="axis"><span>{{ data.from }}</span><span>{{ data.to }}</span></div>
     </el-card>
@@ -184,7 +184,7 @@ onMounted(load)
       <template #header><div class="card-title">溯源主标签（已完成）</div></template>
       <div v-for="b in sourceBars" :key="b.key" class="bar-row">
         <span class="bar-label">{{ b.label }}</span>
-        <div class="bar"><div class="bar-fill" :style="{ width: b.width + '%', background: '#AF52DE' }" /></div>
+        <div class="bar"><div class="bar-fill" :style="{ width: b.width + '%', background: 'var(--ai-500)' }" /></div>
         <span class="bar-val">{{ b.value }}</span>
       </div>
       <div v-if="!sourceBars.length" class="muted">无数据</div>
@@ -214,23 +214,23 @@ onMounted(load)
 <style scoped>
 .filter-card { margin-bottom: 16px; }
 .filter-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.hint { font-size: 12px; color: rgba(60,60,67,0.60); }
-.muted { color: rgba(60,60,67,0.60); font-size: 12px; }
+.hint { font-size: 12px; color: rgba(23, 24, 28,0.60); }
+.muted { color: rgba(23, 24, 28,0.60); font-size: 12px; }
 .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 16px; }
 .kpi-card { text-align: center; }
-.kpi-label { font-size: 13px; color: rgba(60,60,67,0.60); }
-.kpi-value { font-size: 30px; font-weight: 600; letter-spacing: -0.5px; margin-top: 6px; color: #1C1C1E; }
-.kpi-value.ok { color: #1B7F3E; } .kpi-value.bad { color: #C62A22; }
+.kpi-label { font-size: 13px; color: rgba(23, 24, 28,0.60); }
+.kpi-value { font-size: 30px; font-weight: 600; letter-spacing: -0.5px; margin-top: 6px; color: var(--label); }
+.kpi-value.ok { color: var(--success-fg); } .kpi-value.bad { color: var(--danger-fg); }
 .mid-row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
 .tri-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
 .card-title { display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
-.legend { display: flex; align-items: center; gap: 8px; font-size: 12px; color: rgba(60,60,67,0.72); font-weight: 400; }
+.legend { display: flex; align-items: center; gap: 8px; font-size: 12px; color: rgba(23, 24, 28,0.72); font-weight: 400; }
 .legend .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-left: 12px; }
-.axis { display: flex; justify-content: space-between; font-size: 11px; color: rgba(60,60,67,0.45); padding: 0 12px 0 40px; }
+.axis { display: flex; justify-content: space-between; font-size: 11px; color: rgba(23, 24, 28,0.45); padding: 0 12px 0 40px; }
 .bar-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; font-size: 13px; }
-.bar-label { width: 80px; flex: none; color: rgba(60,60,67,0.72); }
-.bar { flex: 1; height: 10px; border-radius: 99px; background: #F2F2F7; overflow: hidden; }
-.bar-fill { height: 100%; border-radius: 99px; background: #007AFF; }
+.bar-label { width: 80px; flex: none; color: rgba(23, 24, 28,0.72); }
+.bar { flex: 1; height: 10px; border-radius: 99px; background: var(--system-grouped-background); overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 99px; background: var(--ai-700); }
 .bar-val { width: 70px; text-align: right; font-variant-numeric: tabular-nums; }
 .table-card :deep(.el-card__body) { padding: 0; }
 .pager { justify-content: flex-end; padding: 16px; }

@@ -35,7 +35,7 @@ function relTime(s?: string | null) {
 }
 const fmt = (s?: string | null) => (s ? String(s).replace('T', ' ').slice(0, 16) : '—')
 const initial = (a: AdminAccount) => (a.realName || a.username || '?').charAt(0).toUpperCase()
-const AVATAR_COLORS = ['#007AFF', '#5856D6', '#AF52DE', '#FF2D55', '#FF9500', '#34C759', '#5AC8FA', '#0D9488']
+const AVATAR_COLORS = ['#0F766E', '#14B8A6', '#3B82F6', '#FF8A3D', '#B45309', '#16A34A', '#6B7280', '#0D9488']
 const avatarColor = (a: AdminAccount) => AVATAR_COLORS[a.id % AVATAR_COLORS.length]
 
 /* ---------- KPI ---------- */
@@ -191,7 +191,7 @@ const pageNum = ref(1)
 const pageSize = ref(20)
 const rows = ref<AdminUser[]>([])
 const loading = ref(false)
-const LOGIN_LABEL: Record<LoginType, string> = { phone: '📱 手机', wechat: '💚 微信', email: '📧 邮箱' }
+const LOGIN_LABEL: Record<LoginType, string> = { phone: '手机', wechat: '微信', email: '邮箱' }
 const STATUS_TAG: Record<UserStatus, { text: string; type: 'success' | 'danger' | 'warning' | 'info' }> = {
   NORMAL: { text: '正常', type: 'success' }, BANNED: { text: '已封禁', type: 'danger' }, INACTIVE: { text: '未激活', type: 'info' }, SUSPICIOUS: { text: '可疑', type: 'warning' },
 }
@@ -382,8 +382,8 @@ onMounted(() => {
         <div class="hint">密码由系统生成临时密码，创建后只显示一次，请复制给用户并提醒登录后修改。</div>
       </el-form>
       <template #footer>
-        <el-button round @click="createOpen = false">取消</el-button>
-        <el-button type="primary" round :disabled="!!createError" @click="submitCreate">创建</el-button>
+        <el-button @click="createOpen = false">取消</el-button>
+        <el-button type="primary" :disabled="!!createError" @click="submitCreate">创建</el-button>
       </template>
     </el-dialog>
 
@@ -394,8 +394,8 @@ onMounted(() => {
         <div class="hint">只显示这一次。请通过安全渠道告知用户，并提醒其登录后在「我的 → 修改密码」里改掉。</div>
       </div>
       <template #footer>
-        <el-button round @click="tempPwd.open = false">关闭</el-button>
-        <el-button type="primary" round @click="copyTemp">复制账号与密码</el-button>
+        <el-button @click="tempPwd.open = false">关闭</el-button>
+        <el-button type="primary" @click="copyTemp">复制账号与密码</el-button>
       </template>
     </el-dialog>
   </template>
@@ -447,16 +447,16 @@ onMounted(() => {
 .kpi.static { cursor: default; }
 .kpi-label { font-size: 12px; color: var(--label-secondary); }
 .kpi-value { font-size: 28px; font-weight: 700; letter-spacing: -0.6px; margin-top: 4px; font-variant-numeric: tabular-nums; }
-.kpi-value.ok { color: #1B7F3E; } .kpi-value.bad { color: #C62A22; }
+.kpi-value.ok { color: var(--success-fg); } .kpi-value.bad { color: var(--danger-fg); }
 .kpi-foot { font-size: 11px; color: var(--label-tertiary); margin-top: 6px; min-height: 14px; }
 
 .filter-card { margin-bottom: 12px; }
 .filter-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .flex-1 { flex: 1; }
-.batch-bar { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 8px 12px; border-radius: 10px; background: rgba(0, 122, 255, 0.07); font-size: 13px; }
+.batch-bar { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 8px 12px; border-radius: 10px; background: rgba(20, 184, 166, 0.07); font-size: 13px; }
 .fade-enter-active, .fade-leave-active { transition: opacity .15s; } .fade-enter-from, .fade-leave-to { opacity: 0; }
 
-.table-card :deep(.el-table) { --el-table-header-bg-color: #FAFBFC; }
+.table-card :deep(.el-table) { --el-table-header-bg-color: var(--secondary-system-background); }
 .who { display: flex; align-items: center; gap: 10px; cursor: pointer; }
 .avatar { width: 34px; height: 34px; border-radius: 50%; color: #fff; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; flex: none; font-size: 14px; }
 .avatar.lg { width: 48px; height: 48px; font-size: 20px; }
@@ -486,12 +486,12 @@ onMounted(() => {
 .task-main { flex: 1; min-width: 0; }
 .task-title { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .task-sub { font-size: 12px; color: var(--label-tertiary); }
-.task-rate { font-variant-numeric: tabular-nums; } .task-rate.ok { color: #1B7F3E; } .task-rate.bad { color: #C62A22; }
+.task-rate { font-variant-numeric: tabular-nums; } .task-rate.ok { color: var(--success-fg); } .task-rate.bad { color: var(--danger-fg); }
 
 .hint { font-size: 12px; color: var(--label-tertiary); line-height: 1.6; }
 .temp { display: flex; flex-direction: column; gap: 10px; }
 .temp-row { display: flex; align-items: center; gap: 12px; }
-.temp-pwd { font-size: 20px; letter-spacing: 1px; padding: 4px 10px; border-radius: 8px; background: rgba(120, 120, 128, 0.12); user-select: all; }
+.temp-pwd { font-size: 20px; letter-spacing: 1px; padding: 4px 10px; border-radius: 8px; background: rgba(23, 24, 28, 0.12); user-select: all; }
 .demo-alert { margin-bottom: 12px; }
 @media (max-width: 1100px) { .kpi-row { grid-template-columns: repeat(3, 1fr); } }
 </style>

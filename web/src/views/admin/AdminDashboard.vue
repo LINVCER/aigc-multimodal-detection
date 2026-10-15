@@ -17,12 +17,12 @@ const SCENARIO_LABEL: Record<string, string> = {
   other:             '其他',
 }
 const SCENARIO_COLOR: Record<string, string> = {
-  academic_bachelor: '#007AFF',
-  academic_master:   '#5AC8FA',
-  academic_phd:      '#AF52DE',
-  job_report:        '#FF9500',
-  self_media:        '#FF2D55',
-  other:             '#8E8E93',
+  academic_bachelor: '#0F766E',
+  academic_master:   '#14B8A6',
+  academic_phd:      '#3B82F6',
+  job_report:        '#FF8A3D',
+  self_media:        '#B45309',
+  other:             '#8A8F98',
 }
 
 onMounted(async () => {
@@ -94,18 +94,18 @@ const pieSlices = computed(buildPie)
           <div class="card-title">
             <span>30 天趋势</span>
             <div class="legend">
-              <span class="dot" style="background:#007AFF"></span><span>检测量</span>
-              <span class="dot" style="background:#34C759"></span><span>新增用户</span>
-              <span class="dot" style="background:#FF9500"></span><span>平均 AI 率</span>
+              <span class="dot" style="background:var(--ai-700)"></span><span>检测量</span>
+              <span class="dot" style="background:var(--system-green)"></span><span>新增用户</span>
+              <span class="dot" style="background:var(--system-orange)"></span><span>平均 AI 率</span>
             </div>
           </div>
         </template>
         <svg :viewBox="`0 0 ${trendW} ${trendH}`" width="100%" :style="{ height: trendH + 'px' }">
-          <line :x1="trendPad.l" :y1="trendPad.t"                       :x2="trendPad.l" :y2="trendH - trendPad.b" stroke="#E5E5EA" />
-          <line :x1="trendPad.l" :y1="trendH - trendPad.b" :x2="trendW - trendPad.r" :y2="trendH - trendPad.b" stroke="#E5E5EA" />
-          <polyline :points="buildLine('detect')"    fill="none" stroke="#007AFF" stroke-width="2" />
-          <polyline :points="buildLine('newUser')"   fill="none" stroke="#34C759" stroke-width="2" />
-          <polyline :points="buildLine('avgAiRate')" fill="none" stroke="#FF9500" stroke-width="2" />
+          <line :x1="trendPad.l" :y1="trendPad.t"                       :x2="trendPad.l" :y2="trendH - trendPad.b" stroke="var(--separator)" />
+          <line :x1="trendPad.l" :y1="trendH - trendPad.b" :x2="trendW - trendPad.r" :y2="trendH - trendPad.b" stroke="var(--separator)" />
+          <polyline :points="buildLine('detect')"    fill="none" stroke="#0F766E" stroke-width="2" />
+          <polyline :points="buildLine('newUser')"   fill="none" stroke="#16A34A" stroke-width="2" />
+          <polyline :points="buildLine('avgAiRate')" fill="none" stroke="#F59E0B" stroke-width="2" />
         </svg>
       </el-card>
 
@@ -153,15 +153,15 @@ const pieSlices = computed(buildPie)
 .dash-page { display: flex; flex-direction: column; gap: 20px; }
 .kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
 .kpi-card { text-align: center; }
-.kpi-label { font-size: 13px; color: rgba(60,60,67,0.60); }
-.kpi-value { font-size: 30px; font-weight: 600; letter-spacing: -0.5px; margin-top: 6px; color: #1C1C1E; }
-.kpi-value.bad { color: #C62A22; } .kpi-value.warn { color: #B26200; }
-.kpi-foot { font-size: 11px; color: rgba(60,60,67,0.45); margin-top: 6px; }
+.kpi-label { font-size: 13px; color: rgba(23, 24, 28,0.60); }
+.kpi-value { font-size: 30px; font-weight: 600; letter-spacing: -0.5px; margin-top: 6px; color: var(--label); }
+.kpi-value.bad { color: var(--danger-fg); } .kpi-value.warn { color: var(--warning-fg); }
+.kpi-foot { font-size: 11px; color: rgba(23, 24, 28,0.45); margin-top: 6px; }
 .kpi-card.link { cursor: pointer; transition: transform .15s; } .kpi-card.link:hover { transform: translateY(-1px); }
 
 .mid-row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
 .card-title { display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
-.legend { display: flex; align-items: center; gap: 8px; font-size: 12px; color: rgba(60,60,67,0.72); font-weight: 400; }
+.legend { display: flex; align-items: center; gap: 8px; font-size: 12px; color: rgba(23, 24, 28,0.72); font-weight: 400; }
 .legend .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-left: 12px; }
 
 .pie-wrap { display: flex; align-items: center; gap: 24px; }
@@ -169,7 +169,7 @@ const pieSlices = computed(buildPie)
 .legend-row { display: flex; align-items: center; gap: 8px; }
 .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 .legend-name { flex: 1; }
-.legend-pct { font-variant-numeric: tabular-nums; color: rgba(60,60,67,0.72); }
+.legend-pct { font-variant-numeric: tabular-nums; color: rgba(23, 24, 28,0.72); }
 
 .bot-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 </style>
