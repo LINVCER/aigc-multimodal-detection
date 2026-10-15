@@ -16,12 +16,14 @@ from typing import Optional
 
 from fastapi import APIRouter, FastAPI, HTTPException, Query
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 
 from .agent import run_chat
 from .config import CONFIG
 from .knowledge import get_kb
 from .llm import LLM
-from .prompts import QUICK_PROMPTS_GENERIC, QUICK_PROMPTS_WITH_TASK, WELCOME_GENERIC, WELCOME_WITH_TASK
+from .prompts import (DRAFT_REPLY_SYSTEM, QUICK_PROMPTS_GENERIC, QUICK_PROMPTS_WITH_TASK,
+                      WELCOME_GENERIC, WELCOME_WITH_TASK)
 from .protocol import ERR_DISABLED, ChatRequest, ConversationDetail, ConversationSummary, sse_error
 from .session import SESSIONS
 from .tools import DetectorGetter
@@ -99,6 +101,41 @@ async def health():
 async def reload_knowledge():
     get_kb().reload()
     return {"ok": True, "chunks": len(get_kb().chunks)}
+
+
+# ---- 反馈 AI 草稿（Java FeedbackController 异步调用；草稿经人工审核后才发给用户） ----
+
+class DraftReplyRequest(BaseModel):
+    category: str = "suggestion"          # bug / suggestion / appeal
+    content: str
+    taskId: Optional[int] = None
+
+
+@router.post("/draft-reply")
+async def draft_reply(req: DraftReplyRequest):
+    """生成反馈回复草稿。LLM 不可用时 reply 返回 null，Java 侧静默跳过（不影响反馈提交）。"""
+    if not CONFIG.enabled:
+        return {"code": 200, "msg": "ok", "data": {"reply": None, "reason": "disabled"}}
+
+    system = DRAFT_REPLY_SYSTEM.format(product=CONFIG.product_name)
+    try:
+        hits = get_kb().search(req.content, top_k=3)
+        kb_ctx = get_kb().format_context(hits)
+        if kb_ctx:
+            system += "\n\n## 平台资料（优先依据，引用时自然带一句来源）\n" + kb_ctx
+    except Exception as e:   # 知识库缺失不影响草稿，只是少了依据
+        log.info("draft-reply knowledge skipped: %s", e)
+
+    user = (f"反馈分类：{req.category}\n关联报告编号：{req.taskId or '无'}\n"
+            f"用户反馈原文：\n{req.content}\n\n请起草给这位用户的回复。")
+    try:
+        reply = await LLM.complete_once(
+            [{"role": "system", "content": system}, {"role": "user", "content": user}],
+            max_tokens=300)
+    except Exception as e:
+        log.warning("draft-reply llm failed category=%s: %s", req.category, e)
+        return {"code": 200, "msg": "ok", "data": {"reply": None, "reason": "llm_unavailable"}}
+    return {"code": 200, "msg": "ok", "data": {"reply": reply or None}}
 
 
 def mount(app: FastAPI, detector_getter: DetectorGetter) -> None:

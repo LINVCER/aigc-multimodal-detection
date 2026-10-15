@@ -113,6 +113,31 @@ class LLMClient:
         self._client_key = cache_key
         return self._client
 
+    async def complete_once(self, messages: list[dict[str, Any]], max_tokens: int | None = None) -> str:
+        """非流式单轮调用（反馈 AI 草稿等内部用途，不带工具与思考）。
+
+        与 stream() 共享 client 缓存与错误归类；失败抛 LLMError。
+        """
+        client = self._get()
+        kwargs = build_request_kwargs(messages, tools=None, thinking=False)
+        kwargs["stream"] = False
+        kwargs.pop("stream_options", None)
+        kwargs.pop("tools", None)
+        kwargs.pop("tool_choice", None)
+        kwargs.pop("reasoning_effort", None)
+        # 注意：保留 extra_body —— DeepSeek 默认开思考模式，不显式关掉 content 会全进 reasoning_content
+        if max_tokens:
+            kwargs["max_tokens"] = max_tokens
+        try:
+            resp = await asyncio.wait_for(
+                client.chat.completions.create(**kwargs), CONFIG.llm_first_token_timeout_s)
+        except asyncio.TimeoutError as e:
+            raise LLMError("LLM_TIMEOUT", "模型响应超时", retryable=True) from e
+        except Exception as e:
+            raise _classify(e) from e
+        content = resp.choices[0].message.content if resp.choices else ""
+        return (content or "").strip()
+
     async def stream(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]] | None = None,
                      thinking: bool | None = None) -> AsyncIterator[tuple[str, Any]]:
         """带重试的流式调用。只在拿到首 token 之前失败才重试，避免给用户重复输出。"""
