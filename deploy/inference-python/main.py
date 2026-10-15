@@ -285,8 +285,119 @@ def humanize(req: HumanizeRequest) -> HumanizeResponse:
 def attribute(req: AttributeRequest) -> AttributeResponse:
     # 溯源模型尚未接入，保留 stub
     sources = ["human", "gpt", "claude", "qwen", "deepseek", "glm", "kimi", "ernie", "other"]
-    raw = {s: _deterministic_prob(req.text, s) for s in sources}
+    raw = {s: _deterministic_prob(text, s) for s, text in [(s, req.text) for s in sources]}
     total = sum(raw.values())
     probs = {s: round(v / total, 4) for s, v in raw.items()}
     top = max(probs, key=probs.get)
     return AttributeResponse(source_probs=probs, top_source=top)
+
+
+# ==========================================================
+# 运营参数配置（Java /admin/platform/* 透传；只监听内网 8000，鉴权在 Java 侧）
+# 对齐 MODEL_SWITCH.md「只改 .env」原则：改动同时写回 .env，重启后仍生效
+# ==========================================================
+
+from fastapi import HTTPException  # noqa: E402
+
+from assistant.config import CONFIG  # noqa: E402
+
+import re  # noqa: E402
+
+_ENV_FILE = os.getenv("ENV_FILE", ".env")
+
+
+def _update_env_file(updates: dict[str, str]) -> None:
+    """按 KEY=VALUE 更新 .env（存在则替换，不存在则追加），并同步 os.environ"""
+    lines: list[str] = []
+    if os.path.exists(_ENV_FILE):
+        with open(_ENV_FILE, encoding="utf-8") as f:
+            lines = f.read().splitlines()
+    for key, value in updates.items():
+        os.environ[key] = value
+        pattern = re.compile(rf"^\s*{re.escape(key)}\s*=.*$")
+        for i, line in enumerate(lines):
+            if pattern.match(line):
+                lines[i] = f"{key}={value}"
+                break
+        else:
+            lines.append(f"{key}={value}")
+    with open(_ENV_FILE, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+
+
+def _models_dir() -> str:
+    ckpt = os.getenv("TEXT_CHECKPOINT_PATH", "").strip()
+    return os.path.dirname(ckpt) if ckpt else "models/text"
+
+
+def _list_checkpoints() -> list[str]:
+    d = _models_dir()
+    if not os.path.isdir(d):
+        return []
+    return sorted(f for f in os.listdir(d) if f.endswith(".pth"))
+
+
+class ModelSwitchRequest(BaseModel):
+    """检测模型切换：checkpoint 支持绝对路径或相对 models 目录的文件名"""
+    checkpoint: str
+    baseModelPath: str | None = None   # legacy checkpoint 必填；新模型传空串清掉
+    modelVersion: str | None = None
+
+
+class AssistantConfigRequest(BaseModel):
+    """助手 LLM 配置：字段 None = 不改；apiKey 传空串 = 清空"""
+    baseUrl: str | None = None
+    model: str | None = None
+    apiKey: str | None = None
+    maxTokens: int | None = None
+
+
+@app.get("/api/v1/admin/config")
+def admin_config() -> dict[str, Any]:
+    return {
+        "text": {
+            **health()["text"],
+            "modelsDir": _models_dir(),
+            "checkpoints": _list_checkpoints(),
+        },
+        "assistant": {
+            "enabled": CONFIG.enabled,
+            "provider": CONFIG.provider_name,
+            **CONFIG.public_dict(),
+        },
+    }
+
+
+@app.post("/api/v1/admin/model/switch")
+def admin_model_switch(req: ModelSwitchRequest) -> dict[str, Any]:
+    path = req.checkpoint if os.path.isabs(req.checkpoint) else os.path.join(_models_dir(), req.checkpoint)
+    if not os.path.exists(path):
+        raise HTTPException(400, f"checkpoint 不存在：{path}")
+    updates = {"TEXT_CHECKPOINT_PATH": path.replace("\\", "/")}
+    if req.baseModelPath is not None:
+        updates["TEXT_BASE_MODEL_PATH"] = req.baseModelPath.replace("\\", "/")
+    if req.modelVersion:
+        updates["TEXT_MODEL_VERSION"] = req.modelVersion
+    _update_env_file(updates)
+    _bootstrap_text_detector()   # 同步重载；GPU 加载数秒到十几秒
+    return {"text": {**health()["text"], "modelsDir": _models_dir(), "checkpoints": _list_checkpoints()}}
+
+
+@app.post("/api/v1/admin/assistant/config")
+def admin_assistant_config(req: AssistantConfigRequest) -> dict[str, Any]:
+    updates: dict[str, str] = {}
+    if req.baseUrl is not None:
+        updates["ASSISTANT_LLM_BASE_URL"] = req.baseUrl
+        CONFIG.llm_base_url = req.baseUrl
+    if req.model is not None:
+        updates["ASSISTANT_LLM_MODEL"] = req.model
+        CONFIG.llm_model = req.model
+    if req.apiKey is not None:
+        updates["ASSISTANT_LLM_API_KEY"] = req.apiKey
+        CONFIG.llm_api_key = req.apiKey or None
+    if req.maxTokens is not None and req.maxTokens > 0:
+        updates["ASSISTANT_LLM_MAX_TOKENS"] = str(req.maxTokens)
+        CONFIG.llm_max_tokens = req.maxTokens
+    if updates:
+        _update_env_file(updates)
+    return {"assistant": {"enabled": CONFIG.enabled, "provider": CONFIG.provider_name, **CONFIG.public_dict()}}
