@@ -44,12 +44,12 @@ function reset() { Object.assign(filter, { status: '', scenario: '', keyword: ''
 function quickStatus(s: string) { filter.status = filter.status === s ? '' : s; search() }
 function onSortChange({ prop, order }: { prop: string; order: 'ascending' | 'descending' | null }) { filter.sortBy = order ? prop : ''; filter.sortOrder = order === 'ascending' ? 'asc' : 'desc'; load() }
 
-function aiRateColor(rate: number | null, threshold: number) { if (rate == null) return 'var(--label-tertiary)'; return rate <= threshold ? '#1B7F3E' : rate <= threshold * 1.5 ? '#B26200' : '#C62A22' }
+function aiRateColor(rate: number | null, threshold: number) { if (rate == null) return 'var(--label-tertiary)'; return rate <= threshold ? '#15803D' : rate <= threshold * 1.5 ? '#B45309' : 'var(--danger-fg)' }
 const fmt = (s?: string | null) => (s ? String(s).replace('T', ' ').slice(0, 16) : '—')
 const fmtSize = (n?: number | null) => (n == null ? '—' : n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : (n / 1024).toFixed(0) + ' KB')
 
 /* ---------- 行内操作 ---------- */
-async function onRetry(t: AdminTask) { await retryTask(t.id); ElMessage.success('已重新提交'); refreshAll() }
+async function onRetry(t: AdminTask) { await retryTask(t.id); ElMessage.success('已重新排队检测'); refreshAll() }
 async function onCancel(t: AdminTask) {
   try { await ElMessageBox.confirm(`取消任务 #${t.id}「${t.paperTitle}」？`, '取消任务', { type: 'warning' }) } catch { return }
   await cancelTask(t.id); ElMessage.success('已取消'); refreshAll()
@@ -203,11 +203,11 @@ onMounted(() => {
 .kpi-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 14px; }
 .kpi { cursor: pointer; border: 1px solid transparent; transition: border-color .15s, transform .15s; } .kpi:hover:not(.static) { transform: translateY(-1px); } .kpi.on { border-color: var(--system-blue); } .kpi.static { cursor: default; }
 .kpi-label { font-size: 12px; color: var(--label-secondary); } .kpi-value { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; margin-top: 4px; font-variant-numeric: tabular-nums; }
-.kpi-value.ok { color: #1B7F3E; } .kpi-value.bad { color: #C62A22; } .kpi-foot { font-size: 11px; color: var(--label-tertiary); margin-top: 6px; min-height: 14px; }
+.kpi-value.ok { color: var(--success-fg); } .kpi-value.bad { color: var(--danger-fg); } .kpi-foot { font-size: 11px; color: var(--label-tertiary); margin-top: 6px; min-height: 14px; }
 .filter-card { margin-bottom: 12px; } .filter-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.batch-bar { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 8px 12px; border-radius: 10px; background: rgba(0, 122, 255, 0.07); font-size: 13px; }
+.batch-bar { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 8px 12px; border-radius: 10px; background: rgba(20, 184, 166, 0.07); font-size: 13px; }
 .fade-enter-active, .fade-leave-active { transition: opacity .15s; } .fade-enter-from, .fade-leave-to { opacity: 0; }
-.table-card :deep(.el-table) { --el-table-header-bg-color: #FAFBFC; }
+.table-card :deep(.el-table) { --el-table-header-bg-color: var(--secondary-system-background); }
 .task-cell { cursor: pointer; } .task-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .task-cell:hover .task-title { color: var(--system-blue); }
 .task-sub { font-size: 12px; color: var(--label-secondary); } .cell-sub { font-size: 11px; color: var(--label-tertiary); }
 .link { color: var(--system-blue); cursor: pointer; } .muted { color: var(--label-secondary); } .small { font-size: 12px; }
