@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ZyIcon from '@/components/ZyIcon.vue'
 import { ref, computed, nextTick, watch, onBeforeUnmount } from 'vue'
 import { ElMessage } from 'element-plus'
 import AssistantAnalysisCard from '@/components/AssistantAnalysisCard.vue'
@@ -24,13 +25,13 @@ interface Msg {
 
 /** 工具调用图标（方案 §3.2） */
 const TOOL_ICON: Record<string, string> = {
-  get_task_detail: '📊', list_my_tasks: '🗂', explain_paragraph: '🔍', detect_text: '🧪',
-  get_threshold_policy: '📏', search_knowledge: '📚', create_appeal: '✍️',
+  get_task_detail: 'chart', list_my_tasks: 'file-text', explain_paragraph: 'search', detect_text: 'flask',
+  get_threshold_policy: 'ruler', search_knowledge: 'book', create_appeal: 'flag', compare_revision: 'rotate',
 }
 /** 工具完成后的短标签：「已读取报告」而不是「正在读取检测报告…」 */
 const TOOL_DONE: Record<string, string> = {
   get_task_detail: '已读取报告', list_my_tasks: '已查看记录', explain_paragraph: '已分析段落', detect_text: '已检测',
-  get_threshold_policy: '已查阈值', search_knowledge: '已查资料', create_appeal: '已提交申诉',
+  get_threshold_policy: '已查阈值', search_knowledge: '已查资料', create_appeal: '已发起申诉',
 }
 
 const props = defineProps<{
@@ -400,9 +401,9 @@ function formatTime(t: number | string): string {
           <div class="ad-name">小白</div>
         </div>
         <div class="ad-head-actions">
-          <el-tooltip content="历史对话" placement="bottom"><el-button link class="ad-icon-btn" @click="openHistory">🕘</el-button></el-tooltip>
-          <el-tooltip content="新对话" placement="bottom"><el-button link class="ad-icon-btn" @click="onNewChat">✚</el-button></el-tooltip>
-          <el-tooltip content="关闭" placement="bottom"><el-button link class="ad-icon-btn" @click="visible = false">✕</el-button></el-tooltip>
+          <el-tooltip content="历史对话" placement="bottom"><el-button link class="ad-icon-btn" @click="openHistory"><ZyIcon name="history" :size="18" /></el-button></el-tooltip>
+          <el-tooltip content="新对话" placement="bottom"><el-button link class="ad-icon-btn" @click="onNewChat"><ZyIcon name="plus" :size="18" /></el-button></el-tooltip>
+          <el-tooltip content="关闭" placement="bottom"><el-button link class="ad-icon-btn" @click="visible = false"><ZyIcon name="close" :size="18" /></el-button></el-tooltip>
         </div>
       </div>
 
@@ -425,7 +426,7 @@ function formatTime(t: number | string): string {
         <!-- ③ 上下文卡：绑定报告时才出现 -->
         <div v-if="activeTask" class="ad-ctx">
           <div class="ad-ctx-head">
-            <span class="ad-ctx-icon">📄</span>
+            <ZyIcon class="ad-ctx-icon" name="file-text" :size="15" />
             <span class="ad-ctx-title" :title="activeTask.paperTitle">《{{ activeTask.paperTitle }}》</span>
             <span v-if="taskBadge" class="ad-ctx-badge" :class="taskBadge.cls">{{ taskBadge.cls === 'ok' ? '✓ ' : '' }}{{ taskBadge.text }}</span>
           </div>
@@ -458,7 +459,7 @@ function formatTime(t: number | string): string {
               <!-- 工具调用：图标 + 状态（进行中 spinner / 完成 ✓ / 失败 ✕） -->
               <div v-if="m.role === 'assistant' && m.tools?.length" class="ad-tools">
                 <span v-for="(t, k) in m.tools" :key="k" class="ad-tool" :class="t.status">
-                  <span class="ad-tool-icon">{{ TOOL_ICON[t.name] || '🔧' }}</span>
+                  <ZyIcon class="ad-tool-icon" :name="TOOL_ICON[t.name] || 'tool'" :size="13" />
                   <span class="ad-tool-text">{{ t.status === 'done' ? (TOOL_DONE[t.name] || t.label) : t.status === 'failed' ? t.label + '失败' : t.label }}</span>
                   <i v-if="t.status === 'running'" class="ad-spin" />
                   <span v-else-if="t.status === 'done'" class="ad-tool-ok">✓</span>
@@ -475,9 +476,9 @@ function formatTime(t: number | string): string {
               </div>
               <!-- 复制 + 点赞点踩：只在助手已完成的回复上 -->
               <div v-if="m.role === 'assistant' && m.text && !m.streaming" class="ad-actions">
-                <button class="ad-act" title="复制" @click="copyAnswer(m)">⧉ 复制</button>
-                <button class="ad-act" :class="{ on: m.rating === 'up' }" :disabled="!!m.rating" title="有帮助" @click="rateAnswer(i, 'up')">👍</button>
-                <button class="ad-act" :class="{ on: m.rating === 'down' }" :disabled="!!m.rating" title="没帮助" @click="rateAnswer(i, 'down')">👎</button>
+                <button class="ad-act" title="复制" @click="copyAnswer(m)"><ZyIcon name="clipboard" :size="13" />复制</button>
+                <button class="ad-act" :class="{ on: m.rating === 'up' }" :disabled="!!m.rating" title="有帮助" @click="rateAnswer(i, 'up')"><ZyIcon name="thumb-up" :size="14" /></button>
+                <button class="ad-act" :class="{ on: m.rating === 'down' }" :disabled="!!m.rating" title="没帮助" @click="rateAnswer(i, 'down')"><ZyIcon name="thumb-down" :size="14" /></button>
               </div>
             </div>
           </div>
@@ -533,7 +534,7 @@ function formatTime(t: number | string): string {
 }
 .ad-name { font-weight: 600; font-size: 15px; }
 .ad-head-actions { display: flex; gap: 2px; }
-.ad-icon-btn { font-size: 15px; width: 32px; height: 32px; padding: 0; color: var(--el-text-color-regular); }
+.ad-icon-btn { width: 32px; height: 32px; padding: 0; color: var(--el-text-color-regular); border-radius: 50%; &:hover { background: var(--bg-deep); } }
 
 /* ② 报告选择 */
 .ad-select-row { padding: 10px 16px 0; }
@@ -547,7 +548,7 @@ function formatTime(t: number | string): string {
   background: var(--el-color-primary-light-9); border: 1px solid var(--el-color-primary-light-8);
 }
 .ad-ctx-head { display: flex; align-items: center; gap: 6px; }
-.ad-ctx-icon { flex: none; }
+.ad-ctx-icon { flex: none; color: var(--ai-700); }
 .ad-ctx-title { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ad-ctx-badge {
   flex: none; font-size: 11px; padding: 1px 8px; border-radius: 999px; font-weight: 600;
@@ -573,7 +574,7 @@ function formatTime(t: number | string): string {
 .ad-welcome { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 12px; }
 .ad-welcome-text {
   flex: 1; background: #fff; border-radius: 14px; border-top-left-radius: 4px;
-  padding: 10px 14px; font-size: 14px; line-height: 1.55; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  padding: 10px 14px; font-size: 14px; line-height: 1.55; box-shadow: 0 1px 4px rgba(23, 24, 28, 0.04);
 }
 .ad-quick { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px 34px; }
 
@@ -581,7 +582,7 @@ function formatTime(t: number | string): string {
 .ad-bubble {
   max-width: 88%; padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.55; position: relative;
   &.user { background: var(--el-color-primary); color: #fff; border-bottom-right-radius: 4px; }
-  &.assistant { background: #fff; border-bottom-left-radius: 4px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04); }
+  &.assistant { background: #fff; border-bottom-left-radius: 4px; box-shadow: 0 1px 4px rgba(23, 24, 28, 0.04); }
 }
 .ad-text { white-space: pre-wrap; word-break: break-word; }
 .ad-text.md { white-space: normal; }
@@ -622,6 +623,7 @@ function formatTime(t: number | string): string {
 .ad-bubble:hover .ad-actions { opacity: 1; }
 .ad-act {
   border: none; background: transparent; cursor: pointer; font-size: 12px; padding: 2px 6px; border-radius: 6px; color: var(--el-text-color-secondary);
+  display: inline-flex; align-items: center; gap: 4px;
   &:hover { background: var(--el-fill-color); }
   &.on { color: var(--el-color-primary); }
   &:disabled { cursor: default; }
@@ -634,7 +636,7 @@ function formatTime(t: number | string): string {
 .ad-history-item {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   background: #fff; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 4px rgba(23, 24, 28, 0.04);
   &:hover { background: var(--el-fill-color); }
 }
 .ad-history-item-main { flex: 1; min-width: 0; }

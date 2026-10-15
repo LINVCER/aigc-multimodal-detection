@@ -24,9 +24,9 @@ withDefaults(defineProps<{ rows?: number }>(), { rows: 3 })
   height: 14px;
   border-radius: 7px;
   background: linear-gradient(90deg,
-    rgba(60, 60, 67, 0.06) 0%,
-    rgba(60, 60, 67, 0.14) 50%,
-    rgba(60, 60, 67, 0.06) 100%);
+    rgba(23, 24, 28, 0.06) 0%,
+    rgba(23, 24, 28, 0.14) 50%,
+    rgba(23, 24, 28, 0.06) 100%);
   background-size: 200% 100%;
   animation: shimmer 1.6s var(--ease-standard) infinite;
 }
