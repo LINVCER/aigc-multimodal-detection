@@ -13,7 +13,8 @@ from adapters.base import GenericAdapter, SiteAdapter
 
 # 具体学校适配器（页面结构特殊、列表要翻页、正文在某个固定容器里时才需要）
 _REGISTRY: list[SiteAdapter] = [
-    # 例：from adapters.pku import PkuAdapter; _REGISTRY.append(PkuAdapter())
+    # 一校一适配器：确认网站 → 复制 adapters/example_school.py 改名 → 在此 import 并 append
+    # 例：from adapters.nwpu import NwpuAdapter; NwpuAdapter(),
 ]
 _GENERIC = GenericAdapter()
 

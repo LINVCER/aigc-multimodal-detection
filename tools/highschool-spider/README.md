@@ -90,3 +90,15 @@ python tools/highschool-spider/spider.py --seeds my_seeds.csv --out out --deep -
 
 部分高校（尤其顶尖院校）只在内部红头文件里给 AIGC/查重阈值，公开页查不到数字。
 这类学校靠用户上报 + 通用口径兜底（见 `docs/design/202610-school-redline-plan.md` §3、§5），爬虫抓不到属正常。
+
+## 新增一所学校的操作流程（每校一个适配器）
+
+爬取不是对所有学校用一套盲爬，而是**一校一确认、一校一脚本**：
+
+1. **人工确认**：打开该校研究生院/教务处网站，看清楚——学位论文检测通知在哪个栏目、阈值是写在正文还是附件红头文件、用什么检测平台、适用哪些学位；
+2. **写适配器**：复制 `adapters/example_school.py` 为 `adapters/<school>.py`（如 `nwpu.py`），改 `name / match / seed_urls / should_follow`，正文结构特殊时再覆盖 `extract`；入口 `seed_urls` 直接给确认过的通知列表页，比从首页逛高效；
+3. **注册**：在 `adapters/__init__.py` 的 `_REGISTRY` import 并 append；
+4. **验证后提交爬取**：先用该校一行的 seeds 跑 `spider.py --deep` 看候选对不对，OK 再提交到爬取器（批量离线，或后台按需触发）。
+
+没写专属适配器的学校自动走 `generic`（关键词盲爬），作兜底；写了适配器的学校走各自精确策略。
+后台「爬取种子」表的 `adapter` 字段记录每所学校用哪个适配器，与此一一对应。
