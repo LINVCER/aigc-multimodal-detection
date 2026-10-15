@@ -103,7 +103,23 @@ python tools/highschool-spider/spider.py --seeds my_seeds.csv --out out --deep -
 没写专属适配器的学校自动走 `generic`（关键词盲爬），作兜底；写了适配器的学校走各自精确策略。
 后台「爬取种子」表的 `adapter` 字段记录每所学校用哪个适配器，与此一一对应。
 
-## 常驻服务 `service/`（后台按需触发，对齐 spider-v2）
+## 定时批量刷新 `schedule.py`（推荐，不常驻）
+
+学校红线几乎不变，不需要一直在线。交系统计划任务每 2~5 天跑一次即可：
+
+```bash
+# cron：每 3 天凌晨 3 点刷新
+0 3 */3 * * cd /app/tools/highschool-spider && python schedule.py --seeds seeds.csv --out out --min-interval-days 3
+# Windows 计划任务：触发器每 3 天，操作 python schedule.py --seeds seeds.csv --out out --min-interval-days 3
+```
+
+`schedule.py` 读 seeds.csv、跳过 `state.json` 里近 N 天已爬的学校、逐校深挖、候选去重写 `candidates.{csv,sql,jsonl}`。
+候选仍 `pending`、带原文地址，交后台人工审核。`--dry-run` 看计划，`--selftest` 验间隔逻辑。
+
+## 可选：常驻服务 `service/`（仅后台「立即爬取」临时按需用）
+
+> 默认走上面的定时批量；常驻服务仅当后台要「点一下立即爬一所」时临时拉起，不必 7×24 在线。
+
 
 爬虫作为常驻服务跑，Java 后台按需投任务、拉候选人工审核：
 
