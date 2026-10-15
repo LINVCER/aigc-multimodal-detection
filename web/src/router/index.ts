@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 
 const routes: RouteRecordRaw[] = [
@@ -55,6 +56,11 @@ router.beforeEach((to) => {
   if (to.meta.requiresOpsAdmin) {
     const role = auth.user?.role || ''
     if (role && role !== 'OPS_ADMIN' && role !== 'ADMIN') {
+      // admin 独立实例下不能弹去 Dashboard（会被实例守卫弹回 → 无限循环），回登录页提示
+      if (ADMIN_ONLY) {
+        ElMessage.warning('这个账号进不了运营后台，请用管理员账号')
+        return { name: 'Login', query: { redirect: to.fullPath } }
+      }
       return { name: 'Dashboard' }
     }
   }
