@@ -121,9 +121,19 @@ class _MysqlStore:
         conn = self._conn()
         try:
             with conn.cursor() as cur:
-                cur.execute("SELECT messages_json FROM assistant_conversation WHERE conversation_id=%s", (cid,))
+                # messages_json 列契约是消息数组 [{role,content,ts,...}]（表设计注释与 Java 读取一致）；
+                # 兼容历史整包对象格式：dict 时直接用，数组时用表列组装
+                cur.execute("SELECT user_id, task_id, title, messages_json, UNIX_TIMESTAMP(updated_at) "
+                            "FROM assistant_conversation WHERE conversation_id=%s", (cid,))
                 row = cur.fetchone()
-            return json.loads(row[0]) if row else None
+                if not row:
+                    return None
+                data = json.loads(row[3])
+                if isinstance(data, dict):
+                    data.setdefault("conversationId", cid)
+                    return data
+                return {"conversationId": cid, "userId": row[0], "taskId": row[1],
+                        "title": row[2], "messages": data, "updatedAt": row[4]}
         finally:
             conn.close()
 
@@ -140,7 +150,7 @@ class _MysqlStore:
                     "ON DUPLICATE KEY UPDATE user_id=VALUES(user_id), task_id=VALUES(task_id), "
                     "title=VALUES(title), messages_json=VALUES(messages_json)",
                     (conv["conversationId"], conv.get("userId"), conv.get("taskId"),
-                     conv.get("title") or "", json.dumps(conv, ensure_ascii=False)),
+                     conv.get("title") or "", json.dumps(conv.get("messages") or [], ensure_ascii=False)),
                 )
         finally:
             conn.close()
@@ -153,13 +163,27 @@ class _MysqlStore:
         try:
             with conn.cursor() as cur:
                 cur.execute(
-                    "SELECT messages_json FROM assistant_conversation "
+                    "SELECT conversation_id, user_id, task_id, title, messages_json, UNIX_TIMESTAMP(updated_at) "
+                    "FROM assistant_conversation "
                     "WHERE user_id=%s AND updated_at >= NOW() - INTERVAL %s DAY "
                     "ORDER BY updated_at DESC LIMIT %s",
                     (uid, CONFIG.session_ttl_days, limit),
                 )
                 rows = cur.fetchall()
-            return [json.loads(r[0]) for r in rows]
+                convs: list[dict[str, Any]] = []
+                for r in rows:
+                    data = json.loads(r[4])
+                    if isinstance(data, dict):   # 兼容历史整包格式
+                        data.setdefault("conversationId", r[0])
+                        data.setdefault("userId", r[1])
+                        data.setdefault("taskId", r[2])
+                        data.setdefault("title", r[3])
+                        data.setdefault("updatedAt", r[5])
+                        convs.append(data)
+                    else:
+                        convs.append({"conversationId": r[0], "userId": r[1], "taskId": r[2],
+                                      "title": r[3], "messages": data, "updatedAt": r[5]})
+                return convs
         finally:
             conn.close()
 
