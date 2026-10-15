@@ -294,3 +294,26 @@ C 端 / 公开（§6 已列的基础上补全）：
 
 `edu_school_crawl_seed.adapter` 字段记录每所学校用哪个适配器；没写专属适配器的学校走 `generic` 兜底。
 后台「爬取种子」tab 维护 entry_url 与 adapter，「立即爬取」即把该校提交到爬取器。
+
+---
+
+# 18. 决策已定（2026-10-15）
+
+| 决策 | 定稿 | 影响 |
+|---|---|---|
+| 学校名单来源 | **先手录 50 所**（全量导入延后） | §5 首批 50 所人工录入；`edu_school` 不做 3000 全量，搜不到走上报 |
+| 按需爬取候选 | **一律人工审核，必带原文地址** | §11.2 去掉「高置信直通发布」分支；候选只产 `pending`，发布全在后台人工，`source_url` 强制非空 |
+| 爬虫作业载体 | **直接上常驻服务** | §11.3 不用 subprocess；highschool-spider 以 FastAPI 服务常驻（见 §19），后台按需投任务 |
+
+§11.2 的闭环据此简化：用户填学校未命中规则 → 后台投爬取任务 → 服务产候选（pending）→ 后台人工核对 source_url 发布 → 规则生效并转知识库 → 通知用户。中间**不自动发布**，用户侧先给通用口径兜底。
+
+# 19. 常驻爬虫服务（已实现并自测）
+
+`tools/highschool-spider/service/`（FastAPI，对齐 spider-v2 的 app + worker + 队列）：
+
+- `app.py`：`POST /api/v1/crawl` 投任务、`GET /api/v1/crawl/{id}` 查状态、`GET /api/v1/candidates?status=pending` 拉候选、`GET /health`；lifespan 内起后台 worker 线程。
+- `worker.py`：领 queued 任务 → 跑 highschool-spider（共享 Politeness 限速）→ 候选落库。
+- `store.py`：SQLite 持久化 job 与候选；候选强制 `source_url`、只写 `pending`；重启把 running 任务回 queued 重跑。
+- 离线冒烟 `service/smoke_test.py` 通过：selftest 任务 → job done → 6 候选均 pending 且带 source_url。
+
+后台集成契约：Java 侧 `PUT /me/school` 未命中规则时 `POST /api/v1/crawl` 投任务（带 school_id / entry_url / adapter，entry_url 取 `edu_school_crawl_seed`）；定时或回调拉 `GET /api/v1/candidates` 入 MySQL 审核队列；全局限频（每校 7 天一次）在后台投递侧控制。

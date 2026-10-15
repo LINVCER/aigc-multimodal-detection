@@ -102,3 +102,25 @@ python tools/highschool-spider/spider.py --seeds my_seeds.csv --out out --deep -
 
 没写专属适配器的学校自动走 `generic`（关键词盲爬），作兜底；写了适配器的学校走各自精确策略。
 后台「爬取种子」表的 `adapter` 字段记录每所学校用哪个适配器，与此一一对应。
+
+## 常驻服务 `service/`（后台按需触发，对齐 spider-v2）
+
+爬虫作为常驻服务跑，Java 后台按需投任务、拉候选人工审核：
+
+```bash
+cd tools/highschool-spider
+uvicorn service.app:app --host 0.0.0.0 --port 8200
+# 可选独立 worker 进程：python -m service.worker --db out/service.db
+```
+
+| 接口 | 用途 |
+|---|---|
+| `POST /api/v1/crawl` | 投任务 `{entry_url, school_id?, school_name?, adapter?, deep?}` → `{jobId}` |
+| `GET /api/v1/crawl/{id}` | 任务状态（queued/running/done/failed、candidate_count、detail） |
+| `GET /api/v1/candidates?status=pending` | 拉候选供后台人工审核，每条带 `source_url` 原文地址 |
+| `GET /health` | 健康检查 |
+
+两条铁律（本轮决策）：**候选一律 `pending` 人工审核**，服务不发布规则；**每条候选必带 `source_url`**，无地址拒收。
+任务与候选持久化在 SQLite（重启不丢，running 任务回 queued 重跑）。后台拉 pending 候选、核对 source_url 后入 MySQL `edu_school_rule_candidate`，人工合并发布为 `edu_school_rule`。
+
+离线冒烟：`python -m service.smoke_test`（提交 `selftest:` 任务，不联网）。
