@@ -1,12 +1,27 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 import FeedbackDialog from '@/components/FeedbackDialog.vue'
+import SchoolPicker from '@/components/SchoolPicker.vue'
+import { getMyRule, type ResolvedRule } from '@/api/school'
 
 const auth = useAuthStore()
 const router = useRouter()
+
+const schoolPickerOpen = ref(false)
+const myRule = ref<ResolvedRule | null>(null)
+const DEG_CN: Record<string, string> = { bachelor: '本科', master: '硕士', phd: '博士' }
+const schoolText = computed(() => {
+  const r = myRule.value
+  if (!r || !r.schoolName) return '未设置'
+  return `${r.schoolName} · ${DEG_CN[r.degreeType || ''] || ''}`
+})
+async function loadMyRule() {
+  try { myRule.value = await getMyRule() } catch { /* 未登录等，忽略 */ }
+}
+onMounted(loadMyRule)
 
 const feedbackOpen = ref(false)
 const pwdOpen = ref(false)
@@ -77,6 +92,11 @@ async function logout() {
             <span class="row-value">{{ auth.user?.username || '—' }}</span>
           </div>
           <div class="separator"></div>
+          <div class="row clickable" @click="schoolPickerOpen = true">
+            <span class="row-title">我的学校</span>
+            <span class="row-value">{{ schoolText }} ›</span>
+          </div>
+          <div class="separator"></div>
           <div class="row">
             <span class="row-title">额度余额</span>
             <span class="row-value muted">接入后端后展示</span>
@@ -127,6 +147,7 @@ async function logout() {
     </el-main>
 
     <FeedbackDialog v-model="feedbackOpen" default-category="suggestion" />
+    <SchoolPicker v-model="schoolPickerOpen" @saved="loadMyRule" />
 
     <el-dialog v-model="pwdOpen" title="修改密码" width="420" align-center destroy-on-close>
       <el-form label-position="top" @submit.prevent="submitPassword">

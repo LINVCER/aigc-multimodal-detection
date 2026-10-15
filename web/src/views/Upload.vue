@@ -7,10 +7,20 @@ import type { UploadFile, UploadRawFile } from 'element-plus'
 import { submitPaper, detectTextDirect, listTasks, type DirectDetectResp } from '@/api/detect'
 import type { DetectTask } from '@/api/types'
 import { useAuthStore } from '@/stores/auth'
+import SchoolPicker from '@/components/SchoolPicker.vue'
+import { getMyRule, type ResolvedRule } from '@/api/school'
 
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
+
+const schoolPickerOpen = ref(false)
+const myRule = ref<ResolvedRule | null>(null)
+const DEG_CN2: Record<string, string> = { bachelor: '本科', master: '硕士', phd: '博士' }
+async function loadMyRule() {
+  try { myRule.value = await getMyRule() } catch { /* 未登录忽略 */ }
+}
+onMounted(loadMyRule)
 
 const SCENARIOS = [
   { key: 'academic_bachelor', label: '学术·本科', threshold: 20, desc: '毕业论文自查', tint: '#0F766E' },
@@ -131,6 +141,23 @@ async function pasteFromClipboard() {
         <div class="grid">
           <!-- ===================== 主列 ===================== -->
           <div class="col-main">
+            <!-- 学校红线卡：设了学校就按学校的算 -->
+            <div class="school-card" @click="schoolPickerOpen = true">
+              <ZyIcon name="graduation" :size="18" />
+              <template v-if="myRule && myRule.resolved">
+                <span class="sc-main">按 <b>{{ myRule.schoolName }} · {{ DEG_CN2[myRule.degreeType || ''] || '' }}</b> 的红线算</span>
+                <span class="sc-sub">AI 率 ≤ {{ myRule.aiRateLimit }}%<template v-if="myRule.platform"> · {{ myRule.platform }}</template></span>
+              </template>
+              <template v-else-if="myRule && myRule.schoolName">
+                <span class="sc-main">{{ myRule.schoolName }} 的红线还没收录</span>
+                <span class="sc-sub">先按通用标准算，收录后通知你</span>
+              </template>
+              <template v-else>
+                <span class="sc-main">选了学校，就按你学校的标准算</span>
+                <span class="sc-sub">不选也行，用通用红线</span>
+              </template>
+              <span class="sc-go">{{ myRule && myRule.schoolName ? '换' : '选学校' }} ›</span>
+            </div>
             <template v-if="mode === 'file'">
               <!-- 场景 -->
               <div class="group-head">
@@ -269,11 +296,18 @@ async function pasteFromClipboard() {
         </div>
       </div>
     </el-main>
+    <SchoolPicker v-model="schoolPickerOpen" @saved="loadMyRule" />
   </el-container>
 </template>
 
 <style scoped>
 .page { min-height: 100vh; }
+.school-card { display: flex; align-items: center; gap: 10px; padding: 12px 14px; margin-bottom: 14px; border-radius: 14px; background: var(--ai-100); cursor: pointer; }
+.school-card .zy-icon { color: var(--ai-700); flex: none; }
+.school-card .sc-main { font-size: 14px; color: var(--label); }
+.school-card .sc-main b { color: var(--ai-700); }
+.school-card .sc-sub { font-size: 12px; color: var(--label-secondary); }
+.school-card .sc-go { margin-left: auto; color: var(--ai-700); font-weight: 600; font-size: 13px; flex: none; }
 .header {
   background: rgba(255, 255, 255, 0.72); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px);
   border-bottom: 1px solid var(--label-quaternary); padding: 0; position: sticky; top: 0; z-index: 10;
