@@ -262,6 +262,17 @@ uniapp 与 web 各有一个对话入口。零新服务、零新部署单元，LL
 - 口语文案：首页主 CTA「赶 DDL 前先自查一遍」、空态「还没有记录，交一篇试试？」、上传分段「先贴一段看看」
 - 未做：六枚小白表情包 PNG（打哈欠 / 比心 / 捂嘴 / 握拳 / 摊手 / 发光）需设计资产，`EmptyState.mood` 已留位，现用 xiaobai.png / gif 顶替；硬编码 `#F2F2F7` 的页内样式按页陆续清理
 
+### Web 端主题：对齐「知源小白 AI 助手风」（style-prompt）
+
+- `tokens.scss` 重写：主色智能青 `--ai-700 #0F766E`（`--ai-500` 只做渐变 / 装饰），暖白底 `#FAF9F6` + `--bg-deep`，墨色文字 `#17181C`，语义色 success / warning / danger 换新值；旧 `--system-*` 变量名保留并指向新色，页面零改动
+- Element Plus 派生色（primary light-3/5/7/8/9、dark-2，success / warning / danger 同）逐个覆盖；组件尺寸 36 / 46 / 28，圆角 12，卡片 16 + 发丝边，输入底 `--bg-deep` 聚焦青环，Progress / Menu / Dialog 同步
+- 新增 `components/ZyIcon.vue` + `components/icons/sparkline.ts`：SparkLine 星点细线图标 40 枚（内联 SVG，currentColor），与 App 端同源；全站 58 处 emoji 图标替换完毕，仅保留 ✓ ✕ 字形
+- pill 收口：只留首页 / 分享页 / 上传页主 CTA、工作台双 CTA、404、验真、报告页「让小白带我看」与小白抽屉；其余按钮（对话框、表格行、后台）回到 12px
+- 后台侧栏由深色改为白底青选中，待处理徽章用元气橙；溯源 / 场景分类色改为 `--chart-1..5`（青 700 / 青 500 / 蓝 / 暖灰 / 橙），不再出现紫粉靛
+- 登录页 `--si-*` 变量重映射为墨色 + 智能青，版式不动；EmptyState 支持小白形象（`xiaobai` / `mood`）
+- 口语文案：首页「先贴一段看看」「本科 20% / 硕士 15% / 博士 10%，按你学校的红线来」+ 三枚灵感 chips；「问助手」统一为「问小白 / 让小白带我看」；「提交」按钮改「发给我们」，「已重新提交」改「已重新排队检测」
+- 未做：hero 插画与小白表情包等设计资产见 `docs/design/202610-visual-assets-todo.md`；未本地构建，需远端跑 `vue-tsc` 与 Lighthouse
+
 ## 验证状态
 
 - Python：`compileall` 通过；知识库 32 块可加载。未在本机起服务（无 torch / 无 LLM key / 无 numpy，`surface_facts` 与文档内基线未本机跑过，逻辑复用已有 `extract_surface_features` 与 `SurfaceScaler`）
