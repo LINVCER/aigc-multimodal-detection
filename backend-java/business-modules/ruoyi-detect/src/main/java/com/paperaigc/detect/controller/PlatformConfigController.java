@@ -1,6 +1,7 @@
 package com.paperaigc.detect.controller;
 
 import com.paperaigc.detect.service.impl.PlatformConfigClient;
+import cn.dev33.satoken.annotation.SaIgnore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.common.core.domain.R;
@@ -18,6 +19,7 @@ import java.util.Map;
  * <p>检测模型版本切换与助手 LLM API 配置，改动由推理服务写回 .env（对齐 MODEL_SWITCH.md）。</p>
  */
 @Slf4j
+@SaIgnore
 @RestController
 @RequestMapping("/admin/platform")
 @RequiredArgsConstructor
