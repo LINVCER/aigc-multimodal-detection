@@ -1,4 +1,4 @@
-------- # 监控中心配置
+---- # 监控中心配置
 spring.boot.admin.client:
   # 增加客户端开关（dev 本地不跑 ruoyi-monitor-admin，注册失败只刷 WARN，关掉）
   enabled: false
