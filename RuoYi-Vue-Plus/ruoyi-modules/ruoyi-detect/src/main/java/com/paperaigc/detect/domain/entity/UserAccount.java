@@ -33,6 +33,10 @@ public class UserAccount {
     /** USER / ADMIN / OPS_ADMIN */
     private String role;
     private String orgName;
+    /** 所属高校 edu_school.id（V0.3.0.014），用于按校解析红线 */
+    private Long schoolId;
+    /** bachelor / master / phd */
+    private String degreeType;
     /** 1 正常 / 0 停用 */
     private Integer status;
     private LocalDateTime lastLoginAt;

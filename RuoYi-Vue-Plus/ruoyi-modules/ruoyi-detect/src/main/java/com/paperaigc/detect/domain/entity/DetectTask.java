@@ -43,6 +43,10 @@ public class DetectTask {
     private String status;
     private String scenario;
     private Integer threshold;
+    /** 当次生效的 edu_school_rule.id（按校解析命中时，V0.3.0.014） */
+    private Long schoolRuleId;
+    /** 红线来源标签，如「北航·硕士」/「通用标准」 */
+    private String ruleLabel;
     private Double aiRate;
 
     private String filePath;

@@ -28,6 +28,8 @@ public class DetectTaskDetailVO {
     private String status;
     private String scenario;
     private Integer threshold;
+    /** 红线来源标签，如「北航·硕士」/「通用标准」（V0.3.0.014） */
+    private String ruleLabel;
     private Double aiRate;
     private String modelVersion;
     private Integer wordCount;
@@ -72,6 +74,7 @@ public class DetectTaskDetailVO {
                 .status(t.getStatus())
                 .scenario(t.getScenario())
                 .threshold(t.getThreshold())
+                .ruleLabel(t.getRuleLabel())
                 .aiRate(t.getAiRate())
                 .modelVersion(t.getModelVersion())
                 .wordCount(t.getWordCount())
