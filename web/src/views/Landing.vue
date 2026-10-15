@@ -169,7 +169,7 @@ function go(path: string) { router.push(path) }
 .eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; letter-spacing: .6px; color: var(--ai-700); background: var(--ai-100); padding: 5px 12px; border-radius: 99px; }
 h1 { font-size: 46px; line-height: 1.12; letter-spacing: -1.2px; margin: 18px 0 14px; font-weight: 700; }
 .lead { font-size: 18px; line-height: 1.6; color: var(--label-secondary); margin: 0 0 24px; }
-.lead b { color: var(--label); font-weight: 600; }
+.lead b { color: var(--label); font-weight: var(--fw-medium); text-decoration: underline; text-decoration-color: var(--ai-500); text-decoration-thickness: 3px; text-underline-offset: 5px; }
 .cta { display: flex; gap: 12px; flex-wrap: wrap; }
 .trust { margin-top: 18px; font-size: 13px; color: var(--label-secondary); display: flex; align-items: center; gap: 6px; } .trust .zy-icon { color: var(--system-green); }
 .spark-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }

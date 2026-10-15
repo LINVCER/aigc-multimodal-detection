@@ -164,7 +164,8 @@ html, body {
   letter-spacing: 0.2px;
   border-radius: var(--radius-btn);
 }
-.el-button--small { border-radius: 10px; }
+.el-button--small { border-radius: 10px; height: var(--el-component-size-small); }
+.el-button--large { height: var(--el-component-size-large); }
 .el-button:active { transform: scale(0.97); }
 .el-button.is-round, .el-button--large.is-round {
   border-radius: var(--radius-pill) !important;

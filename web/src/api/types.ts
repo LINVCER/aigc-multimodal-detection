@@ -69,6 +69,8 @@ export interface ReportVerify {
 
 export interface TaskDetail extends DetectTask {
   paragraphs: ParagraphResult[]
+  /** 学校红线标签（命中学校规则时带校名，通用口径为「通用标准」或空） */
+  ruleLabel?: string | null
   reportNo?: string | null
   verifyCode?: string | null
   reportFingerprint?: string | null
