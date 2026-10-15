@@ -7,6 +7,7 @@ import { renderMarkdown } from '@/utils/markdown'
 import { chatStream, getQuickPrompts, listConversations, getConversation, deleteConversation, type ChatHandle } from '@/api/assistant'
 import { listTasks, getTaskDetail } from '@/api/detect'
 import { submitFeedback } from '@/api/feedback'
+import { useAuthStore } from '@/stores/auth'
 import type { DetectTask, TaskDetail } from '@/api/types'
 
 interface ToolChip { name: string; label: string; status: 'running' | 'done' | 'failed' }
@@ -43,6 +44,10 @@ const props = defineProps<{
   initialPrompt?: string | null
 }>()
 const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void; (e: 'prompt-consumed'): void }>()
+
+const auth = useAuthStore()
+/** 当前登录用户 id；未登录为 undefined（后端会话落到 anon 桶，不跨设备） */
+const userId = computed(() => (auth.user?.id ? Number(auth.user.id) : undefined))
 
 const visible = computed({
   get: () => props.modelValue,
@@ -215,13 +220,12 @@ function send(text: string) {
   streaming.value = true
   scrollBottom()
 
-  const userIdRaw = localStorage.getItem('user_id')
   handle = chatStream({
     message: text,
     conversationId: conversationId.value || undefined,
     taskId: activeTaskId.value,
     paragraphIdx: pendingParagraph ?? undefined,
-    userId: userIdRaw ? Number(userIdRaw) : undefined,
+    userId: userId.value,
     clientContext: { platform: 'web', page: 'AssistantDrawer' },
   }, {
     onEvent: (event, data) => {
@@ -314,12 +318,11 @@ async function rateAnswer(idx: number, rating: 'up' | 'down') {
   m.rating = rating
   persist()
   try {
-    const userIdRaw = localStorage.getItem('user_id')
     await submitFeedback({
       category: 'suggestion',
       content: `[助手${rating === 'up' ? '点赞' : '点踩'}] 会话 ${conversationId.value || '-'}\n问：${q.slice(0, 300)}\n答：${m.text.slice(0, 600)}`,
       taskId: activeTaskId.value,
-      userId: userIdRaw ? Number(userIdRaw) : undefined,
+      userId: userId.value,
     })
     ElMessage.success(rating === 'up' ? '谢谢，已记录' : '已记录，我们会改进')
   } catch {
@@ -340,8 +343,7 @@ async function openHistory() {
 async function loadHistory() {
   loadingHistory.value = true
   try {
-    const userIdRaw = localStorage.getItem('user_id')
-    historyList.value = await listConversations(userIdRaw ? Number(userIdRaw) : undefined, 30)
+    historyList.value = await listConversations(userId.value, 30)
   } catch {
     historyList.value = []
   } finally {
@@ -399,7 +401,7 @@ function formatTime(t: number | string): string {
     <img class="ad-edge-avatar" src="/xiaobai.gif" alt="" />
   </button>
 
-  <el-drawer v-model="visible" size="480px" :with-header="false" class="assistant-drawer">
+  <el-drawer v-model="visible" size="480px" :with-header="false" class="assistant-drawer" :modal="false" :modal-penetrable="true" :lock-scroll="false" :append-to-body="true">
     <div class="ad">
       <!-- ① 头部：只留身份 + 全局操作 -->
       <div class="ad-head">
