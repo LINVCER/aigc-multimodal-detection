@@ -12,13 +12,14 @@
 
 | 层 | 内容 | 规模 | 来源 / 做法 |
 |---|---|---|---|
-| L0 人类锚点 | 真实论文正文段 | 30K 段（≈3K 篇） | `ingest_thesis.py` 已有；年份 ≤2022-01 截断；按 6 场景分层 本科40/硕士30/博士10/职业10/自媒体5/其他5 |
-| L1 公开底座 | HC3-Chinese / CSL / M4-zh | 现成约 60K | **已内置 `build_dataset.py`**（HF `neuclir/csl` 等直接拉）；CHEAT 只进 test |
-| L2 自建生成 | 论文域 AI 文本 | 100K | 以 L0 + CSL 标题/首段为种子，6~8 家国产 LLM 生成；qwen/deepseek 各留 held-out |
+| L0 人类锚点 | 真实论文正文段 + CSL 中文学术摘要（纯人类） | 30K 段（≈3K 篇）+ CSL | `ingest_thesis.py` 已有；年份 ≤2022-01 截断；按 6 场景分层 本科40/硕士30/博士10/职业10/自媒体5/其他5；CSL 作人类锚点与生成种子 |
+| L1 公开底座 | **HC3-Chinese + CHEAT + M4**（+ MAGE 做溯源） | 约 15 万 | 对齐 `DATASETS.md` 一档；HC3/M4 已内置 `build_dataset.py`；CHEAT 需邮件申请手动放盘、**论文摘要域主推**；MAGE 补溯源跨代 |
+| L2 自建生成 | 论文域 AI 文本（覆盖 2026 模型） | 100K | 以 L0 + CSL 标题/首段为种子，6~8 家国产 LLM 生成；qwen/deepseek 各留 held-out |
 | L3 增强 | 改写 / 润色 / 混写 / 对抗 | 50K | `paraphrase_augment.py` 已有三模式；20% 样本递归 1~3 轮改写 |
 
-- **溯源**：9 家族 = `human` + 8 生成器（gpt/claude/qwen/deepseek/glm/kimi/ernie/other）。human 来自 L0/L1，8 生成器来自 L2，保证每类 ≥3K。
+- **溯源**：9 家族 = `human` + 8 生成器（gpt/claude/qwen/deepseek/glm/kimi/ernie/other）。human 来自 L0/L1，8 生成器来自 L2 + M4/MAGE，保证每类 ≥3K。
 - 增强值用全名：`paraphrase_weak/mid/strong`、`polished`、`mixcase`。
+- **纠正**：原 L1「HC3/CSL/M4」收窄了——CSL 是纯人类、无 AI 标签，归 L0 锚点/种子；论文域主推的 CHEAT 和溯源用的 MAGE 要进 L1（见 §9 数据集取舍）。
 
 ## 3. 构建流程（对应现有脚本）
 
@@ -78,3 +79,23 @@ DVC → MinIO 的数据版本配置一并落地，否则 100K+ 数据不入 git 
 | 二 · 真实论文来源 | 3K 篇从哪来，是 FPR 指标根基 | 无它「真论文 FPR ≤0.05」无法验，优先解决 |
 | 三 · gpt/claude 溯源 | 两家国内调用有障碍 | v1 先降级或标 N/A，溯源头跑通再补 |
 | 四 · 申诉回流 | 只评不训 vs 到量后进训 | v1 维持只评不训 |
+
+## 9. 数据集取舍（为什么不只用 HC3 / CSL / M4）
+
+对齐 `DATASETS.md` 分档。三件套各有用但都不够：
+
+| 数据集 | 域 / 代 | 生成器 | 当什么用 | 短板 |
+|---|---|---|---|---|
+| HC3-Chinese | 问答(金融/医疗/百科)·2023 | 只 ChatGPT | 分类 baseline | 域不对、生成器老、单一家 |
+| CSL | 中文学术摘要 | 纯人类无标签 | 人类锚点 + 生成种子（归 L0） | 不是带标签检测集 |
+| M4-zh | 多域·2023 | 8 家 LLM | 溯源头训练 | 中文子集小、2023 代 |
+| **CHEAT**（补） | 中文**论文摘要** | ChatGPT vs 真人 | **论文域主推**（进 L1） | 需邮件申请 |
+| **MAGE**（补） | 多域 | 27 家 LLM | 溯源跨代泛化（进 L1） | 需邮件申请 |
+
+**两条缺口公开集补不上**，各有对策：
+- **2026 模型（DeepSeek-R1 / Qwen2.5 / GLM-4）与人机混写**：靠 L2 自建生成覆盖，不指望公开集。
+- **对当代模型的泛化验收**：C-ReD / C-HAT-Bench（2026 中文基准）**只做 eval 不入训**。
+
+**效果对比不做先验排名，做数据驱动消融**：先按分档组合首训一次 → `eval.py` 出分套 PASS/FAIL → 哪套评测集最弱就反推补哪个数据集（cross_generator 弱→加生成器家族；polished/mixed 弱→加 CHEAT/混写）。对应 W7 首跑 → W8 回补。
+
+**结论**：训练底座 `HC3 + CHEAT + M4`（+ MAGE 溯源），CSL 作人类锚点/种子，当代模型靠 L2 生成，C-ReD/C-HAT-Bench 只做 eval。
