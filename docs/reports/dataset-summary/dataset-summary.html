@@ -1,0 +1,4555 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AIGC 检测论文数据集汇总报告</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--line:#e3e6ea;--ink:#1c1f23;--ink2:#5b636e;--accent:#c0392b;--accent2:#0f6fc5;--ok:#1a7f4b;--warn:#b8860b;--no:#8a8f98}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.75 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
+a{color:var(--accent2);text-decoration:none}
+a:hover{text-decoration:underline}
+.layout{display:flex;max-width:1500px;margin:0 auto;gap:22px;padding:22px}
+aside{width:290px;flex:0 0 290px;position:sticky;top:22px;max-height:calc(100vh - 44px);overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+aside h3{margin:0 0 10px;font-size:14px;color:var(--ink2);letter-spacing:.05em}
+aside a{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;color:var(--ink);font-size:13px;line-height:1.4}
+aside a:hover{background:#eef2f7;text-decoration:none}
+aside .n{color:var(--ink2);font-size:11px;min-width:20px}
+aside .dot{margin-left:auto;width:8px;height:8px;border-radius:50%;flex:0 0 8px}
+aside .dot.ok{background:var(--ok)}aside .dot.no{background:#c8ccd2}
+main{flex:1;min-width:0}
+header.top{background:linear-gradient(135deg,#1f2937,#37475c);color:#fff;border-radius:14px;padding:26px 28px;margin-bottom:20px}
+header.top h1{margin:0 0 8px;font-size:25px;letter-spacing:.02em}
+header.top p{margin:4px 0;color:#cbd5e1;font-size:13.5px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:18px 0 0}
+.stat{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:12px 14px}
+.stat b{display:block;font-size:24px;line-height:1.2}
+.stat span{font-size:12px;color:#cbd5e1}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:20px}
+.panel h2{margin:0 0 12px;font-size:17px;border-left:4px solid var(--accent);padding-left:10px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+th{background:#eef1f5;font-weight:600;color:#333;position:sticky;top:0}
+tbody tr:nth-child(even){background:#fafbfc}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+.small{font-size:12px;color:var(--ink2)}
+.chip{display:inline-block;background:#eef2f7;border:1px solid #dde3ea;color:#3b4654;border-radius:999px;padding:2px 9px;font-size:12px;margin:0 6px 6px 0}
+.badge{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:600;color:#fff;margin:0 6px 6px 0}
+.badge.ok{background:var(--ok)}.badge.mid{background:var(--warn)}.badge.no{background:var(--no)}
+.paper{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px;margin-bottom:18px;scroll-margin-top:16px}
+.phead{display:flex;gap:14px;align-items:flex-start;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:14px}
+.pnum{font-size:22px;font-weight:700;color:#cfd6de;min-width:52px}
+.paper h2{margin:0 0 8px;font-size:18px;line-height:1.45}
+.md h1{display:none}
+.md h2{font-size:15.5px;margin:20px 0 8px;padding:6px 0 6px 10px;border-left:3px solid var(--accent2);background:#f4f7fb;border-radius:0 6px 6px 0}
+.md h3{font-size:14.5px;margin:16px 0 6px;color:#0f4c81}
+.md ul,.md ol{margin:6px 0 10px;padding-left:22px}
+.md li{margin:3px 0}
+.md blockquote{margin:8px 0;padding:9px 14px;background:#fbf7f2;border-left:3px solid var(--accent);border-radius:0 8px 8px 0;color:#3a3a3a;font-size:13.5px}
+.md blockquote p{margin:0 0 6px}
+.md table{margin:8px 0}
+.md strong{color:#111}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.toolbar button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 14px;font-size:13px;cursor:pointer;color:#3b4654}
+.toolbar button.active{background:#1f2937;color:#fff;border-color:#1f2937}
+.toolbar input{flex:1;min-width:200px;border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-size:13px;outline:none}
+.toolbar input:focus{border-color:var(--accent2)}
+.note{font-size:12.5px;color:var(--ink2);background:#fbf7f2;border:1px dashed #e0d5c5;border-radius:10px;padding:10px 14px;margin-bottom:18px}
+footer{color:var(--ink2);font-size:12px;text-align:center;padding:24px 0 40px}
+@media(max-width:1000px){aside{display:none}.layout{padding:12px}}
+</style></head><body>
+<div class="layout">
+<aside>
+  <h3>论文目录（26 篇）</h3>
+  <a href="#p1"><span class="n">1</span>AIGC 的检测与溯源技术研究<span class="dot no"></span></a><a href="#p2"><span class="n">2</span>AIGC检测工具对医学综述摘要中AI生成内容的鉴别效能<span class="dot ok"></span></a><a href="#p3"><span class="n">3</span>大模型安全对齐中文数据集综述：现状与展望<span class="dot no"></span></a><a href="#p4"><span class="n">4</span>面向中文学术场景的AI生成文本检测系统设计与实践——以ScholarGuard平台为例<span class="dot ok"></span></a><a href="#p5"><span class="n">5</span>基于图增强的大模型生成中文文本黑盒检测<span class="dot ok"></span></a><a href="#p6"><span class="n">6</span>基于多维特征分析的 AI 生成期刊论文内容识别与应对策略研究<span class="dot ok"></span></a><a href="#p7"><span class="n">7</span>AI生成与人类作者撰写论文要素的检测研究<span class="dot ok"></span></a><a href="#p8"><span class="n">8</span>ChatGPT生成中文学术内容分析——以情报学领域为例<span class="dot ok"></span></a><a href="#p9"><span class="n">9</span>人工智能生成中文学术论文文本检测研究<span class="dot ok"></span></a><a href="#p10"><span class="n">10</span>多层级架构AI生成文本检测方法与系统研究<span class="dot ok"></span></a><a href="#p11"><span class="n">11</span>基于深度学习的AI生成中文文本检测方法研究<span class="dot ok"></span></a><a href="#p12"><span class="n">12</span>基于深度学习的AI生成学术文本检测研究<span class="dot ok"></span></a><a href="#p13"><span class="n">13</span>基于特征融合的AI生成文本识别与定位研究<span class="dot ok"></span></a><a href="#p14"><span class="n">14</span>基于特征融合的机器生成文本检测方法研究<span class="dot ok"></span></a><a href="#p15"><span class="n">15</span>基于统一模式提取的AI生成文本检测方法<span class="dot no"></span></a><a href="#p16"><span class="n">16</span>大模型生成文本检测技术研究<span class="dot ok"></span></a><a href="#p17"><span class="n">17</span>大语言模型生成与学者撰写学术内容特征分析与识别<span class="dot ok"></span></a><a href="#p18"><span class="n">18</span>大语言模型生成文本检测与语言隐写技术研究<span class="dot ok"></span></a><a href="#p19"><span class="n">19</span>社交媒体中AI生成文本检测方法研究<span class="dot ok"></span></a><a href="#p20"><span class="n">20</span>融合语言学知识的大模型生成文本检测研究<span class="dot no"></span></a><a href="#p21"><span class="n">21</span>面向专利领域的 AI 生成文本检测方法的研究<span class="dot ok"></span></a><a href="#p22"><span class="n">22</span>面向大模型的生成文本检测研究<span class="dot ok"></span></a><a href="#p23"><span class="n">23</span>面向教育领域的机器生成文本检测方法研究<span class="dot ok"></span></a><a href="#p24"><span class="n">24</span>基于水印注入的人工智能生成文本可检测性增强研究<span class="dot ok"></span></a><a href="#p25"><span class="n">25</span>基于生成式对抗网络与特征融合的机器生成文本检测与溯源研究<span class="dot ok"></span></a><a href="#p26"><span class="n">26</span>基于语义特征的ChatGPT生成文本识别研究<span class="dot no"></span></a>
+</aside>
+<main>
+<header class="top">
+  <h1>AIGC 检测相关论文 · 数据集与创新点汇总</h1>
+  <p>来源目录：D:\桌面\相关论文 ｜ 共 26 篇（期刊论文 9 篇、学位论文 17 篇）</p>
+  <p>整理日期：2026-10-16 ｜ 每篇独立成节，含数据集清单、是否自建、自建数据集结构、实用价值、创新点、关键原文引用</p>
+  <div class="stats">
+    <div class="stat"><b>26</b><span>论文总数</span></div>
+    <div class="stat"><b>21</b><span>自建/部分自建数据集</span></div>
+    <div class="stat"><b>18</b><span>完全自建</span></div>
+    <div class="stat"><b>5</b><span>未自建（用公开数据）</span></div>
+    <div class="stat"><b>133</b><span>数据集提及条目</span></div>
+  </div>
+</header>
+
+<div class="note">
+<b>阅读提示：</b>原文引用部分直接摘自论文（学位论文为扫描件，经 OCR 识别，数字与英文名称可能存在个别识别误差，已在不确定处标注「OCR待核」）。
+「是否自建」分为<b>是</b>（论文自主构建数据集）、<b>部分自建</b>（自建评测集或部分复用公开语料）、<b>否</b>（全部使用公开数据集）。
+</div>
+
+<div class="panel">
+  <h2>一、全部论文一览</h2>
+  <div style="max-height:520px;overflow:auto">
+  <table>
+    <thead><tr><th>#</th><th>论文</th><th>作者</th><th>年份</th><th>类型</th><th>是否自建</th><th>自建数据集</th><th>主要生成模型</th></tr></thead>
+    <tbody><tr><td class="num">1</td><td><a href="#p1">AIGC 的检测与溯源技术研究</a></td><td>刘黎黎</td><td>2026</td><td>期刊论文</td><td><span class="badge no">否</span></td><td>—</td><td class="small">—</td></tr><tr><td class="num">2</td><td><a href="#p2">AIGC检测工具对医学综述摘要中AI生成内容的鉴别效能</a></td><td>王海娟，沈锡宾（通信作者），费秀云，付辉，李鹏，赵巍</td><td>2026</td><td>期刊论文</td><td><span class="badge ok">是</span></td><td>医学综述摘要三组平行语料（原文本组 / AI 润色组 / AI 写作组）</td><td class="small">—</td></tr><tr><td class="num">3</td><td><a href="#p3">大模型安全对齐中文数据集综述：现状与展望</a></td><td>李罗政、李凌波、袁泉（通信作者：李罗政）</td><td>2026</td><td>期刊论文</td><td><span class="badge no">否</span></td><td>—</td><td class="small">—</td></tr><tr><td class="num">4</td><td><a href="#p4">面向中文学术场景的AI生成文本检测系统设计与实践——以ScholarGuard平台为例</a></td><td>刘炜、陈晓扬、金家琴、刘鹏</td><td>2026</td><td>期刊论文</td><td><span class="badge ok">是</span></td><td>探索性测试集（120篇中文学术文本）、BERT 分类器训练集、开发集（200篇文本）</td><td class="small">GPT-4、DeepSeek-V3 和通义千问（原文表述：&quot;GPT-4、DeepSeek-V3和通义千问等模型根据学科主题提示生成&quot;）。、论文未说明具体模型版本（仅称&quot;多个大模型&quot;）。、论文未说明。</td></tr><tr><td class="num">5</td><td><a href="#p5">基于图增强的大模型生成中文文本黑盒检测</a></td><td>董凌众，张倬胜，孟魁，刘功申（通信作者）</td><td>2025</td><td>期刊论文</td><td><span class="badge ok">是</span></td><td>新闻-Llama / 新闻-QWEN（新闻转述数据集）、百科-QWEN（百科扩写数据集）、HC3-Chinese（口语文风数据集，清洗改造）</td><td class="small">—</td></tr><tr><td class="num">6</td><td><a href="#p6">基于多维特征分析的 AI 生成期刊论文内容识别与应对策略研究</a></td><td>安彤、薛德军、周哲、孔祥煜、耿崇</td><td>2025</td><td>期刊论文</td><td><span class="badge ok">是</span></td><td>大模型生成论文样本（论文 1—论文 6）、案例分析稿件（某刊 6 篇论文）</td><td class="small">—</td></tr><tr><td class="num">7</td><td><a href="#p7">AI生成与人类作者撰写论文要素的检测研究</a></td><td>熊盼、杨浠、郑旭飞、吴徐龙</td><td>2024</td><td>期刊论文</td><td><span class="badge ok">是</span></td><td>AIGC与人类撰写及混合学术文本数据集</td><td class="small">ChatGPT、文心一言（ERNIE Bot）、通义千问（论文未给出具体版本号）。</td></tr><tr><td class="num">8</td><td><a href="#p8">ChatGPT生成中文学术内容分析——以情报学领域为例</a></td><td>郭鑫，王一博（通信作者），王继民</td><td>2024</td><td>期刊论文</td><td><span class="badge ok">是</span></td><td>情报学论文引言平行语料（人类撰写 + GPT-4 生成）</td><td class="small">—</td></tr><tr><td class="num">9</td><td><a href="#p9">人工智能生成中文学术论文文本检测研究</a></td><td>薛德军、孔祥煜、耿崇、吴晨、安彤</td><td>2024</td><td>期刊论文</td><td><span class="badge ok">是</span></td><td>基础数据集（Text-A / Text-B / Text-C）、Data-A-AI（AI 续写数据集）、Data-A-MIX（续写混写数据集）、Data-B-AI（AI 扩写数据集）、Data-B-MIX（扩写混写数据集）、Data-C（纯人类原文数据集）</td><td class="small">—</td></tr><tr><td class="num">10</td><td><a href="#p10">多层级架构AI生成文本检测方法与系统研究</a></td><td>刘梦晴（导师：梁乙凯教授）</td><td>2026</td><td>硕博学位论文（硕士，工学硕士）</td><td><span class="badge ok">是</span></td><td>NewsSciGen、ChineseAIGen</td><td class="small">—</td></tr><tr><td class="num">11</td><td><a href="#p11">基于深度学习的AI生成中文文本检测方法研究</a></td><td>苏畅（校内导师：赵俊芳 Junfang Zhao 教授；产业导师：王梦晖）</td><td>2025（2025 年 5 月）</td><td>硕博学位论文（硕士，专业学位，应用统计）</td><td><span class="badge ok">是</span></td><td>1. 自建学术摘要 + 文学作品混合数据集、2. 多模型学术摘要检测数据集（第 4 章）</td><td class="small">—</td></tr><tr><td class="num">12</td><td><a href="#p12">基于深度学习的AI生成学术文本检测研究</a></td><td>熊盼（指导教师：郑旭飞副教授、赵欣高级工程师）</td><td>2025（2025 年 4 月 10 日提交，5 月 24 日答辩）</td><td>硕博学位论文（硕士，专业学位，电子信息，软件工程领域）</td><td><span class="badge ok">是</span></td><td>CNSET、EnsembleSet（含攻击扩展）</td><td class="small">—</td></tr><tr><td class="num">13</td><td><a href="#p13">基于特征融合的AI生成文本识别与定位研究</a></td><td>余洋（导师：朱峋副教授；答辩委员会主席：张沪寅教授）</td><td>2025（2025 年 3 月 18 日提交，5 月 16 日答辩）</td><td>硕博学位论文（硕士）</td><td><span class="badge mid">部分自建</span></td><td>扩展 SnifferBench 数据集（ATDPS 检测实验）、GoodNews / VisualNews 处理数据（SPLoc 定位实验）</td><td class="small">—</td></tr><tr><td class="num">14</td><td><a href="#p14">基于特征融合的机器生成文本检测方法研究</a></td><td>吴春晖（导师：陈静 副教授）</td><td>2025</td><td>硕博学位论文（硕士）</td><td><span class="badge ok">是</span></td><td>HGPT3.5</td><td class="small">—</td></tr><tr><td class="num">15</td><td><a href="#p15">基于统一模式提取的AI生成文本检测方法</a></td><td>刘润东（导师：丁峰 校聘教授；答辩委员会主席：曹远龙）</td><td>2025</td><td>硕博学位论文（硕士）</td><td><span class="badge no">否</span></td><td>—</td><td class="small">—</td></tr><tr><td class="num">16</td><td><a href="#p16">大模型生成文本检测技术研究</a></td><td>刘鹄鸣（导师：陈峥副教授）</td><td>2025</td><td>硕博学位论文（硕士，软件工程）</td><td><span class="badge ok">是</span></td><td>ChatGPT-CNews（第 3 章）、CPM-CNews（第 3 章）、第 4 章中文检测数据集（THUCNews / CSL / WebText 配对语料）、第 4 章英文检测数据集（XSum / Writing / PubMed）、THUCNews-Sub / CSL-Sub（第 5 章）</td><td class="small">—</td></tr><tr><td class="num">17</td><td><a href="#p17">大语言模型生成与学者撰写学术内容特征分析与识别</a></td><td>王伟正（导师：乔鸿）</td><td>2025</td><td>硕博学位论文（硕士，图书情报专业硕士；领域：情报分析与用户研究；全日制）</td><td><span class="badge ok">是</span></td><td>情报学领域学术摘要数据集（学者撰写 + ChatGPT 生成）、域外（高等教育学）摘要数据集、图灵测试样本集</td><td class="small">—</td></tr><tr><td class="num">18</td><td><a href="#p18">大语言模型生成文本检测与语言隐写技术研究</a></td><td>项慧（导师：吴震东 教授）</td><td>2025</td><td>硕博学位论文（硕士，学术学位；专业名称：网络空间安全；所在学院：网络空间安全学院）</td><td><span class="badge mid">部分自建</span></td><td>Wiki-HC、HC3-ALL、无意义信息记忆数据集（Meaning / Meaning_base64 / Random_base64）、数据组织方式对比数据集（FirstForm–FifthForm）</td><td class="small">—</td></tr><tr><td class="num">19</td><td><a href="#p19">社交媒体中AI生成文本检测方法研究</a></td><td>桂嘉弈（Jiavi Gui；导师：吴晓非 Xiaofei Wu）</td><td>2025</td><td>硕博学位论文（硕士，学术学位；学科专业：人工智能；学院：人工智能学院；答辩日期 2025.05.29）</td><td><span class="badge ok">是</span></td><td>AIGen 数据集、SocialAIGen 数据集</td><td class="small">—</td></tr><tr><td class="num">20</td><td><a href="#p20">融合语言学知识的大模型生成文本检测研究</a></td><td>刘旭蓉</td><td>2025</td><td>硕博学位论文（硕士，电子信息硕士）</td><td><span class="badge no">否</span></td><td>无自建数据集</td><td class="small">—</td></tr><tr><td class="num">21</td><td><a href="#p21">面向专利领域的 AI 生成文本检测方法的研究</a></td><td>胡伟</td><td>2025</td><td>硕博学位论文（硕士，工学硕士）</td><td><span class="badge ok">是</span></td><td>PAD</td><td class="small">OpenAI 的 ChatGPT-3.5-Turbo。</td></tr><tr><td class="num">22</td><td><a href="#p22">面向大模型的生成文本检测研究</a></td><td>王睿源</td><td>2025</td><td>硕博学位论文（硕士）</td><td><span class="badge ok">是</span></td><td>MAT</td><td class="small">GPT-3.5-Turbo-Instruct（论文称 InstructGPT）、GPT-4、ERNIE-Bot 3.5、ERNIE-Bot 4.0；均通过在线 API 生成。</td></tr><tr><td class="num">23</td><td><a href="#p23">面向教育领域的机器生成文本检测方法研究</a></td><td>姚彪</td><td>2025</td><td>硕博学位论文（硕士）</td><td><span class="badge ok">是</span></td><td>面向教育领域的机器生成文本检测数据集</td><td class="small">GPT-3.5、LLaMA3-8B、Qwen2.5-7B。</td></tr><tr><td class="num">24</td><td><a href="#p24">基于水印注入的人工智能生成文本可检测性增强研究</a></td><td>张约翰（导师：陆伟教授）</td><td>2024（二〇二四年五月）</td><td>硕博学位论文（硕士）</td><td><span class="badge ok">是</span></td><td>1. 提示工程评测数据集（问答任务 QA task + 摘要润色/结构化摘要 SA task）、2. 同义词生成与排序任务问题集 / CoT 金标准数据集</td><td class="small">—</td></tr><tr><td class="num">25</td><td><a href="#p25">基于生成式对抗网络与特征融合的机器生成文本检测与溯源研究</a></td><td>俞文军（Wenjun Yu，导师：许斌 副教授 / Assoc. Prof. Bin Xu）</td><td>2024</td><td>硕博学位论文（硕士，专业学位硕士）</td><td><span class="badge mid">部分自建</span></td><td>检测实验数据集（第三章）、溯源实验数据集（第四章）</td><td class="small">—</td></tr><tr><td class="num">26</td><td><a href="#p26">基于语义特征的ChatGPT生成文本识别研究</a></td><td>王志慧（导师：金勋副教授、孙先利高级工程师）</td><td>2024</td><td>硕博学位论文（硕士，电子信息硕士专业学位）</td><td><span class="badge no">否</span></td><td>—</td><td class="small">—</td></tr></tbody>
+  </table></div>
+</div>
+
+<div class="panel">
+  <h2>二、自建数据集清单（含规模）</h2>
+  <table>
+    <thead><tr><th>论文</th><th>数据集名称</th><th>规模 / 结构要点</th></tr></thead>
+    <tbody><tr><td rowspan="1">AIGC检测工具对医学综述摘要中AI生成内容的鉴别效能<br><span class="small">（王海娟，沈锡宾（通信作者），费秀云，付辉，李鹏，赵巍，2026）</span></td><td><b>医学综述摘要三组平行语料（原文本组 / AI 润色组 / AI 写作组）</b></td><td class="small">每组 518 篇，共 1554 篇摘要</td></tr><tr><td rowspan="3">面向中文学术场景的AI生成文本检测系统设计与实践——以ScholarGuard平台为例<br><span class="small">（刘炜、陈晓扬、金家琴、刘鹏，2026）</span></td><td><b>探索性测试集（120篇中文学术文本）</b></td><td class="small">120篇；60篇人工撰写文本＋60篇AI生成文本；每个学科15篇人工+15篇AI。</td></tr><tr><td><b>BERT 分类器训练集</b></td><td class="small">10 000个标注样本（50%人工文本、50%AI生成文本）。</td></tr><tr><td><b>开发集（200篇文本）</b></td><td class="small">200篇独立标注文本，涵盖4个学科。</td></tr><tr><td rowspan="3">基于图增强的大模型生成中文文本黑盒检测<br><span class="small">（董凌众，张倬胜，孟魁，刘功申（通信作者），2025）</span></td><td><b>新闻-Llama / 新闻-QWEN（新闻转述数据集）</b></td><td class="small">新闻-Llama 训练集 1984 条、测试集 1324 条；新闻-QWEN 训练集 2680 条、测试集 1908 条</td></tr><tr><td><b>百科-QWEN（百科扩写数据集）</b></td><td class="small">训练集 4000 条、测试集 5230 条</td></tr><tr><td><b>HC3-Chinese（口语文风数据集，清洗改造）</b></td><td class="small">训练集 10000 条、测试集 5800 条</td></tr><tr><td rowspan="2">基于多维特征分析的 AI 生成期刊论文内容识别与应对策略研究<br><span class="small">（安彤、薛德军、周哲、孔祥煜、耿崇，2025）</span></td><td><b>大模型生成论文样本（论文 1—论文 6）</b></td><td class="small">6 篇</td></tr><tr><td><b>案例分析稿件（某刊 6 篇论文）</b></td><td class="small">6 篇</td></tr><tr><td rowspan="1">AI生成与人类作者撰写论文要素的检测研究<br><span class="small">（熊盼、杨浠、郑旭飞、吴徐龙，2024）</span></td><td><b>AIGC与人类撰写及混合学术文本数据集</b></td><td class="small">合计 2 249 条。人类撰写文本 1 012 条（摘要310、引言348、结论354）；AI生成文本 1 012 条（摘要310、引言348、结论354）；混合文本 225 条（摘要75、引言75、结论75）。按要素合计：摘要695、引言771、结论783。</td></tr><tr><td rowspan="1">ChatGPT生成中文学术内容分析——以情报学领域为例<br><span class="small">（郭鑫，王一博（通信作者），王继民，2024）</span></td><td><b>情报学论文引言平行语料（人类撰写 + GPT-4 生成）</b></td><td class="small">378 篇人类论文；训练集 278 篇论文（556 条数据）、测试集 40 篇论文（80 条数据）、范例集 60 篇论文；内容分析共 636 条</td></tr><tr><td rowspan="6">人工智能生成中文学术论文文本检测研究<br><span class="small">（薛德军、孔祥煜、耿崇、吴晨、安彤，2024）</span></td><td><b>基础数据集（Text-A / Text-B / Text-C）</b></td><td class="small">150 篇（工程科技、农业科技、医药卫生科技、信息科技、经济与管理科学 5 个专辑各 30 篇；分为 3 组，每组含各专辑 10 篇）</td></tr><tr><td><b>Data-A-AI（AI 续写数据集）</b></td><td class="small">147 条（文心一言 50、讯飞星火 47、通义千问 50）</td></tr><tr><td><b>Data-A-MIX（续写混写数据集）</b></td><td class="small">147 条</td></tr><tr><td><b>Data-B-AI（AI 扩写数据集）</b></td><td class="small">149 条（文心一言 50、讯飞星火 49、通义千问 50）</td></tr><tr><td><b>Data-B-MIX（扩写混写数据集）</b></td><td class="small">149 条</td></tr><tr><td><b>Data-C（纯人类原文数据集）</b></td><td class="small">50 条</td></tr><tr><td rowspan="2">多层级架构AI生成文本检测方法与系统研究<br><span class="small">（刘梦晴（导师：梁乙凯教授），2026）</span></td><td><b>NewsSciGen</b></td><td class="small">8000 个样本（4000 篇人类撰写原文 + 4000 篇 AI 生成重写文本）</td></tr><tr><td><b>ChineseAIGen</b></td><td class="small">中文语料并入多语言整合数据集后共 32000 条标注样本（中文 8000 条、英文 24000 条）</td></tr><tr><td rowspan="2">基于深度学习的AI生成中文文本检测方法研究<br><span class="small">（苏畅（校内导师：赵俊芳 Junfang Zhao 教授；产业导师：王梦晖），2025（2025 年 5 月））</span></td><td><b>1. 自建学术摘要 + 文学作品混合数据集</b></td><td class="small">学术摘要 4[OCR待核]1 篇（人类，知网爬取）+ 等量 AI 生成摘要；文学作品 8900 条</td></tr><tr><td><b>2. 多模型学术摘要检测数据集（第 4 章）</b></td><td class="small">人类摘要 4000 篇 + 三个模型各 4000 篇（合计 16000 篇）</td></tr><tr><td rowspan="2">基于深度学习的AI生成学术文本检测研究<br><span class="small">（熊盼（指导教师：郑旭飞副教授、赵欣高级工程师），2025（2025 年 4 月 10 日提交，5 月 24 日答辩））</span></td><td><b>CNSET</b></td><td class="small">2249 个论文要素（人类文本 1012、AI 文本 1012、混合文本 225）；含摘要、引言、结论三类</td></tr><tr><td><b>EnsembleSet（含攻击扩展）</b></td><td class="small">约 15000 条（OCR 原文&quot;包含巧 000 条数据&quot;）</td></tr><tr><td rowspan="2">基于特征融合的AI生成文本识别与定位研究<br><span class="small">（余洋（导师：朱峋副教授；答辩委员会主席：张沪寅教授），2025（2025 年 3 月 18 日提交，5 月 16 日答辩））</span></td><td><b>扩展 SnifferBench 数据集（ATDPS 检测实验）</b></td><td class="small">1400 个样本、28802 条句子；AI 与人类各 200 个样本/来源（GPT-2、GPT-3（GPT-3.5-turbo 替代）、GPT-Neo、GPT-J、GPT-4、LLaMA-2、Human 各 200）</td></tr><tr><td><b>GoodNews / VisualNews 处理数据（SPLoc 定位实验）</b></td><td class="small">GoodNews 训练 10000 / 验证 1000 / 测试 1000；VisualNews 1000（评估）+ 1000（训练分类）</td></tr><tr><td rowspan="1">基于特征融合的机器生成文本检测方法研究<br><span class="small">（吴春晖（导师：陈静 副教授），2025）</span></td><td><b>HGPT3.5</b></td><td class="small">人类文本 5005 条，机器文本 5005 条，合计 10010 条。人类文本构成：论文摘要 2005 条、维基百科 1000 条、新闻 1000 条、问答 1000 条。</td></tr><tr><td rowspan="5">大模型生成文本检测技术研究<br><span class="small">（刘鹄鸣（导师：陈峥副教授），2025）</span></td><td><b>ChatGPT-CNews（第 3 章）</b></td><td class="small">人类文本和大模型文本各 2000 条</td></tr><tr><td><b>CPM-CNews（第 3 章）</b></td><td class="small">人类文本和大模型文本各 40000 条</td></tr><tr><td><b>第 4 章中文检测数据集（THUCNews / CSL / WebText 配对语料）</b></td><td class="small">THUCNews、CSL、WebText 各 3000 条（单一生成模型下的规模，人类文本与机器文本数量均等）</td></tr><tr><td><b>第 4 章英文检测数据集（XSum / Writing / PubMed）</b></td><td class="small">各 300 条（单一采样温度下，人类文本与机器文本数量均等）</td></tr><tr><td><b>THUCNews-Sub / CSL-Sub（第 5 章）</b></td><td class="small">各 6000 条</td></tr><tr><td rowspan="3">大语言模型生成与学者撰写学术内容特征分析与识别<br><span class="small">（王伟正（导师：乔鸿），2025）</span></td><td><b>情报学领域学术摘要数据集（学者撰写 + ChatGPT 生成）</b></td><td class="small">学者撰写 992 篇 + 大语言模型生成 992 条，合计 1984 条</td></tr><tr><td><b>域外（高等教育学）摘要数据集</b></td><td class="small">学者撰写 300 篇 + ChatGPT 生成 300 条，合计 600 条</td></tr><tr><td><b>图灵测试样本集</b></td><td class="small">30 个三元组；测试人员 26 名（6 名情报学专家且常用 ChatGPT，20 名研究生且不常用 ChatGPT）</td></tr><tr><td rowspan="4">大语言模型生成文本检测与语言隐写技术研究<br><span class="small">（项慧（导师：吴震东 教授），2025）</span></td><td><b>Wiki-HC</b></td><td class="small">1,666 个问答三元组 &lt;问题，人类回答，ChatGPT 回答&gt;，扩展为四元组 &lt;问题，人类回答，ChatGPT 回答，DeepSeek-r1 回答&gt;</td></tr><tr><td><b>HC3-ALL</b></td><td class="small">1,568 个问答三元组（计算机科学、开放问答、经济学、医学各随机选取 392 个）</td></tr><tr><td><b>无意义信息记忆数据集（Meaning / Meaning_base64 / Random_base64）</b></td><td class="small">论文未说明样本总数（仅说明每条样本的输入长度均为 20、输出长度不定）</td></tr><tr><td><b>数据组织方式对比数据集（FirstForm–FifthForm）</b></td><td class="small">论文未说明样本总数；每样本输入长度均为 20，输入输出长度总和介于 100–1024 之间</td></tr><tr><td rowspan="2">社交媒体中AI生成文本检测方法研究<br><span class="small">（桂嘉弈（Jiavi Gui；导师：吴晓非 Xiaofei Wu），2025）</span></td><td><b>AIGen 数据集</b></td><td class="small">约 24,000 条；其中 20% 样本经过 1–3 次递归增强；单次攻击样本 100,6400 条（改写、对抗、提示）[OCR待核]，一次递归 3,200 条、二次递归 1,600 条[OCR待核]</td></tr><tr><td><b>SocialAIGen 数据集</b></td><td class="small">18,000 条（人类文本 6,000、AI 生成文本 6,000、AI 增强文本 6,000）</td></tr><tr><td rowspan="1">面向专利领域的 AI 生成文本检测方法的研究<br><span class="small">（胡伟，2025）</span></td><td><b>PAD</b></td><td class="small">中文 67,902 条，英文 47,058 条（合计 114,960 条）。分领域（中文/英文）：人工智能 17,827 / 9,118，生物医药 12,508 / 7,613，电气工程 18,694 / 10,581，机械制造 18,873 / 19,746。</td></tr><tr><td rowspan="1">面向大模型的生成文本检测研究<br><span class="small">（王睿源，2025）</span></td><td><b>MAT</b></td><td class="small">人类回答 10,000 条；各模型×各生成方式生成量（论文表 3.3）：InstructGPT 0-shot 2,995 / 5-shot 3,000 / 改写 2,999；GPT-4 0-shot 981 / 5-shot 986 / 改写 999；ERNIE-Bot 3.5 0-shot `[OCR待核，原文作&quot;四09&quot;]` / 5-shot 2,844 / 改写 2,463；ERNIE-Bot 4.0 5-shot 1,735 / 改写 1,404（其 0-shot 数</td></tr><tr><td rowspan="1">面向教育领域的机器生成文本检测方法研究<br><span class="small">（姚彪，2025）</span></td><td><b>面向教育领域的机器生成文本检测数据集</b></td><td class="small">文档级统计（论文表 3.2）——中文作文 822 条、中文诗歌 1,008 条、中文摘要 1,094 条、英文作文 1,020 条、英文诗歌 1,008 条、英文摘要 1,000 条；平均长度（字/词）分别约 700 / 250 / 250 / 250 / 150 / 250。任务数据集（论文表 3.5）：训练集 4,000、验证集 500、测试集 500。</td></tr><tr><td rowspan="2">基于水印注入的人工智能生成文本可检测性增强研究<br><span class="small">（张约翰（导师：陆伟教授），2024（二〇二四年五月））</span></td><td><b>1. 提示工程评测数据集（问答任务 QA task + 摘要润色/结构化摘要 SA task）</b></td><td class="small">论文未说明（OCR 中未见明确条数）</td></tr><tr><td><b>2. 同义词生成与排序任务问题集 / CoT 金标准数据集</b></td><td class="small">论文未说明</td></tr><tr><td rowspan="2">基于生成式对抗网络与特征融合的机器生成文本检测与溯源研究<br><span class="small">（俞文军（Wenjun Yu，导师：许斌 副教授 / Assoc. Prof. Bin Xu），2024）</span></td><td><b>检测实验数据集（第三章）</b></td><td class="small">论文未说明具体条数（仅说明由四类人类文本 + 对应机器文本构成）。</td></tr><tr><td><b>溯源实验数据集（第四章）</b></td><td class="small">论文未说明具体条数；在四个数据集（XSum、WritingP、SQuAD、Yelp）上进行实验。</td></tr></tbody>
+  </table>
+</div>
+
+<div class="panel">
+  <h2>三、被引用公开数据集频次</h2>
+  <div style="max-height:420px;overflow:auto">
+  <table><thead><tr><th>数据集名称</th><th>被多少篇论文提及/使用</th></tr></thead><tbody><tr><td>HC3</td><td class='num'>2</td></tr><tr><td>Do-Not-Answer-Chinese</td><td class='num'>2</td></tr><tr><td>CHEAT</td><td class='num'>2</td></tr><tr><td>MGTBench</td><td class='num'>2</td></tr><tr><td>HC3（Human ChatGPT Comparison）</td><td class='num'>2</td></tr><tr><td>GPTZero</td><td class='num'>1</td></tr><tr><td>中文AIGC文本检测数据集</td><td class='num'>1</td></tr><tr><td>GenImage</td><td class='num'>1</td></tr><tr><td>IVY-FAKE</td><td class='num'>1</td></tr><tr><td>CIFAKE</td><td class='num'>1</td></tr><tr><td>ASVspoof 2019/2021</td><td class='num'>1</td></tr><tr><td>FaceForensics++</td><td class='num'>1</td></tr><tr><td>GenVideo</td><td class='num'>1</td></tr><tr><td>Safety-Prompts（SafetyPrompts）</td><td class='num'>1</td></tr><tr><td>S⁴Eval（原文作 S-Eval）</td><td class='num'>1</td></tr><tr><td>SC-Safety</td><td class='num'>1</td></tr><tr><td>ChineseSafe-QA（ChineseSafetyQA）</td><td class='num'>1</td></tr><tr><td>ChineseSafe</td><td class='num'>1</td></tr><tr><td>CHiSafetyBench</td><td class='num'>1</td></tr><tr><td>CValues</td><td class='num'>1</td></tr><tr><td>JADE</td><td class='num'>1</td></tr><tr><td>Libra-Test</td><td class='num'>1</td></tr><tr><td>SafetyBench</td><td class='num'>1</td></tr><tr><td>XSTest</td><td class='num'>1</td></tr><tr><td>OKTest</td><td class='num'>1</td></tr><tr><td>OR-Bench</td><td class='num'>1</td></tr><tr><td>FalseReject</td><td class='num'>1</td></tr><tr><td>2018-2024年144个开源安全对齐数据集（统计对象）</td><td class='num'>1</td></tr><tr><td>LLM-Detector</td><td class='num'>1</td></tr><tr><td>M4GT-Bench</td><td class='num'>1</td></tr><tr><td>RAID</td><td class='num'>1</td></tr><tr><td>NLPCC 2025 LLM-generated text detection 共享任务</td><td class='num'>1</td></tr><tr><td>HC3-Chinese（清洗后）</td><td class='num'>1</td></tr><tr><td>案例分析稿件（某刊 6 篇论文）</td><td class='num'>1</td></tr><tr><td>AIGC-CHECK 系统检测结果</td><td class='num'>1</td></tr><tr><td>ArguGPT</td><td class='num'>1</td></tr><tr><td>文献[5]数据集（郭鑫等）</td><td class='num'>1</td></tr><tr><td>文献[6]数据集（王一博等）</td><td class='num'>1</td></tr><tr><td>文献[13]数据集</td><td class='num'>1</td></tr><tr><td>文献[14]数据集</td><td class='num'>1</td></tr></tbody></table></div>
+</div>
+
+<div class="toolbar">
+  <button data-f="all" class="active">全部</button>
+  <button data-f="是">仅完全自建</button>
+  <button data-f="部分自建">仅部分自建</button>
+  <button data-f="否">仅未自建</button>
+  <input id="q" placeholder="搜索论文标题 / 数据集名 / 模型名…">
+</div>
+
+
+<section class="paper" id="p1" data-self="否">
+  <div class="phead">
+    <div class="pnum">#1</div>
+    <div>
+      <h2>AIGC 的检测与溯源技术研究</h2>
+      <div class="chips">
+        <span class="chip ">刘黎黎</span><span class="chip ">2026</span><span class="chip ">期刊论文</span><span class="chip ">科技、经济、市场（2026 年第 6 期，第 47—49 页，栏目&quot;技术平台&quot;）</span>
+        <span class="badge no">自建：否</span>
+        <span class="chip">提及数据集 9 个</span>
+        <span class="chip">创新点 5 条</span>
+      </div>
+    </div>
+  </div>
+  <div class="md"><h1>AIGC 的检测与溯源技术研究</h1>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作者</td>
+<td>刘黎黎</td>
+</tr>
+<tr>
+<td>年份</td>
+<td>2026</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>期刊论文</td>
+</tr>
+<tr>
+<td>来源</td>
+<td>科技、经济、市场（2026 年第 6 期，第 47—49 页，栏目"技术平台"）</td>
+</tr>
+</tbody>
+</table>
+<h2>一、论文涉及的数据集</h2>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GPTZero</td>
+<td>[使用公开数据集]</td>
+<td>论文未说明</td>
+<td>论文未说明</td>
+<td>论文在"标准数据集与基准平台"中将 GPTZero 与 HC3 并列归入文本类（注：正文 1.1 节又将 GPTZero、Turnitin 表述为检测工具）</td>
+<td>论文未说明</td>
+</tr>
+<tr>
+<td>HC3</td>
+<td>[使用公开数据集]</td>
+<td>论文未说明</td>
+<td>英文</td>
+<td>论文列为文本类主流数据集，未说明构成</td>
+<td>公开</td>
+</tr>
+<tr>
+<td>中文AIGC文本检测数据集</td>
+<td>[使用公开数据集]</td>
+<td>论文未说明</td>
+<td>中文</td>
+<td>论文仅列出名称，未说明来源与构成</td>
+<td>论文未说明</td>
+</tr>
+<tr>
+<td>GenImage</td>
+<td>[使用公开数据集]</td>
+<td>论文未说明</td>
+<td>论文未说明</td>
+<td>论文列为图像类基准数据集，用于推动图像检测技术发展</td>
+<td>公开</td>
+</tr>
+<tr>
+<td>IVY-FAKE</td>
+<td>[使用公开数据集]</td>
+<td>论文未说明</td>
+<td>论文未说明</td>
+<td>论文列为图像类主流数据集</td>
+<td>公开</td>
+</tr>
+<tr>
+<td>CIFAKE</td>
+<td>[使用公开数据集]</td>
+<td>论文未说明</td>
+<td>论文未说明</td>
+<td>论文列为图像类主流数据集</td>
+<td>公开</td>
+</tr>
+<tr>
+<td>ASVspoof 2019/2021</td>
+<td>[使用公开数据集]</td>
+<td>论文未说明</td>
+<td>论文未说明</td>
+<td>论文列为音频检测的标准测试基准</td>
+<td>公开</td>
+</tr>
+<tr>
+<td>FaceForensics++</td>
+<td>[使用公开数据集]</td>
+<td>论文未说明</td>
+<td>论文未说明</td>
+<td>论文用于视频类单帧检测实验，论文称检测准确率可达 95%</td>
+<td>公开</td>
+</tr>
+<tr>
+<td>GenVideo</td>
+<td>[使用公开数据集]</td>
+<td>论文未说明</td>
+<td>论文未说明</td>
+<td>论文称 IVY-XDETECTOR 在该数据集上准确率突破 99%</td>
+<td>公开</td>
+</tr>
+</tbody>
+</table>
+<p>（说明：本文为综述性质，仅列举上述主流/基准数据集，未给出各数据集的规模与构成细节，也未自建数据集。）</p>
+<h2>二、是否自建数据集</h2>
+<p><strong>否</strong> —— 本文是 AIGC 检测与溯源技术的综述性研究，构建了"检测与溯源技术评估体系"并分析挑战与趋势，全文未提出或构建任何自有数据集，仅引用并列举了公开/主流基准数据集。</p>
+<h2>三、自建数据集结构</h2>
+<p>无自建数据集，论文未说明。</p>
+<h2>四、实用价值</h2>
+<ul>
+<li>面向什么问题 / 场景：面向 AIGC 在文本、图像、音频、视频多模态内容中引发的虚假信息传播、学术不端、版权侵权等问题，为营造可信数字内容环境提供技术梳理。</li>
+<li>系统梳理文本/图像/音频/视频四类 AIGC 检测技术与数字水印、区块链、生成指纹三类溯源技术，提出"数字水印+生成指纹+区块链"的多技术融合溯源体系。</li>
+<li>建立检测与溯源的核心评估指标体系（准确率、精确率、召回率、F1、对抗鲁棒性、泛化性、溯源时延、计算开销等）与标准数据集/基准平台清单。</li>
+<li>面向出版、教育、传媒等管理与合规治理场景，为"可检测、可追溯、可举证、可追责"的全链条防护和 C2PA 标准落地提供参考。</li>
+</ul>
+<h2>五、创新点</h2>
+<ol>
+<li>提出并构建了 AIGC 检测与溯源技术的评估体系，分别给出检测指标与溯源指标两个维度的衡量标准。</li>
+<li>系统归纳了数字水印（显式/隐式、训练/推理/输出嵌入）、区块链（四步溯源流程）、生成指纹（模型分类/潜在空间/行为序列）三类溯源技术路线。</li>
+<li>提出"数字水印+生成指纹+区块链"多技术融合溯源体系，实现全生命周期追溯。</li>
+<li>按文本、图像、音频、视频四模态分别归纳检测方法（统计特征、模型似然比、监督学习、检索增强、像素/频域/模型特征、声学特征、单帧/时序/多模态融合）。</li>
+<li>归纳出五大技术挑战（攻防博弈、跨模型泛化、跨模态协同、隐私与主权、毫秒级响应）与六大发展趋势（轻量化在线检测、零样本泛化、对抗鲁棒、多模态统一表征、技术治理融合、可信 AI 内生安全）。</li>
+</ol>
+<h2>六、关键原文引用</h2>
+<blockquote>
+<p>数字水印溯源成本低，适用性强，但存在"鲁棒性-隐蔽性-容量"不可能三角的制约，需要在这三个因素之间进行权衡与改进。</p>
+</blockquote>
+<p><strong>说明</strong>：指出水印溯源技术的根本性权衡约束，是本领域公认的核心难题。</p>
+<blockquote>
+<p>单点技术无法覆盖全流程溯源，"数字水印+生成指纹+区块链"融合体系成为主流：隐式水印用于快速检测和初步溯源，生成指纹作为模型归因的佐证，区块链用于元数据存证和司法确权。</p>
+</blockquote>
+<p><strong>说明</strong>：给出多技术融合溯源体系的分工逻辑，是全文对溯源技术路线的核心整合结论。</p>
+<blockquote>
+<p>生成指纹是 AIGC 模型生成内容时留下的固有微观特征，无需主动嵌入标识即可实现模型溯源与内容归因。</p>
+</blockquote>
+<p><strong>说明</strong>：说明生成指纹溯源与主动水印溯源的范式差异（被动/内生特征 vs 主动嵌入）。</p>
+<blockquote>
+<p>第二，部分研究仅考虑单一 AIGC 模型生成的数据，在实际中难以推广到其他工具上，其在检测新发布模型、开源微调模型时容易失效，跨模型泛化性欠佳。</p>
+</blockquote>
+<p><strong>说明</strong>：指出数据来源单一导致的跨模型泛化不足这一关键局限，与另两篇论文聚焦的多学科/多模型泛化问题相呼应。</p>
+<blockquote>
+<p>第六，可信 AI 内生安全设计，从模型架构层面内建检测与溯源系统，实现"生成即标记、生成即存证"，从源头降低 AIGC 滥用的可能性。</p>
+</blockquote>
+<p><strong>说明</strong>：提出"生成即标记/存证"的源头治理思路，代表该综述对未来技术方向的判断。</p>
+<blockquote>
+<p>在基础测试平台领域，国外有 MMLU-AI 测试、C2PA Compliance Test，国内的中国信通院、中国科学院信息工程研究所建立了 AIGC 安全评测平台，推动了技术标准与规范的完善。</p>
+</blockquote>
+<p><strong>说明</strong>：说明国内外已出现标准化的 AIGC 评测/合规平台，反映治理与标准化的进展。</p></div>
+</section>
+<section class="paper" id="p2" data-self="是">
+  <div class="phead">
+    <div class="pnum">#2</div>
+    <div>
+      <h2>AIGC检测工具对医学综述摘要中AI生成内容的鉴别效能</h2>
+      <div class="chips">
+        <span class="chip ">王海娟，沈锡宾（通信作者），费秀云，付辉，李鹏，赵巍</span><span class="chip ">2026</span><span class="chip ">期刊论文</span><span class="chip ">《中国科技期刊研究》，2026，37（1）：24-31</span>
+        <span class="badge ok">自建：是</span>
+        <span class="chip">提及数据集 3 个</span>
+        <span class="chip">创新点 4 条</span>
+      </div>
+    </div>
+  </div>
+  <div class="md"><h1>AIGC检测工具对医学综述摘要中AI生成内容的鉴别效能</h1>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作者</td>
+<td>王海娟，沈锡宾（通信作者），费秀云，付辉，李鹏，赵巍</td>
+</tr>
+<tr>
+<td>年份</td>
+<td>2026</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>期刊论文</td>
+</tr>
+<tr>
+<td>来源</td>
+<td>《中国科技期刊研究》，2026，37（1）：24-31</td>
+</tr>
+</tbody>
+</table>
+<h2>一、论文涉及的数据集</h2>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>原文本组</td>
+<td>[自建]</td>
+<td>518 篇</td>
+<td>中文</td>
+<td>从"中华医学期刊全文数据库"随机抽取 2018—2022 年中华医学会系列期刊综述类文献的非结构式中文摘要（字数 300~349 字），理论样本 600 篇、剔除无关键词/结构式摘要/病例报告后剩 518 篇</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>AI 润色组</td>
+<td>[自建]</td>
+<td>518 篇</td>
+<td>中文</td>
+<td>用文心一言 4.5 Turbo 对原文本组摘要按"改动最小的前提下进行必要的润色"提示语润色生成</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>AI 写作组</td>
+<td>[自建]</td>
+<td>518 篇</td>
+<td>中文</td>
+<td>用文心一言 4.5 Turbo 依据原文章目和关键词、按固定摘要框架提示语（要求 350 字、一段式摘要）写作生成</td>
+<td>未说明</td>
+</tr>
+</tbody>
+</table>
+<h2>二、是否自建数据集</h2>
+<p><strong>是</strong>。课题组自建了 3 组各 518 篇的平行语料（原文本 / AI 润色 / AI 写作），全部由作者从中华医学期刊全文数据库随机抽样并用文心一言 4.5 Turbo 生成配套文本构建，属于较大规模的医学领域评测数据集。</p>
+<h2>三、自建数据集结构</h2>
+<h3>医学综述摘要三组平行语料（原文本组 / AI 润色组 / AI 写作组）</h3>
+<ul>
+<li><strong>规模</strong>：每组 518 篇，共 1554 篇摘要</li>
+<li><strong>数据来源</strong>：中华医学期刊全文数据库，2018—2022 年中华医学会系列期刊综述类文献</li>
+<li><strong>生成模型</strong>（含版本）：文心一言 4.5 Turbo</li>
+<li><strong>生成方式 / 提示词</strong>：润色组提示语："请在对原文改动最小的前提下对其进行必要的润色"；写作组提示语："请按以下框架结合关键词撰写医学综述的摘要：首先引入主题，然后阐述现状与问题、探讨机制/因素、研究进展与作用，最后归纳综述内容，阐明撰写综述的目的。每篇摘要 350 字且符合编排规范。请以一段式摘要的形式输出。论文的题目和关键词如下：[题目]、[关键词]"</li>
+<li><strong>字段 / 结构</strong>：题目、中文非结构式摘要（300~349 字）、关键词</li>
+<li><strong>标注方式</strong>：以 4 种检测工具输出的 AI 风险等级（知网按颜色标注记 1/2/3 分值）为结果；以文本组别（原文=阴性、润色/AI 写作=待检出阳性）作为评价参照</li>
+<li><strong>训练/验证/测试划分</strong>：无模型训练，全部用于检测工具评测</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h2>四、实用价值</h2>
+<ul>
+<li>面向医学期刊编辑部和学术出版机构，评估 iThenticate、万方文察、知网、鉴字源 4 种 AIGC 检测工具对医学综述摘要的鉴别效能，为同行合理选择和解读检测工具、建立"筛查-研判-处置"审稿流程提供依据。</li>
+</ul>
+<h2>五、创新点</h2>
+<ol>
+<li>首次在同一研究中横向对比 4 种主流（1 种国际 + 3 种国产）AIGC 检测工具，弥补了既往研究多基于一两种工具、小样本的不足。</li>
+<li>构建了 518 篇原文本 + 对应 AI 润色与 AI 写作文本的大规模医学平行语料，规模大于以往同类评测。</li>
+<li>在统一评估框架下系统计算准确率、一致性、灵敏度、特异度四类指标，揭示了工具间结果呈现与判定阈值的显著差异。</li>
+<li>明确将"AI 润色文本"作为独立考察对象，发现国产工具对润色文本漏检率约 40%，指出现有技术难以区分写作责任主体。</li>
+</ol>
+<h2>六、关键原文引用</h2>
+<blockquote>
+<p>课题组利用"中华医学期刊全文数据库"通过随机数法随机选取 2018—2022 年发表在中华医学会系列期刊中带有中文摘要的 600 篇综述类文献。</p>
+</blockquote>
+<p><strong>说明</strong>：说明了原文本组的抽样来源、时间范围与抽样方法（随机数法），是数据集构建的核心描述。</p>
+<blockquote>
+<p>采用文心一言 4. 5 Turbo 对原文本进行润色，称 AI 润色组……通过原文章题目、关键词进行 AI 写作，称为 AI 写作组。</p>
+</blockquote>
+<p><strong>说明</strong>：明确了 AI 润色组和 AI 写作组的生成模型（文心一言 4.5 Turbo）及生成输入方式（原文润色 / 题目+关键词写作）。</p>
+<blockquote>
+<p>最终纳入样本量为 518 篇中文摘要。</p>
+</blockquote>
+<p><strong>说明</strong>：明确了经纳入/排除标准（剔除缺关键词、结构式摘要、病例报告）后最终的数据集规模。</p>
+<blockquote>
+<p>iThenticate 检测报告显示，所有被测文本的 AI 风险等级都为低风险。</p>
+</blockquote>
+<p><strong>说明</strong>：说明 iThenticate 对中文医学文本完全失效，无法检出任何 AI 可疑文本（灵敏度为 0）。</p>
+<blockquote>
+<p>鉴字源 AIGC 检测可以标注出来几乎所有的 AI 生成文本，但将润色文本标注为 AI 中风险的只有 5. 02%。</p>
+</blockquote>
+<p><strong>说明</strong>：说明国产工具对纯 AI 写作检出率极高（99.81%）但对 AI 润色文本漏判严重的核心问题。</p>
+<blockquote>
+<p>3 种国产 AIGC 检测工具对医学综述摘要 AIGC 检测的一致性为 40%~80%，说明各检测工具的判定一致性较差，尤其对于润色文本的检测差异最为明显。</p>
+</blockquote>
+<p><strong>说明</strong>：说明不同工具对同一段文本的判定可能相互矛盾，单一检测结果不宜作为学术不端证据。</p>
+<blockquote>
+<p>AIGC 检测工具应明确定位为"辅助筛查与风险预警工具"……相关决策权应始终牢牢掌握在人类专家手中。</p>
+</blockquote>
+<p><strong>说明</strong>：论文的核心结论，界定检测工具的定位——辅助手段而非定性证据，须与作者披露、编辑判断及行业规范协同。</p>
+<blockquote>
+<p>3 种国产 AIGC 检测工具对润色文本的漏检率约为 40%。</p>
+</blockquote>
+<p><strong>说明</strong>：量化了现有工具对"AI 辅助润色"这一最常见使用场景的识别短板，是全文最重要的量化发现之一。</p></div>
+</section>
+<section class="paper" id="p3" data-self="否">
+  <div class="phead">
+    <div class="pnum">#3</div>
+    <div>
+      <h2>大模型安全对齐中文数据集综述：现状与展望</h2>
+      <div class="chips">
+        <span class="chip ">李罗政、李凌波、袁泉（通信作者：李罗政）</span><span class="chip ">2026</span><span class="chip ">期刊论文</span><span class="chip ">计算机科学（Computer Science）2026年，第53卷第9期，第17-23页</span>
+        <span class="badge no">自建：否</span>
+        <span class="chip">提及数据集 17 个</span>
+        <span class="chip">创新点 5 条</span>
+      </div>
+    </div>
+  </div>
+  <div class="md"><h1>大模型安全对齐中文数据集综述：现状与展望</h1>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作者</td>
+<td>李罗政、李凌波、袁泉（通信作者：李罗政）</td>
+</tr>
+<tr>
+<td>年份</td>
+<td>2026</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>期刊论文</td>
+</tr>
+<tr>
+<td>来源</td>
+<td>计算机科学（Computer Science）2026年，第53卷第9期，第17-23页</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>作者单位：1 中国科学院软件研究所；2 北京跟踪与通信技术研究所</p>
+</blockquote>
+<h2>一、论文涉及的数据集</h2>
+<h3>1.1 论文系统梳理的"大模型安全对齐相关的中文数据集"（原文表3）</h3>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Safety-Prompts（SafetyPrompts）</td>
+<td>[使用公开数据集]</td>
+<td>100000</td>
+<td>中文</td>
+<td>问答对，用途：评估/对齐，主要构建方式：人工、模型</td>
+<td>开源</td>
+</tr>
+<tr>
+<td>S⁴Eval（原文作 S-Eval）</td>
+<td>[使用公开数据集]</td>
+<td>110000</td>
+<td>中文</td>
+<td>问答对，用途：评估/对齐，主要构建方式：模型</td>
+<td>开源</td>
+</tr>
+<tr>
+<td>SC-Safety</td>
+<td>[使用公开数据集]</td>
+<td>4912</td>
+<td>中文</td>
+<td>多轮问答对，用途：评估/对齐，主要构建方式：人工、模型</td>
+<td>开源</td>
+</tr>
+<tr>
+<td>Do-Not-Answer-Chinese</td>
+<td>[使用公开数据集]</td>
+<td>3042</td>
+<td>中文</td>
+<td>问答对，用途：评估，主要构建方式：翻译</td>
+<td>开源</td>
+</tr>
+<tr>
+<td>ChineseSafe-QA（ChineseSafetyQA）</td>
+<td>[使用公开数据集]</td>
+<td>4000</td>
+<td>中文</td>
+<td>选择题、问答对，用途：评估，主要构建方式：人工、模型</td>
+<td>开源</td>
+</tr>
+<tr>
+<td>ChineseSafe</td>
+<td>[使用公开数据集]</td>
+<td>205034</td>
+<td>中文</td>
+<td>问答对，用途：评估/对齐，主要构建方式：混合</td>
+<td>否</td>
+</tr>
+<tr>
+<td>CHiSafetyBench</td>
+<td>[使用公开数据集]</td>
+<td>2000</td>
+<td>中文</td>
+<td>选择题、问答对，用途：评估，主要构建方式：人工</td>
+<td>开源</td>
+</tr>
+<tr>
+<td>CValues</td>
+<td>[使用公开数据集]</td>
+<td>7300</td>
+<td>中文</td>
+<td>问答对，用途：评估，主要构建方式：人工</td>
+<td>开源</td>
+</tr>
+<tr>
+<td>JADE</td>
+<td>[使用公开数据集]</td>
+<td>2230</td>
+<td>中文</td>
+<td>问答对，用途：评估，主要构建方式：模型</td>
+<td>开源</td>
+</tr>
+<tr>
+<td>Libra-Test</td>
+<td>[使用公开数据集]</td>
+<td>5700</td>
+<td>中文</td>
+<td>问答对，用途：评估，主要构建方式：模型、翻译</td>
+<td>开源</td>
+</tr>
+<tr>
+<td>SafetyBench</td>
+<td>[使用公开数据集]</td>
+<td>11435</td>
+<td>中文</td>
+<td>选择题，用途：评估，主要构建方式：模型</td>
+<td>开源</td>
+</tr>
+</tbody>
+</table>
+<h3>1.2 论文汇总的"过度安全检测"相关数据集（原文表4）</h3>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>XSTest</td>
+<td>[使用公开数据集]</td>
+<td>250</td>
+<td>英文</td>
+<td>过度安全检测，人工构建、聚焦表面敏感而实际无害的提示，类型数 18</td>
+<td>原文未说明</td>
+</tr>
+<tr>
+<td>OKTest</td>
+<td>[使用公开数据集]</td>
+<td>350</td>
+<td>英文</td>
+<td>过度安全检测，早期人工构建基准，类型数 18</td>
+<td>原文未说明</td>
+</tr>
+<tr>
+<td>OR-Bench</td>
+<td>[使用公开数据集]</td>
+<td>80000</td>
+<td>英文</td>
+<td>过度安全检测，大模型自动生成样例，类型数 10</td>
+<td>原文未说明</td>
+</tr>
+<tr>
+<td>FalseReject</td>
+<td>[使用公开数据集]</td>
+<td>16000</td>
+<td>英文</td>
+<td>过度安全检测，首次包含面向推理大模型的训练集，响应中引入结构化安全推理链条，类型数 44</td>
+<td>原文未说明</td>
+</tr>
+<tr>
+<td>Do-Not-Answer-Chinese</td>
+<td>[使用公开数据集]</td>
+<td>999</td>
+<td>中文</td>
+<td>过度安全检测，目前过度安全检测中文数据集仅有此一个，类型数 17</td>
+<td>原文未说明</td>
+</tr>
+</tbody>
+</table>
+<h3>1.3 论文引用的语种分布统计（原文图1，数据来自以往研究[9]）</h3>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2018-2024年144个开源安全对齐数据集（统计对象）</td>
+<td>[使用公开数据集]</td>
+<td>144 个</td>
+<td>英文为主</td>
+<td>其中113个仅含英文、10个为单一中文数据集、1个为其他语种、16个为含英文的多语种数据集</td>
+<td>开源（统计自以往研究[9]）</td>
+</tr>
+</tbody>
+</table>
+<h3>1.4 论文分析的安全风险分类情况（原文表2，非独立数据集，按分类体系列出）</h3>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>一级标签数量</th>
+<th>细分标签数量</th>
+<th>指令攻击类型数量</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Safety-Prompts</td>
+<td>8</td>
+<td>8</td>
+<td>6</td>
+</tr>
+<tr>
+<td>S⁴Eval（S-Eval）</td>
+<td>8</td>
+<td>102</td>
+<td>10</td>
+</tr>
+<tr>
+<td>SC-Safety</td>
+<td>3</td>
+<td>20</td>
+<td>4</td>
+</tr>
+<tr>
+<td>Do-Not-Answer-Chinese</td>
+<td>5</td>
+<td>17</td>
+<td>0</td>
+</tr>
+<tr>
+<td>ChineseSafe-QA</td>
+<td>7</td>
+<td>103</td>
+<td>0</td>
+</tr>
+<tr>
+<td>ChineseSafe</td>
+<td>4</td>
+<td>10</td>
+<td>0</td>
+</tr>
+<tr>
+<td>CHiSafetyBench</td>
+<td>5</td>
+<td>31</td>
+<td>0</td>
+</tr>
+<tr>
+<td>CValues（原文作 CVALUES）</td>
+<td>2</td>
+<td>18</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<h2>二、是否自建数据集</h2>
+<p><strong>否</strong> —— 本文是综述论文，系统梳理大模型安全对齐的技术框架与已公开的中文安全对齐数据集建设现状（原文表3汇总了11个中文数据集，表4汇总了5个过度安全检测数据集），未构建、发布任何新数据集。</p>
+<h2>三、自建数据集结构</h2>
+<p><strong>论文未自建数据集</strong>（综述类论文）。论文仅在4.5节提出了"中文安全对齐数据集标准框架的初步构想"（风险分类、文化适应、开源管理3个核心维度），属于建设建议而非已落地的数据集。</p>
+<h2>四、实用价值</h2>
+<ul>
+<li>面向什么问题/场景：当前安全对齐的评测基准与训练数据集"以英文为主"，缺乏针对中文场景、社会主义核心价值观、中文语言特性、东方文化背景与中国法律法规的专用数据集，且现有中文数据资源"资源分散、标准各异、平衡性缺失"。</li>
+<li>为构建更高效、鲁棒且符合中文语境的安全对齐体系提供数据基础与研究方向；为中文安全对齐数据集的风险分类、规模、用途、质量控制与开源管理提供对比参照。</li>
+</ul>
+<h2>五、创新点</h2>
+<ol>
+<li><strong>首次系统梳理中文安全对齐数据集全景</strong>：从安全风险分类、数据规模、用途分布三个维度对现有中文数据集进行横向对比（表2、表3、表4）。</li>
+<li><strong>补充"过度安全"这一此前少被讨论的评估维度</strong>：将大模型过度安全（过度拒绝）纳入安全对齐效果评估范围，并汇总过度安全检测数据集。</li>
+<li><strong>提出"安全税"视角</strong>：指出推理大模型经安全对齐后推理能力下降（如 s1.1-32B 在 AIME24、GPQA、MATH500 上平均推理准确率下降 7.09%~30.91%），并把"过度安全"视为安全税的一种表现。</li>
+<li><strong>提出文化适配性观点</strong>：主张从社会主义核心价值观、地域民族文化差异、法律法规三个维度推进中文数据集的文化适配，尤其指出面向"中华民族共同体"的安全对齐数据集明显缺乏。</li>
+<li><strong>提出中文安全对齐数据集标准框架初步构想</strong>：基于风险分类（"3个核心分类＋动态扩展"）、文化适应（"语言适配＋场景落地"）、开源管理（按敏感程度差异化授权）三个维度给出建设框架。</li>
+</ol>
+<h2>六、关键原文引用</h2>
+<blockquote>
+<p>当前研究多基于英文语境与西方文化背景,缺乏针对中文场景的专用数据集.</p>
+</blockquote>
+<p><strong>说明</strong>：点明本文的核心研究动机——中文安全对齐数据资源缺位。</p>
+<blockquote>
+<p>其中１１３个为只包含英文的数据集,１０个为单一中文数据集,１个为其他语种数据集,１６个为包含英文的多语种数据集.</p>
+</blockquote>
+<p><strong>说明</strong>：用具体数字说明安全对齐数据集存在严重的语种不均衡现象。</p>
+<blockquote>
+<p>安全对齐数据集的规模与质量,将直接决定大模型安全防护能力的天花板.</p>
+</blockquote>
+<p><strong>说明</strong>：论证数据集建设在大模型安全治理中的决定性地位。</p>
+<blockquote>
+<p>当前中文安全对齐数据集整体呈现出"评估多、对齐少""规模有限""分类体系尚不完善"等特点,尤其关于指令攻击与过度安全检测方面的数据资源仍较为匮乏.</p>
+</blockquote>
+<p><strong>说明</strong>：给出对现有中文数据集建设现状的总体判断（结论性判断）。</p>
+<blockquote>
+<p>例如,s１．１Ｇ３２B模型经安全对齐后,在 AIME２４,GPQA 和 MATH５００数据集上的平均推理准确率下降７．０９％~３０．９１％</p>
+</blockquote>
+<p><strong>说明</strong>：为"安全税"现象提供量化证据。</p>
+<blockquote>
+<p>目前过度安全检测的中文数据集仅有 DoＧNotＧAnswerＧChinese.</p>
+</blockquote>
+<p><strong>说明</strong>：指出中文过度安全检测数据资源的极度稀缺。</p>
+<blockquote>
+<p>安全对齐或许不能只专注于后训练阶段,还要关注预训练阶段的安全性,从源头上减小安全对齐的阻力.</p>
+</blockquote>
+<p><strong>说明</strong>：提出对齐方向性的未来研究建议（"弹性/恢复力"问题的应对思路）。</p>
+<blockquote>
+<p>对于非敏感领域数据,允许科研机构和企业自由使用、修改与分发,促进基础研究领域的数据共享.</p>
+</blockquote>
+<p><strong>说明</strong>：给出数据集开源管理的差异化授权思路。</p></div>
+</section>
+<section class="paper" id="p4" data-self="是">
+  <div class="phead">
+    <div class="pnum">#4</div>
+    <div>
+      <h2>面向中文学术场景的AI生成文本检测系统设计与实践——以ScholarGuard平台为例</h2>
+      <div class="chips">
+        <span class="chip ">刘炜、陈晓扬、金家琴、刘鹏</span><span class="chip ">2026</span><span class="chip ">期刊论文</span><span class="chip ">信息与管理研究，2026年第4期/第11卷（DOI:10.27060/j.cnki.xx.2026.04.001）</span>
+        <span class="badge ok">自建：是</span>
+        <span class="chip">提及数据集 7 个</span>
+        <span class="chip">创新点 5 条</span>
+      </div>
+    </div>
+  </div>
+  <div class="md"><h1>面向中文学术场景的AI生成文本检测系统设计与实践——以ScholarGuard平台为例</h1>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作者</td>
+<td>刘炜、陈晓扬、金家琴、刘鹏</td>
+</tr>
+<tr>
+<td>年份</td>
+<td>2026</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>期刊论文</td>
+</tr>
+<tr>
+<td>来源</td>
+<td>信息与管理研究，2026年第4期/第11卷（DOI:10.27060/j.cnki.xx.2026.04.001）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>作者单位：1 上海社会科学院信息研究所；2 上海图书馆（上海科学技术情报研究所）；3 上海大学文化遗产与信息管理学院；4 上海福呈数据科技有限公司<br />
+基金：国家社会科学基金重大项目"智能时代提升全民数字素养的理论和实践研究"（编号:24&amp;ZD180）</p>
+</blockquote>
+<h2>一、论文涉及的数据集</h2>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>探索性测试集（120篇中文学术文本）</td>
+<td>[自建]</td>
+<td>120 篇</td>
+<td>中文</td>
+<td>60篇人工撰写（来自公开发表的中文学术论文）＋60篇AI生成（GPT-4、DeepSeek-V3、通义千问等按学科主题提示生成），覆盖法学、政治学、经济学、社会学四个社科学科，每学科15篇人工+15篇AI</td>
+<td>论文未说明（平台网址 https://aijc.yunhan.net.cn/detect）</td>
+</tr>
+<tr>
+<td>BERT 分类器训练集</td>
+<td>[自建]（混合来源）</td>
+<td>10 000 篇</td>
+<td>中文</td>
+<td>来源为公开学术语料库与多个大模型的生成文本，50%为人工文本、50%为AI生成文本；与测试集无作者、选题层面的重叠</td>
+<td>论文未说明</td>
+</tr>
+<tr>
+<td>开发集（权重优化与参数调优）</td>
+<td>[自建]</td>
+<td>200 篇</td>
+<td>中文</td>
+<td>独立标注文本，涵盖4个学科，与训练集同源但独立抽取、未参与模型训练；来源与测试集完全隔离</td>
+<td>论文未说明</td>
+</tr>
+<tr>
+<td>LLM-Detector</td>
+<td>[使用公开数据集]（仅作相关研究引用）</td>
+<td>论文未说明</td>
+<td>中文</td>
+<td>关注中文AI生成文本在文档级和句子级的检测能力</td>
+<td>论文未说明</td>
+</tr>
+<tr>
+<td>M4GT-Bench</td>
+<td>[使用公开数据集]（仅作相关研究引用）</td>
+<td>论文未说明</td>
+<td>英/多语种</td>
+<td>从多语言、多领域、多生成器角度构建的机器生成文本检测基准</td>
+<td>论文未说明</td>
+</tr>
+<tr>
+<td>RAID</td>
+<td>[使用公开数据集]（仅作相关研究引用）</td>
+<td>论文未说明</td>
+<td>英文</td>
+<td>大规模机器生成文本检测基准，为检测器鲁棒性评估提供参照</td>
+<td>论文未说明</td>
+</tr>
+<tr>
+<td>NLPCC 2025 LLM-generated text detection 共享任务</td>
+<td>[使用公开数据集]（仅作相关研究引用）</td>
+<td>论文未说明</td>
+<td>中文</td>
+<td>NLPCC 2025 设置的LLM生成文本检测共享任务</td>
+<td>论文未说明</td>
+</tr>
+</tbody>
+</table>
+<h2>二、是否自建数据集</h2>
+<p><strong>是</strong> —— 论文为评估 ScholarGuard 原型系统，自建了一个120篇中文学术文本的探索性测试集（60篇人工+60篇AI，覆盖法学、政治学、经济学、社会学四个社科学科），并配套构建了10000篇BERT微调训练集与200篇开发集，三者在文本来源、作者身份和选题范围上均无交叉。</p>
+<h2>三、自建数据集结构</h2>
+<h3>探索性测试集（120篇中文学术文本）</h3>
+<ul>
+<li><strong>规模</strong>：120篇；60篇人工撰写文本＋60篇AI生成文本；每个学科15篇人工+15篇AI。</li>
+<li><strong>数据来源</strong>：人工文本来自公开发表的中文学术论文，并控制文本长度和主题范围；AI生成文本由大模型按学科主题提示生成；按文本长度分为短文本（&lt;3000字，20篇）、中文本（3000～7000字，70篇）、长文本（&gt;7000字，30篇）。</li>
+<li><strong>生成模型（含版本）</strong>：GPT-4、DeepSeek-V3 和通义千问（原文表述："GPT-4、DeepSeek-V3和通义千问等模型根据学科主题提示生成"）。</li>
+<li><strong>生成方式 / 提示词</strong>：AI文本均按照学术论文式任务提示生成，不使用明显口语化或宣传化提示，以模拟较真实的学术写作风险场景；人工文本与AI生成文本尽量保持相近的学科主题、文章类型和长度区间。</li>
+<li><strong>字段 / 结构</strong>：文本＋标签（人工撰写／AI生成）＋学科（法学/政治学/经济学/社会学）＋文本长度区间；每篇文本经系统处理输出全文 RiskScore、风险等级、段落级风险提示、触发因素和人工复核建议。</li>
+<li><strong>标注方式</strong>：专家独立标注与仲裁机制；3位专家完全一致的样本占86%，仲裁样本占14%，Fleiss' Kappa 系数为0.78。</li>
+<li><strong>训练/验证/测试划分</strong>：训练集10 000篇（BERT微调）、开发集200篇（权重优化与参数调优/阈值选择）、测试集120篇（仅用于最终性能评估，未参与任何参数调整）；三者在文本来源、作者身份和选题范围上均无交叉。</li>
+<li><strong>许可与获取途径</strong>：论文未说明（ScholarGuard 平台网址为 https://aijc.yunhan.net.cn/detect）。</li>
+</ul>
+<h3>BERT 分类器训练集</h3>
+<ul>
+<li><strong>规模</strong>：10 000个标注样本（50%人工文本、50%AI生成文本）。</li>
+<li><strong>数据来源</strong>：公开学术语料库与多个大模型的生成文本。</li>
+<li><strong>生成模型（含版本）</strong>：论文未说明具体模型版本（仅称"多个大模型"）。</li>
+<li><strong>生成方式 / 提示词</strong>：论文未说明。</li>
+<li><strong>字段 / 结构</strong>：文本＋二分类标签（人工/AI）。</li>
+<li><strong>标注方式</strong>：论文未说明（仅说明为"标注样本"）。</li>
+<li><strong>训练/验证/测试划分</strong>：作为训练集用于 chinese-roberta-wwm-ext 二分类模型微调；训练采用训练集/开发集分离策略，在开发集上根据F1值选择阈值。</li>
+<li><strong>许可与获取途径</strong>：论文未说明。</li>
+</ul>
+<h3>开发集（200篇文本）</h3>
+<ul>
+<li><strong>规模</strong>：200篇独立标注文本，涵盖4个学科。</li>
+<li><strong>数据来源</strong>：与训练集同源但独立抽取，来源与测试集完全隔离。</li>
+<li><strong>生成模型（含版本）</strong>：论文未说明。</li>
+<li><strong>生成方式 / 提示词</strong>：论文未说明。</li>
+<li><strong>字段 / 结构</strong>：论文未说明。</li>
+<li><strong>标注方式</strong>：独立标注（原文："该开发集包括200篇独立标注文本"）。</li>
+<li><strong>训练/验证/测试划分</strong>：未参与模型训练，仅用于权重优化（PPR 的 w1、w2，融合公式的 α、β、γ，步长0.05 的网格搜索）与参数调优。</li>
+<li><strong>许可与获取途径</strong>：论文未说明。</li>
+</ul>
+<blockquote>
+<p>注：论文同时说明原文未公开其参照语言模型细节以外的语料，且指出"后续公开复现实验仍需进一步报告权重版本、随机种子和完整训练日志"。</p>
+</blockquote>
+<h2>四、实用价值</h2>
+<ul>
+<li>面向什么问题/场景：传统基于文本相似度比对的查重系统（知网论文查重、Turnitin 等）无法识别具有原创表达形式的AI生成文本；中文学术场景缺少能兼顾识别、解释与复核的检测工具。</li>
+<li>作为学术信息质量治理中的审查辅助工具，服务于四个场景——期刊编辑初筛、学位论文预审、科研管理材料审查和作者自查；输出可解释、可复核的风险线索，进入"初筛—提示—复核—说明—处理"程序，支持来源透明、人工复核、编辑审查与学术诚信治理。</li>
+</ul>
+<h2>五、创新点</h2>
+<ol>
+<li><strong>面向中文学术场景的多源证据融合框架</strong>：将困惑度扰动（PPR）、统计特征（SFR）与 BERT 语义判别三类异质信号融合为 RiskScore，避免单一指标判决（公式 RiskScore=α×PPR_Score+β×SFR_Score+γ×BERT_Score，α=0.4、β=0.3、γ=0.3）。</li>
+<li><strong>从"结论输出"转向"证据组织"</strong>：报告输出全文 RiskScore、风险等级、段落级风险提示、触发因素和人工复核建议，而非单一黑箱标签。</li>
+<li><strong>"风险等级≠违规等级"的四级风险体系</strong>：绿色（0～0.25）、黄色（0.25～0.55）、橙色（0.55～0.80）、红色（0.80～1.00），仅表示审查优先级，红色仅"进入人工复核与申诉处理流程，不作为单独定责依据"。</li>
+<li><strong>提出检测结果的治理边界与伦理基准</strong>：明确区分"AI生成可能性"与"内容可信度风险"两类风险，并确立透明性、人工审查、保护隐私、防止滥用四项原则。</li>
+<li><strong>面向低误伤取向的系统调优</strong>：精确率（86.3%）高于召回率（78.3%），适配高后果学术审查场景；消融实验显示移除 PPR 困惑度分量导致最大性能下降（F1↓11.5%）。</li>
+</ol>
+<h2>六、关键原文引用</h2>
+<blockquote>
+<p>传统基于文本相似度比对的查重系统难以有效识别具有原创表达形式的AI生成文本。</p>
+</blockquote>
+<p><strong>说明</strong>：点明论文的问题起点——查重与AI检测的能力边界差异。</p>
+<blockquote>
+<p>在受控测试条件下，ScholarGuard取得82.5%的准确率、86.3%的精确率、78.3%的召回率、82.1%的F1值和0.89的AUROC。</p>
+</blockquote>
+<p><strong>说明</strong>：系统的整体性能结果（受控测试条件下的核心指标）。</p>
+<blockquote>
+<p>测试集共包含120篇中文学术文本，其中60篇为人工撰写文本，60篇为AI生成文本，覆盖法学、政治学、经济学和社会学四个社科学科，每个学科包含15篇人工文本和15篇AI生成文本。</p>
+</blockquote>
+<p><strong>说明</strong>：自建探索性测试集的规模与构成。</p>
+<blockquote>
+<p>AI生成文本由GPT-4、DeepSeek-V3和通义千问等模型根据学科主题提示生成。</p>
+</blockquote>
+<p><strong>说明</strong>：自建数据集的生成模型来源。</p>
+<blockquote>
+<p>数据标注采用专家独立标注与仲裁机制，3位专家完全一致的样本占86%，仲裁样本占14%，Fleiss'Kappa系数为0.78，表明标注一致性处于可接受水平。</p>
+</blockquote>
+<p><strong>说明</strong>：自建数据集的标注方式与标注一致性。</p>
+<blockquote>
+<p>精确率高于召回率，说明系统更倾向于减少误伤，而不是最大化检出。</p>
+</blockquote>
+<p><strong>说明</strong>：系统面向学术高后果场景的取向设计。</p>
+<blockquote>
+<p>检测结果不宜作为自动定责依据。AI生成文本检测更适合作为学术信息质量治理中的风险提示工具，服务于来源透明文本、人工复核、编辑审查和学术诚信治理等方面。</p>
+</blockquote>
+<p><strong>说明</strong>：检测系统的定位与治理边界。</p>
+<blockquote>
+<p>移除PPR困惑度分量带来最大性能下降，说明概率结构线索在当前测试集中具有较强区分作用。</p>
+</blockquote>
+<p><strong>说明</strong>：消融研究结论，说明多源证据的互补性。</p></div>
+</section>
+<section class="paper" id="p5" data-self="是">
+  <div class="phead">
+    <div class="pnum">#5</div>
+    <div>
+      <h2>基于图增强的大模型生成中文文本黑盒检测</h2>
+      <div class="chips">
+        <span class="chip ">董凌众，张倬胜，孟魁，刘功申（通信作者）</span><span class="chip ">2025</span><span class="chip ">期刊论文</span><span class="chip ">《网络空间安全科学学报》，2025，3（3）：68-78（上海交通大学网络空间安全学院）</span>
+        <span class="badge ok">自建：是</span>
+        <span class="chip">提及数据集 4 个</span>
+        <span class="chip">创新点 5 条</span>
+      </div>
+    </div>
+  </div>
+  <div class="md"><h1>基于图增强的大模型生成中文文本黑盒检测</h1>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作者</td>
+<td>董凌众，张倬胜，孟魁，刘功申（通信作者）</td>
+</tr>
+<tr>
+<td>年份</td>
+<td>2025</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>期刊论文</td>
+</tr>
+<tr>
+<td>来源</td>
+<td>《网络空间安全科学学报》，2025，3（3）：68-78（上海交通大学网络空间安全学院）</td>
+</tr>
+</tbody>
+</table>
+<h2>一、论文涉及的数据集</h2>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>新闻-Llama</td>
+<td>[自建]</td>
+<td>训练 1984 条 / 测试 1324 条</td>
+<td>中文</td>
+<td>人类文本来自网络搜集的 CCTV 新闻联播文本（书面），机器文本用 Llama3.1-8B-Chinese-Chat 对整段人类文本按 24 种转述提示词转述生成</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>新闻-QWEN</td>
+<td>[自建]</td>
+<td>训练 2680 条 / 测试 1908 条</td>
+<td>中文</td>
+<td>人类文本同上为新闻联播文本，机器文本用 qwen-turbo-0624（阿里云灵积平台调用）转述生成</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>百科-QWEN</td>
+<td>[自建]</td>
+<td>训练 4000 条 / 测试 5230 条</td>
+<td>中文</td>
+<td>人类文本来自 HC3 数据集中的人类编写文本（书面），机器文本用 qwen-turbo-0624 按问答扩写方式生成</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>HC3-Chinese（清洗后）</td>
+<td>[使用公开数据集] + [自建]（清洗）</td>
+<td>训练 10000 条 / 测试 5800 条</td>
+<td>中文</td>
+<td>沿用 HC3 公开数据集的口语风格网络问答数据（机器文本由 GPT-3.5-turbo 扩写生成），作者做了数据清洗：过滤 &lt;100 字符样本、剔除非 ASCII 字符占比低于 5% 的英文文本、删除含"抱歉""作为 AI，我无法回答"等模板化表达的机器样本、去除 \n 格式化处理</td>
+<td>HC3 原始数据集公开</td>
+</tr>
+</tbody>
+</table>
+<h2>二、是否自建数据集</h2>
+<p><strong>是</strong>。作者构建了适用于黑盒检测任务的大语言模型生成中文文本数据集，涵盖不同领域（新闻、百科、网络问答）与不同生成模型（Llama3.1-8B-Chinese-Chat、qwen-turbo-0624、GPT-3.5-turbo），包含转述和扩写两类生成方式；其中 HC3-Chinese 子集基于公开 HC3 数据集清洗改造。</p>
+<h2>三、自建数据集结构</h2>
+<h3>新闻-Llama / 新闻-QWEN（新闻转述数据集）</h3>
+<ul>
+<li><strong>规模</strong>：新闻-Llama 训练集 1984 条、测试集 1324 条；新闻-QWEN 训练集 2680 条、测试集 1908 条</li>
+<li><strong>数据来源</strong>：网络搜集的 CCTV 新闻联播文本（人类编写文本，主题丰富、内容权威）</li>
+<li><strong>生成模型</strong>（含版本）：Llama3.1-8B-Chinese-Chat（单卡 4090 本地运行）；qwen-turbo-0624（阿里云灵积平台调用）</li>
+<li><strong>生成方式 / 提示词</strong>：转述方法，即"向大语言模型提供整段人类编写的文本进行转述"，采用单一 prompt 形式如"润色以下文本：[人类编写的文本]"，并配合 24 种具体转述要求提示词（如"尝试用更具体的词汇来描述你的想法。""简化句子，使之更容易理解。"等，见表 2）</li>
+<li><strong>字段 / 结构</strong>：文本 + 标签（机器文本为正类标签 1，人类文本为负类标签 0）</li>
+<li><strong>标注方式</strong>：由生成过程天然确定（生成文本=机器，来源文本=人类）</li>
+<li><strong>训练/验证/测试划分</strong>：论文给出了各子集训练集/测试集数量（见表 3），训练内部划分未详述</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h3>百科-QWEN（百科扩写数据集）</h3>
+<ul>
+<li><strong>规模</strong>：训练集 4000 条、测试集 5230 条</li>
+<li><strong>数据来源</strong>：HC3 数据集中的人类编写文本（百科类，书面文风）</li>
+<li><strong>生成模型</strong>（含版本）：qwen-turbo-0624</li>
+<li><strong>生成方式 / 提示词</strong>：扩写方法，沿用 HC3 工作的问答扩写方式，即向模型提供人类文本的主要内容/关键词，如"我有一个计算机相关的问题，请用中文回答，什么是外存""请用[新闻标题]为题编写新闻稿"，要求模型结合自身知识储备扩写</li>
+<li><strong>字段 / 结构</strong>：文本 + 标签（机器=1，人类=0）</li>
+<li><strong>标注方式</strong>：由生成过程天然确定</li>
+<li><strong>训练/验证/测试划分</strong>：见上；消融实验在百科-QWEN 数据集上进行</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h3>HC3-Chinese（口语文风数据集，清洗改造）</h3>
+<ul>
+<li><strong>规模</strong>：训练集 10000 条、测试集 5800 条</li>
+<li><strong>数据来源</strong>：公开 HC3 数据集的口语风格网络问答子集</li>
+<li><strong>生成模型</strong>（含版本）：GPT-3.5-turbo（HC3 原始生成模型，非本文生成）</li>
+<li><strong>生成方式 / 提示词</strong>：沿用 HC3 原有问答扩写方式；本文工作主要为数据清洗</li>
+<li><strong>字段 / 结构</strong>：问答对 + 标签</li>
+<li><strong>标注方式</strong>：沿用 HC3 原始标签（machine/human），并按清洗规则剔除低质量样本</li>
+<li><strong>训练/验证/测试划分</strong>：训练集 10000 条、测试集 5800 条</li>
+<li><strong>许可与获取途径</strong>：HC3 为公开数据集；清洗规则（最小字符长度阈值 100 字符、非 ASCII 占比 &lt;5% 判为英语剔除、模板化表达关键词过滤、去除 \n）在论文中完整说明</li>
+</ul>
+<h2>四、实用价值</h2>
+<ul>
+<li>面向互联网信息内容安全场景：识别学术写作作弊、低质量评审意见、虚假新闻等大模型滥用产生的中文生成文本；针对商用闭源模型无法白盒检测的实际场景提供黑盒解决方案，并验证混合领域训练数据可缓解跨域检测性能下降问题。</li>
+</ul>
+<h2>五、创新点</h2>
+<ol>
+<li>提出系统性的中文大模型生成文本数据集构建方法，同时覆盖转述与扩写两类生成方式、书面与口语两种文风及多个生成模型。</li>
+<li>将英文检测方法 CoCo 适配到中文场景，基底模型由 RoBERTa 更换为 chinese-roberta-wwm-ext，解决现有方法不支持中文的问题。</li>
+<li>用指代消解技术（而非命名实体识别+关键词匹配）构建中文实体关系图，更准确捕捉中文文本的共指逻辑结构。</li>
+<li>简化实体关系图特征提取步骤，通过两层 GCN 聚合实体图特征并与 RoBERTa 全局表示拼接，检测准确率最高达 98.17%，优于 Fast-DetectGPT（81.55%）、GLTR（86.65%）和 RoBERTa 基线。</li>
+<li>通过跨域实验揭示基于训练的检测方法"模型跨域不明显下降、主题跨域明显下降"的规律，并证明混合数据集训练可有效提升泛化能力。</li>
+</ol>
+<h2>六、关键原文引用</h2>
+<blockquote>
+<p>本文首先收集高质量的人类编写文本， 包括新闻数据集和百科数据集。 新闻数据集由网络搜集CCTV 新闻联播文本构成……百科数据集来自 HC3 数据集……本文工作使用了 HC3 数据集中的人类编写文本。</p>
+</blockquote>
+<p><strong>说明</strong>：说明了人类编写文本的两个来源（新闻联播文本自采 + HC3 公开数据集），明确区分自采与引用他人数据。</p>
+<blockquote>
+<p>本文参考模型生成英文文本数据集方式构造中文文本数据集， 具体分为两种方法： 一种方法是向大语言模型提供整段人类编写的文本进行转述；另一方法是向大语言模型提供人类编写文本的主要内容进行扩写。</p>
+</blockquote>
+<p><strong>说明</strong>：说明了数据集的两种机器文本生成方式（转述/扩写）及其与原文差异大小的不同（转述差异较小、扩写差异较大）。</p>
+<blockquote>
+<p>针对新闻数据集， 本文采用转述的方法， 转述要求模拟人类借助大模型写作的多种交流方法，转述提示词见表 2。</p>
+</blockquote>
+<p><strong>说明</strong>：说明转述生成采用 24 种多样化提示词（如"简化句子，使之更容易理解。"等），模拟真实的人机协作写作场景。</p>
+<blockquote>
+<p>本文设定了最小字符长度阈值（ 100 字符 ）……将比例低于 5% 的文本识别为英语， 从数据集中剔除……若文本中包含这些关键词， 则将其视为低质量文本并予以删除。</p>
+</blockquote>
+<p><strong>说明</strong>：说明对 HC3 口语数据集的完整清洗策略（长度过滤、英文剔除、模板化表达过滤、格式化），这是对公开数据集的改造贡献。</p>
+<blockquote>
+<p>其中新闻—Llama 在单卡4090 机器运行， 新闻— QWEN 通过阿里云灵积平台调用。</p>
+</blockquote>
+<p><strong>说明</strong>：说明了生成模型的具体部署方式，即 Llama3.1-8B-Chinese-Chat 本地推理、qwen-turbo-0624 经 API 调用。</p>
+<blockquote>
+<p>Fast-DetectGPT 在本文工作的中文数据集上仅取得81.55% 的检测准确率。……GLTR 方法在本文工作的数据集上最高只取得了 86.65% 的检测准确率。</p>
+</blockquote>
+<p><strong>说明</strong>：说明零样本方法和传统机器学习方法在中文数据集上的局限性，为深度学习方法的有效性提供对照。</p>
+<blockquote>
+<p>RoBERTa 图增强模型在新闻- QWEN 数据集上 F1 分数从 97.55% 提高到 98.16%， 在百科- QWEN 数据集上F1 分数从94.68% 提高到96.21%。</p>
+</blockquote>
+<p><strong>说明</strong>：量化了图增强模块相对 RoBERTa 基线的性能提升，验证文本逻辑结构特征在中文检测中的关键作用。</p>
+<blockquote>
+<p>当训练数据由新闻和百科文本混合构成时……其在"新闻- QWEN"测试集上的准确率从 74.42% 提升至 96.38%，在"百科- QWEN"测试集上的准确率从 50.21% 提升至 94.84%。</p>
+</blockquote>
+<p><strong>说明</strong>：说明增加训练数据多样性可有效缓解主题跨域检测性能下降问题，是数据集构建层面的重要实践结论。</p></div>
+</section>
+<section class="paper" id="p6" data-self="是">
+  <div class="phead">
+    <div class="pnum">#6</div>
+    <div>
+      <h2>基于多维特征分析的 AI 生成期刊论文内容识别与应对策略研究</h2>
+      <div class="chips">
+        <span class="chip ">安彤、薛德军、周哲、孔祥煜、耿崇</span><span class="chip ">2025</span><span class="chip ">期刊论文</span><span class="chip ">知识管理论坛（2025 年，第 10 卷第 2 期，第 99—108 页；DOI: 10.13266/j.issn.2095-5472.2025.007）</span>
+        <span class="badge ok">自建：是</span>
+        <span class="chip">提及数据集 3 个</span>
+        <span class="chip">创新点 5 条</span>
+      </div>
+    </div>
+  </div>
+  <div class="md"><h1>基于多维特征分析的 AI 生成期刊论文内容识别与应对策略研究</h1>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作者</td>
+<td>安彤、薛德军、周哲、孔祥煜、耿崇</td>
+</tr>
+<tr>
+<td>年份</td>
+<td>2025</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>期刊论文</td>
+</tr>
+<tr>
+<td>来源</td>
+<td>知识管理论坛（2025 年，第 10 卷第 2 期，第 99—108 页；DOI: 10.13266/j.issn.2095-5472.2025.007）</td>
+</tr>
+</tbody>
+</table>
+<h2>一、论文涉及的数据集</h2>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>大模型生成论文样本（论文 1—论文 6）</td>
+<td>[自建]</td>
+<td>6 篇</td>
+<td>中文</td>
+<td>选取 GPT-4o、Qwen-2.5、Gemini-1.5、Mistral-Large-2411、LLaMA-3.1 五个大模型，按设定提示词生成 6 篇论文样本；主题涵盖"身体自尊与睡眠质量的联系及其中介作用""父母角色重塑：《爸爸当家》中的女性主义视角分析""渔业养殖与开发的可持续管理""建筑工程项目管理的计划与控制方法研究""战略管理视角下中小企业管理创新策略研究""互联网+背景下技能大师工作室新样态"</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>案例分析稿件（某刊 6 篇论文）</td>
+<td>[自采]</td>
+<td>6 篇</td>
+<td>中文</td>
+<td>从编辑初审角度随机抽取的某刊 6 篇论文，用于机器（AIGC 检测）与人工相结合的双重验证</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>AIGC-CHECK 系统检测结果</td>
+<td>[使用公开数据集]</td>
+<td>—（不适用，为检测工具）</td>
+<td>中文</td>
+<td>知网 AIGC-CHECK 系统对上述样本的检测标注结果，样本 AIGC 值均超过 0.7（案例分析 6 篇均 ≥0.5）</td>
+<td>未说明</td>
+</tr>
+</tbody>
+</table>
+<p>（说明：论文未引用其他外部公开数据集；AIGC-CHECK 为检测工具，此处列出仅为说明数据来源，不构成独立数据集。）</p>
+<h2>二、是否自建数据集</h2>
+<p><strong>是</strong> —— 论文使用 5 个大模型（GPT-4o、Qwen-2.5、Gemini-1.5、Mistral-Large-2411、LLaMA-3.1）按设定提示词生成 6 篇论文样本，构成自建样本集；另从某刊随机抽取 6 篇论文作为案例验证稿件。规模较小（各 6 篇），作者在结论中亦承认"样本数量相对有限、案例覆盖面不足"。</p>
+<h2>三、自建数据集结构</h2>
+<h3>大模型生成论文样本（论文 1—论文 6）</h3>
+<ul>
+<li><strong>规模</strong>：6 篇</li>
+<li><strong>数据来源</strong>：由 5 个大模型（GPT-4o、Qwen-2.5、Gemini-1.5、Mistral-Large-2411、LLaMA-3.1）根据设定提示词生成，作品名对应模型依次为论文 1（GPT-4o）、论文 2（Qwen2.5）、论文 3（Gemini-1.5）、论文 4（Mistral-Large）、论文 5（Mistral-Large）、论文 6（LLaMA-3.1）</li>
+<li><strong>生成模型</strong>（含版本）：GPT-4o、Qwen-2.5、Gemini-1.5、Mistral-Large-2411、LLaMA-3.1</li>
+<li><strong>生成方式 / 提示词</strong>：提示词设计重点关注"注意事项、内容要求、写作规范"3 个方面。注意事项明确规定"不得生成论文框架或示例"；内容要求涵盖论文主题、摘要、关键词、引言、正文及参考文献等关键要素；写作规范涉及语言表达、逻辑结构、篇幅要求、引文及格式规范，例如"语言需专业严谨，逻辑清晰，论述充分，结合国内外最新研究成果和实践经验进行深入分析。篇幅不少于 5 000 字"</li>
+<li><strong>字段 / 结构</strong>：每篇含主题、大模型、AIGC 值；AIGC 值分别为 0.91（论文 1）、0.76（论文 2）、0.71（论文 3）、0.90（论文 4）、0.82（论文 5）、0.77（论文 6）</li>
+<li><strong>标注方式</strong>：用知网 AIGC-CHECK 系统检测并进行 AIGC 行为标注，标注结果显示所有样本 AIGC 值均超过 0.7；按相关研究，AIGC 值大于 0.5 的文本片段统一认定为机器判断存在 AIGC 行为</li>
+<li><strong>训练/验证/测试划分</strong>：论文未说明（本文为特征分析与策略研究，未涉及模型训练划分）</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h3>案例分析稿件（某刊 6 篇论文）</h3>
+<ul>
+<li><strong>规模</strong>：6 篇</li>
+<li><strong>数据来源</strong>：从编辑初审角度随机抽取的某刊 6 篇论文</li>
+<li><strong>生成模型</strong>（含版本）：不适用</li>
+<li><strong>生成方式 / 提示词</strong>：不适用</li>
+<li><strong>字段 / 结构</strong>：按 8 个"切入点"（引文；数据支撑和实证案例；观点/结论/研究成果/文献综述；论文结构框架；内在逻辑关系；内容一致性；概念阐释；语言表达）与 AIGC 值区间（论文1=1、论文2=0.9-1、论文3=0.8-0.9、论文4=0.7-0.8、论文5=0.6-0.7、论文6=0.5-0.6）组织</li>
+<li><strong>标注方式</strong>：机器检测（AIGC-CHECK）+ 人工特征分析相结合的"双重验证"；检测显示 6 篇论文 AIGC 值均在 0.5 以上，其中 5 篇居于 0.5 和 1 之间，另 1 篇 AIGC 值为 1；6 篇均无对文内 AI 生成内容的规范标注和 AIGC 使用情况的披露与声明</li>
+<li><strong>训练/验证/测试划分</strong>：论文未说明</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h2>四、实用价值</h2>
+<ul>
+<li>面向什么问题 / 场景：面向学术期刊投稿与审稿环节受 AIGC 冲击、AIGC 滥用行为愈发隐蔽、期刊审稿复杂化的难题，帮助编辑辨识稿件中不当使用 AIGC 的行为，维护学术出版质量与公信力。</li>
+<li>从引文、数据、观点和结论、结构框架、逻辑关系、内容一致性、概念阐释和语言表达 8 个维度构建 AI 生成期刊论文内容的特征识别体系，揭示显性与隐性特征。</li>
+<li>提出人机协同的"双重验证法"，结合 AIGC-CHECK 系统检测结果与人工特征分析规律，弥补单一审核手段的局限。</li>
+<li>构建"快速筛查—深度验证—综合应对"3 个层面的应对策略，建议将"辨识稿件是否存在不当使用 AIGC 行为"纳入稿件初审流程，提升审稿效率。</li>
+</ul>
+<h2>五、创新点</h2>
+<ol>
+<li>提出覆盖引文、数据、观点和结论、结构框架、逻辑关系、内容一致性、概念阐释、语言表达 8 个维度的 AI 生成期刊论文内容特征识别体系，突破以往特征分析维度碎片化、缺乏系统性框架的局限。</li>
+<li>提出人机协同的"双重验证法"，将 AIGC-CHECK 系统检测结果与人工特征规律判断相结合，弥补单一系统检测或仅凭审稿经验的不足。</li>
+<li>构建"快速筛查—深度验证—综合应对"三层应对策略框架（图 1），给出可落地的编辑审核流程。</li>
+<li>基于多模型（GPT-4o、Qwen-2.5、Gemini-1.5、Mistral-Large-2411、LLaMA-3.1）生成的论文样本归纳 AI 生成内容的显性与隐性特征规律。</li>
+<li>从编辑初审实际场景出发，将 AIGC 值区间（0.5—1）与具体特征表现对应，为编辑提供按风险分层的初筛查参考。</li>
+</ol>
+<h2>六、关键原文引用</h2>
+<blockquote>
+<p>笔者以期刊编辑对稿件创新性、真实性、规范性等审核维度为参考，深入分析 AI 生成的学术论文的主要表现形式，揭示其显性与隐性特征规律，构建包含引文、数据和案例、观点和结论、论文结构框架、内在逻辑关系、内容一致性或重复冗余、概念阐释以及语言表达 8 个维度的特征识别体系。</p>
+</blockquote>
+<p><strong>说明</strong>：给出本文核心贡献——8 维特征识别体系的构成与出发点。</p>
+<blockquote>
+<p>笔者选取经过数据预训练、可执行文本理解和生成任务的大模型，分别是 GPT-4o、Qwen-2.5、Gemini-1.5、Mistral-Large-2411、LLaMA-3.1，根据设定的提示词生成 6 篇论文样本。</p>
+</blockquote>
+<p><strong>说明</strong>：说明自建样本集所用模型与规模（6 篇），是数据集关键信息。</p>
+<blockquote>
+<p>注意事项明确规定"不得生成论文框架或示例"，以确保论文内容的完整性和真实性……例如"语言需专业严谨，逻辑清晰，论述充分，结合国内外最新研究成果和实践经验进行深入分析。篇幅不少于 5 000 字"。</p>
+</blockquote>
+<p><strong>说明</strong>：给出提示词设计要点与关键约束，是生成样本可复现的核心说明。</p>
+<blockquote>
+<p>随后，使用知网 AIGC-CHECK 系统对 6 篇论文样本进行检测，进行 AIGC 行为标注，标注结果显示所有样本的 AIGC 值均超过 0.7。</p>
+</blockquote>
+<p><strong>说明</strong>：给出自建样本的检测标注结果，说明 AIGC-CHECK 对 AI 生成学术内容的识别能力。</p>
+<blockquote>
+<p>检测结果显示：6 篇论文的 AIGC 值均在 0.5 以上，其中 5 篇居于 0.5 和 1 之间，另 1 篇 AIGC 值为 1，符合 AI 生成内容的基本条件。同时，6 篇论文中均无对文内 AI 生成内容的规范标注和 AIGC 使用情况的披露与声明。</p>
+</blockquote>
+<p><strong>说明</strong>：说明案例验证结果，同时揭示 AI 生成稿件普遍缺乏 AIGC 使用披露这一现实问题。</p>
+<blockquote>
+<p>"双重验证法"结合 AIGC 检测工具的分析结果与人工对 AI 生成学术内容规律性特征的判断，能够有效识别并处理不当使用 AI 生成内容的稿件。</p>
+</blockquote>
+<p><strong>说明</strong>：给出本文方法论的核心结论——双重验证法优于单一手段。</p>
+<blockquote>
+<p>不过本文的研究还存在一定局限性，例如样本数量相对有限、案例覆盖面不足以及对不同学科领域 AI 生成内容特征差异的探讨尚不够深入。</p>
+</blockquote>
+<p><strong>说明</strong>：作者自述局限，提示数据集规模小、学科覆盖不足，为后续研究指明方向。</p></div>
+</section>
+<section class="paper" id="p7" data-self="是">
+  <div class="phead">
+    <div class="pnum">#7</div>
+    <div>
+      <h2>AI生成与人类作者撰写论文要素的检测研究</h2>
+      <div class="chips">
+        <span class="chip ">熊盼、杨浠、郑旭飞、吴徐龙</span><span class="chip ">2024</span><span class="chip ">期刊论文</span><span class="chip ">人工智能科学与工程，2024年第4期，第21-30页（文章编号 2097-3586(2024)04-0021-10）</span>
+        <span class="badge ok">自建：是</span>
+        <span class="chip">提及数据集 11 个</span>
+        <span class="chip">创新点 5 条</span>
+      </div>
+    </div>
+  </div>
+  <div class="md"><h1>AI生成与人类作者撰写论文要素的检测研究</h1>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作者</td>
+<td>熊盼、杨浠、郑旭飞、吴徐龙</td>
+</tr>
+<tr>
+<td>年份</td>
+<td>2024</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>期刊论文</td>
+</tr>
+<tr>
+<td>来源</td>
+<td>人工智能科学与工程，2024年第4期，第21-30页（文章编号 2097-3586(2024)04-0021-10）</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>作者单位：1 西南大学计算机与信息科学学院/软件学院，重庆 400715；2 重庆信安网络安全等级测评有限公司，重庆 401121<br />
+基金：重庆市技术创新与应用发展专项面上项目（cstc2020jscx-msxmX0148）</p>
+</blockquote>
+<h2>一、论文涉及的数据集</h2>
+<h3>1.1 作者自建的数据集</h3>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AIGC、人类撰写及混合学术文本数据集（摘要/引言/结论三类要素）</td>
+<td>[自建]</td>
+<td>2 249 篇/条（合计）</td>
+<td>中文</td>
+<td>人类文本1 012（摘要310+引言348+结论354）＋AI文本1 012（摘要310+引言348+结论354）＋混合文本225（摘要75+引言75+结论75）；按要素合计：摘要695、引言771、结论783</td>
+<td>论文未说明（文中称"人类撰写文本…是否提供下载链接"未提及本数据集公开；仅说明文献[5][6][13][14]的中文数据集"否"）</td>
+</tr>
+<tr>
+<td>AI生成学术文本（ChatGPT、文心一言、通义千问）</td>
+<td>[自建]</td>
+<td>1 012 条（另有表述："最终收集到1 237个LLM生成的学术文本"，1 237 = 1 012 AI 文本 + 225 混合文本）</td>
+<td>中文</td>
+<td>以"自动化和计算机技术"为关键词，在计算机领域科学期刊收集学术文本，随机选取1 237个论文标题作为提示词输入三种AI工具生成</td>
+<td>论文未说明</td>
+</tr>
+<tr>
+<td>混合学术文本（AI/人类）</td>
+<td>[自建]</td>
+<td>225 条</td>
+<td>中文</td>
+<td>将其中225个AIGC文本与对应的人类撰写文本混合</td>
+<td>论文未说明</td>
+</tr>
+</tbody>
+</table>
+<p><strong>原始论文文本中的数量表述</strong>：摘要称"收集了1 012条ChatGPT、文心一言、通义千问生成的论文摘要、引言、结论文本，加入了225条AI/人类混合学术文本，对比分析了这2 049条学术文本存在的内容差异"；表3合计为 2 249。</p>
+<h3>1.2 论文引用的公开数据集（原文表1 "AIGC/人类回答数据集"）</h3>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HC3</td>
+<td>[使用公开数据集]</td>
+<td>论文未说明</td>
+<td>中英文</td>
+<td>包括人类与ChatGPT回答语料，涵盖计算机科学、金融、医疗等多个领域</td>
+<td>提供下载链接（是）</td>
+</tr>
+<tr>
+<td>CHEAT</td>
+<td>[使用公开数据集]</td>
+<td>论文未说明</td>
+<td>英文</td>
+<td>包含人类与GPT模型生成的计算机科学论文的摘要，还涵盖对抗性场景（AI润色后的文本、混合文本）</td>
+<td>提供下载链接（是）</td>
+</tr>
+<tr>
+<td>ArguGPT</td>
+<td>[使用公开数据集]</td>
+<td>论文未说明</td>
+<td>英文</td>
+<td>包含GPT模型响应的各种英语学习语料库</td>
+<td>提供下载链接（是）</td>
+</tr>
+<tr>
+<td>MGTBench</td>
+<td>[使用公开数据集]</td>
+<td>论文未说明</td>
+<td>英文</td>
+<td>从3个问答数据集中随机抽取问题，提示ChatGPT回答问题</td>
+<td>提供下载链接（是）</td>
+</tr>
+<tr>
+<td>文献[5]数据集（郭鑫等）</td>
+<td>[使用公开数据集]</td>
+<td>423 条引言</td>
+<td>中文</td>
+<td>情报学领域人类和ChatGPT生成的引言</td>
+<td>否（未提供下载链接）</td>
+</tr>
+<tr>
+<td>文献[6]数据集（王一博等）</td>
+<td>[使用公开数据集]</td>
+<td>100 条摘要</td>
+<td>中文</td>
+<td>图书馆领域人类和ChatGPT生成的摘要</td>
+<td>否（未提供下载链接）</td>
+</tr>
+<tr>
+<td>文献[13]数据集</td>
+<td>[使用公开数据集]</td>
+<td>论文未说明</td>
+<td>中文</td>
+<td>信息资源管理领域人类和ChatGPT生成的标题摘要对</td>
+<td>否（未提供下载链接）</td>
+</tr>
+<tr>
+<td>文献[14]数据集</td>
+<td>[使用公开数据集]</td>
+<td>100 篇医学综述文摘</td>
+<td>中文</td>
+<td>ChatGPT重写的医学综述文摘</td>
+<td>否（未提供下载链接）</td>
+</tr>
+</tbody>
+</table>
+<h2>二、是否自建数据集</h2>
+<p><strong>是</strong> —— 论文为计算机科学领域的期刊论文自建了三类中文数据集：AI生成文本、人类撰写文本和二者混合文本，均覆盖论文摘要、引言、结论三种要素，合计 2 249 条；人类文本采集自计算机领域期刊论文，AI文本由 ChatGPT、文心一言、通义千问按论文标题提示生成。</p>
+<h2>三、自建数据集结构</h2>
+<h3>AIGC与人类撰写及混合学术文本数据集</h3>
+<ul>
+<li><strong>规模</strong>：合计 2 249 条。人类撰写文本 1 012 条（摘要310、引言348、结论354）；AI生成文本 1 012 条（摘要310、引言348、结论354）；混合文本 225 条（摘要75、引言75、结论75）。按要素合计：摘要695、引言771、结论783。</li>
+<li><strong>数据来源</strong>：以"自动化和计算机技术"为关键词，在计算机领域的科学期刊收集学术文本，来源期刊及数量为：计算机工程449篇、软件学报450篇、计算机应用研究450篇、计算机学报450篇、计算机研究与发展450篇，合计 2 249 篇；在收集到的每篇学术论文中随机提取论文的一个要素（摘要/引言/结论）。</li>
+<li><strong>生成模型（含版本）</strong>：ChatGPT、文心一言（ERNIE Bot）、通义千问（论文未给出具体版本号）。</li>
+<li><strong>生成方式 / 提示词</strong>：在 2 249 篇论文中随机选择 1 237 个论文标题作为文心一言、通义千问、ChatGPT 的提示词输入，最终收集到 1 237 个 LLM 生成的学术文本；其中 225 个 AIGC 文本与对应的人类撰写文本混合，得到 3 类不同文本。分词时加入计算机领域相关词典以保证专业词汇正确切分；停用词方面只过滤标点符号，以最大限度保留作者行文风格。</li>
+<li><strong>字段 / 结构</strong>：文本内容＋类别标签（人类文本 / AI文本 / 混合文本）＋要素类型（摘要 / 引言 / 结论）＋来源期刊。</li>
+<li><strong>标注方式</strong>：论文未说明（未报告人工标注流程、标注者数量与一致性指标）。</li>
+<li><strong>训练/验证/测试划分</strong>：论文未说明具体划分比例；在分类任务实验中使用5折交叉验证评估模型在不可见数据上的表现。</li>
+<li><strong>许可与获取途径</strong>：论文未说明。</li>
+</ul>
+<blockquote>
+<p>论文还使用了中文GPT2预训练模型实现语句困惑度计算（用于数据集质量评估），并以 Self-BLEU、ROUGE-L、语义相似度等指标评估数据集文本质量。</p>
+</blockquote>
+<h2>四、实用价值</h2>
+<ul>
+<li>面向什么问题/场景：ChatGPT 等工具被用于学术写作，可能导致学术不端；同时看似强大的人工智能在事实准确性上存在问题、往往带有误导性，"科研成果的伪造会给学术界、出版界甚至整个社会带来巨大的打击"，因此检测AI模型生成的学术文本迫在眉睫。</li>
+<li>论文指出现有中文资源的三点不足：中文语境下的AI学术文本数据集未包含AI与人类的混合文本；研究仅锁定论文的引言或摘要，论文整体未得到研究；缺乏对其他AI工具的关注（现有研究通常只收集ChatGPT生成的学术文本）。</li>
+<li>应用场景：为学术期刊编辑提供检测工具，防止学术不端行为，保持学术界的公信力。</li>
+</ul>
+<h2>五、创新点</h2>
+<ol>
+<li><strong>构建同时覆盖三类文本（AI生成、人类撰写、AI/人类混合）的中文数据集</strong>：填补了以往中文语境下数据集不包含混合文本的空白。</li>
+<li><strong>覆盖论文三种要素而非单一要素</strong>：同时采集摘要、引言、结论，突破了以往研究只关注引言或摘要的局限。</li>
+<li><strong>扩展生成模型来源</strong>：同时使用 ChatGPT、文心一言、通义千问三种AI工具生成文本，而现有研究通常只收集ChatGPT生成的学术文本。</li>
+<li><strong>提出 DeBERTa-BiGRU 检测模型</strong>：在13种基线模型对比实验基础上提出 DeBERTa-BiGRU 模型，准确率达 91%，优于其他分类器（实验结果为 DeBERTa-BiGRU：A=0.913、P=0.960、R=0.878、F1=0.917、AUC=0.947）。</li>
+<li><strong>引入多维度数据集质量评估</strong>：使用 Self-BLEU、Perplexity、ROUGE-L、语义相似度等指标评估数据集文本质量，并给出AI与人类文本在词性分布、文本长度、高频词/高频搭配、独有词与数字使用上的差异分析。</li>
+</ol>
+<h2>六、关键原文引用</h2>
+<blockquote>
+<p>为了探究AI与人类作者在学术写作上的异同，以ChatGPT，文心一言、通义千问为研究对象，针对计算机科学领域的期刊论文，构建了3个不同种类的中文数据集，分别是AI生成、人类撰写和二者混合的摘要、引言、结论文本。</p>
+</blockquote>
+<p><strong>说明</strong>：自建数据集的对象、来源与三类构成（论文摘要原文）。</p>
+<blockquote>
+<p>收集了1 012条ChatGPT、文心一言、通义千问生成的论文摘要、引言、结论文本，加入了225条AI/人类混合学术文本，对比分析了这2 049条学术文本存在的内容差异。</p>
+</blockquote>
+<p><strong>说明</strong>：自建数据集的规模与要素构成（注意原文摘要写"2 049条"，而表3合计为2 249）。</p>
+<blockquote>
+<p>中文语境下的AI学术文本数据集并未包含AI与人类的混合文本；研究人员的目光只锁定在论文的一部分，即引言或者摘要，论文整体未得到研究；缺乏对于其他AI工具的关注，现有研究通常只收集了ChatGPT生成的学术文本。</p>
+</blockquote>
+<p><strong>说明</strong>：明确指出既有中文数据集的三个空白，即本文的出发点。</p>
+<blockquote>
+<p>人类撰写文本整体困惑度高于AI生成的文本，表明人类撰写的文本更流畅；AI生成文本整体困惑度略低于人类撰写的文本，说明由AI生成的文本更容易被识别和预测到。</p>
+</blockquote>
+<p><strong>说明</strong>：困惑度指标下的AI/人类文本差异结论。</p>
+<blockquote>
+<p>进一步提出了DeBERTa-BiGRU模型，准确率达到了91%，优于其他分类器。</p>
+</blockquote>
+<p><strong>说明</strong>：提出的检测模型及其性能。</p>
+<blockquote>
+<p>平均到每篇论文上，学者使用数字（2.66次）的频率高于AI（0.84次），混合文本中的数字频率介于这二者之间。</p>
+</blockquote>
+<p><strong>说明</strong>：以数字使用频率刻画写作风格差异。</p>
+<blockquote>
+<p>人类撰写的文本包含的独有词的数量是这3种AI文本的3倍有余。</p>
+</blockquote>
+<p><strong>说明</strong>：以独有词数量说明人类写作的词汇丰富度更高。</p></div>
+</section>
+<section class="paper" id="p8" data-self="是">
+  <div class="phead">
+    <div class="pnum">#8</div>
+    <div>
+      <h2>ChatGPT生成中文学术内容分析——以情报学领域为例</h2>
+      <div class="chips">
+        <span class="chip ">郭鑫，王一博（通信作者），王继民</span><span class="chip ">2024</span><span class="chip ">期刊论文</span><span class="chip ">《图书馆论坛》，2024，44（3）：134-143</span>
+        <span class="badge ok">自建：是</span>
+        <span class="chip">提及数据集 3 个</span>
+        <span class="chip">创新点 5 条</span>
+      </div>
+    </div>
+  </div>
+  <div class="md"><h1>ChatGPT生成中文学术内容分析——以情报学领域为例</h1>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作者</td>
+<td>郭鑫，王一博（通信作者），王继民</td>
+</tr>
+<tr>
+<td>年份</td>
+<td>2024</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>期刊论文</td>
+</tr>
+<tr>
+<td>来源</td>
+<td>《图书馆论坛》，2024，44（3）：134-143</td>
+</tr>
+</tbody>
+</table>
+<h2>一、论文涉及的数据集</h2>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>情报学高被引论文引言（人类撰写）</td>
+<td>[自采]</td>
+<td>378 篇</td>
+<td>中文</td>
+<td>2018—2022 年《中文核心期刊要目总览(2021 年版)》中 8 本含"情报"的核心期刊（《图书情报工作》《情报学报》《图书情报知识》《图书与情报》《情报理论与实践》《情报资料工作》《情报杂志》《情报科学》）高被引论文（被引≥35 次），经中国知网 HTML 手动获取引言，剔除长度 5/95 分位数外样本，保留 300~1800 字符的引言</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>ChatGPT 生成引言</td>
+<td>[自建]</td>
+<td>318 条（配对生成）</td>
+<td>中文</td>
+<td>用 GPT-4 网页版按同一批论文题目生成的引言，提示语含两篇范例引言；训练集一半、测试集一半由 GPT-4 生成，得到 556 条训练集数据 + 80 条测试集数据，内容分析共 636 条</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>细分主题标注子集</td>
+<td>[自建]</td>
+<td>166 篇</td>
+<td>中文</td>
+<td>对上述论文中主题相近论文人工标注为图书馆研究、舆情分析、政府数据治理、信息行为、专利情报 5 类细分研究主题</td>
+<td>未说明</td>
+</tr>
+</tbody>
+</table>
+<h2>二、是否自建数据集</h2>
+<p><strong>是</strong>。作者自行采集情报学核心期刊高被引论文引言，并用 GPT-4 基于相同题目生成对照引言，构建人类/机器平行语料（训练集 556 条、测试集 80 条），并人工标注细分主题子集。</p>
+<h2>三、自建数据集结构</h2>
+<h3>情报学论文引言平行语料（人类撰写 + GPT-4 生成）</h3>
+<ul>
+<li><strong>规模</strong>：378 篇人类论文；训练集 278 篇论文（556 条数据）、测试集 40 篇论文（80 条数据）、范例集 60 篇论文；内容分析共 636 条</li>
+<li><strong>数据来源</strong>：《中文核心期刊要目总览(2021 年版)》"图书馆事业、信息事业类"含"情报"的 8 本核心期刊 2018—2022 年高被引论文（被引≥35 次），引言经中国知网 HTML 阅读功能手动获取，仅用 HTML 格式（排除图片格式全文），保留 300~1800 字符的引言</li>
+<li><strong>生成模型</strong>（含版本）：GPT-4（ChatGPT 网页版 https://chat.openai.com/ 手工采集）</li>
+<li><strong>生成方式 / 提示词</strong>：角色扮演式提示语（"我希望你扮演一个经验丰富的科研人员，你的专业领域是情报学，需要帮助我完成一些这个领域学术论文的引言部分……要求引言的字符数不能少于 300 字，也不能超过 1800 字"），先给出 2 篇样例论文题目及引言作为语言风格参考，再给出待写论文题目；范例集随机分 45 篇/15 篇两个小组分别服务训练集和测试集，每篇论文随机选取 2 篇范例引言构造提示语</li>
+<li><strong>字段 / 结构</strong>：题目—引言文本对（人类原文 vs 同题 GPT-4 生成）</li>
+<li><strong>标注方式</strong>：来源标签（人类撰写 / ChatGPT 生成）由构建过程天然确定；细分主题子集（166 篇、5 类）为人工标注</li>
+<li><strong>训练/验证/测试划分</strong>：训练集 278 篇（556 条）、测试集 40 篇（80 条）、范例集 60 篇；训练与验证内部再按 75%:25% 划分，采用 K=4 折交叉验证；训练集与测试集的提示语范例不重合</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h2>四、实用价值</h2>
+<ul>
+<li>面向情报学（及类似社会科学）领域的学术出版机构与研究者：分析 ChatGPT 生成引言在词、句、篇维度与人类写作的差异，证明传统分类模型可有效检测 ChatGPT 生成引言而查重工具不能，为内容审核与质量控制、人机协同写作提供依据。</li>
+</ul>
+<h2>五、创新点</h2>
+<ol>
+<li>将 ChatGPT 生成检测落地到中文情报学这一具体学科领域，弥补国内通过定量方法研究 AI 生成内容的稀缺。</li>
+<li>从词、句、篇三个粒度系统对比人机写作差异，并提出"词汇渗透率"指标量化特征词汇（如"对于""通过"、年月日期词）的使用差异。</li>
+<li>设计了训练集/测试集提示语范例互不重合的构造方式，专门用于测试分类模型的泛化能力。</li>
+<li>用 SHAP 方法解释文本结构特征贡献度，发现平均句子长度、词汇多样性和文本长度是最重要的区分特征。</li>
+<li>同时对比分类检测与查重检测两条路线，揭示"分类模型易识别、查重工具难发现"的矛盾现象及其机理。</li>
+</ol>
+<h2>六、关键原文引用</h2>
+<blockquote>
+<p>本研究选取被引次数不小于 35 次的论文共计482篇。……保留文本长度在 300~1，800 个字符数的论文共378篇作为研究数据。</p>
+</blockquote>
+<p><strong>说明</strong>：说明了人类撰写语料的选取标准（核心期刊、被引≥35 次）、初始规模 482 篇及长度过滤后最终规模 378 篇。</p>
+<blockquote>
+<p>本研究选择GPT-4作为学术论文引言生成的模型。ChatGPT的写作内容通过其网页版产品……手工采集。</p>
+</blockquote>
+<p><strong>说明</strong>：明确了机器文本的生成模型版本（GPT-4）与采集渠道（网页版手工采集），排除了 GPT-3.5。</p>
+<blockquote>
+<p>一是分类器的训练集……共包括278 篇论文，得到556 条训练集数据；二是分类器的测试集……共包括 40 篇论文，得到 80 条测试集数据；三是ChatGPT写作时的范例集……共包括 60 篇论文。</p>
+</blockquote>
+<p><strong>说明</strong>：说明了数据集的三分结构（训练/测试/范例）及各部分规模，且训练集与测试集的一半由 GPT-4 生成。</p>
+<blockquote>
+<p>在 318 篇由ChatGPT 生成的引言中，只有 2 篇有这样的日期信息表述，占比0.63%，而人类撰写的引言中这类表达接近30%。</p>
+</blockquote>
+<p><strong>说明</strong>：以"YYYY 年 MM 月"日期数量词渗透率为证据，说明 ChatGPT 难以生成与具体时间节点关联的事实性信息。</p>
+<blockquote>
+<p>ChatGPT 生成引言的句子平均长度是 52.1个字符，人类撰写的句子平均长度约是其 1.5 倍，达到 76.2 个字符。</p>
+</blockquote>
+<p><strong>说明</strong>：语句粒度的关键差异——人类写长句更多，ChatGPT 倾向短句，这是后续分类最重要的特征之一。</p>
+<blockquote>
+<p>人类撰写引言的文本长度的5 分位数和95分位数分别是365和1，598……而ChatGPT生成引言的文本长度的5分位数和95分位数分别是593 和 862。</p>
+</blockquote>
+<p><strong>说明</strong>：篇章粒度差异——ChatGPT 生成引言篇幅分布明显更集中（峰值约 650 字符），写作更加"循规蹈矩"。</p>
+<blockquote>
+<p>ChatGPT 撰写的内容自写率达到88.84%，重复度只有 11.16%，已经能满足多数期刊论文的查重标准。</p>
+</blockquote>
+<p><strong>说明</strong>：说明查重工具（维普论文检测系统）通常无法检测出 ChatGPT 生成内容的"原创性"，即生成文本能轻松通过查重。</p>
+<blockquote>
+<p>平均句子长度、词汇多样性和文本长度是影响分类结果最重要的文本结构特征。</p>
+</blockquote>
+<p><strong>说明</strong>：SHAP 分析的核心结论，指出仅 15 维文本结构特征即可达到约 0.95 的 F1 值，且可解释性强。</p></div>
+</section>
+<section class="paper" id="p9" data-self="是">
+  <div class="phead">
+    <div class="pnum">#9</div>
+    <div>
+      <h2>人工智能生成中文学术论文文本检测研究</h2>
+      <div class="chips">
+        <span class="chip ">薛德军、孔祥煜、耿崇、吴晨、安彤</span><span class="chip ">2024</span><span class="chip ">期刊论文</span><span class="chip ">北京电子科技学院学报（2024 年，第 32 卷第 3 期，第 104—112 页；文章编号 1672-464X(2024)3-104-112）</span>
+        <span class="badge ok">自建：是</span>
+        <span class="chip">提及数据集 7 个</span>
+        <span class="chip">创新点 6 条</span>
+      </div>
+    </div>
+  </div>
+  <div class="md"><h1>人工智能生成中文学术论文文本检测研究</h1>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作者</td>
+<td>薛德军、孔祥煜、耿崇、吴晨、安彤</td>
+</tr>
+<tr>
+<td>年份</td>
+<td>2024</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>期刊论文</td>
+</tr>
+<tr>
+<td>来源</td>
+<td>北京电子科技学院学报（2024 年，第 32 卷第 3 期，第 104—112 页；文章编号 1672-464X(2024)3-104-112）</td>
+</tr>
+</tbody>
+</table>
+<h2>一、论文涉及的数据集</h2>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>基础数据集（Text-A / Text-B / Text-C）</td>
+<td>[自建]</td>
+<td>150 篇</td>
+<td>中文</td>
+<td>从中国知网《中国学术期刊网络出版总库》用计算机算法随机选取 2021 年发表、来自工程科技、农业科技、医药卫生科技、信息科技、经济与管理科学共 5 个专辑的学术论文各 30 篇；分为 Text-A/Text-B/Text-C 三组，每组含各专辑文献 10 篇</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>Data-A-AI</td>
+<td>[自建]</td>
+<td>147 条</td>
+<td>中文</td>
+<td>从 Text-A 每篇全文中随机截取约 300 字原文片段，分别用文心一言、讯飞星火、通义千问进行文本续写（文心一言 50、讯飞星火 47、通义千问 50）</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>Data-A-MIX</td>
+<td>[自建]</td>
+<td>147 条</td>
+<td>中文</td>
+<td>将 Data-A-AI 的原文片段与对应续写片段拼接构成的混写文本，并记录 AI 续写部分的拼接位置信息</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>Data-B-AI</td>
+<td>[自建]</td>
+<td>149 条</td>
+<td>中文</td>
+<td>人工从 Text-B 每篇文献中选取约 30～100 字、信息量大且语义完整的原文片段，用文心一言、讯飞星火、通义千问进行文本扩写（文心一言 50、讯飞星火 49、通义千问 50）</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>Data-B-MIX</td>
+<td>[自建]</td>
+<td>149 条</td>
+<td>中文</td>
+<td>将 Data-B-AI 的原文片段与扩写片段拼接构成的混写文本，并记录 AI 扩写部分的拼接位置信息</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>Data-C</td>
+<td>[自建]</td>
+<td>50 条</td>
+<td>中文</td>
+<td>随机从 Text-C 每篇文献全文中随机截取约 800 字原文，共 50 个纯人类原文片段</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>合计</td>
+<td>[自建]</td>
+<td>642 条</td>
+<td>中文</td>
+<td>上述 5 类检测数据集，数量分布见论文表 1（总计 642）</td>
+<td>未说明</td>
+</tr>
+</tbody>
+</table>
+<p>（说明：论文中的"GPTZero""Turnitin""AIGC-X"等在文中被表述为检测工具而非数据集，故不列入本表；OpenGPT-Text 数据集系 Chen Y 等研究引用，非本文自建。）</p>
+<h2>二、是否自建数据集</h2>
+<p><strong>是</strong> —— 论文以知网 2021 年 5 个学科专辑的 150 篇中文学术论文为语料，通过人机交互方式（AI 续写、AI 扩写）生成并构建了 Data-A-AI、Data-A-MIX、Data-B-AI、Data-B-MIX、Data-C 共 5 类检测数据集，合计 642 条，并配套记录了 AI 生成片段的拼接位置信息。</p>
+<h2>三、自建数据集结构</h2>
+<h3>基础数据集（Text-A / Text-B / Text-C）</h3>
+<ul>
+<li><strong>规模</strong>：150 篇（工程科技、农业科技、医药卫生科技、信息科技、经济与管理科学 5 个专辑各 30 篇；分为 3 组，每组含各专辑 10 篇）</li>
+<li><strong>数据来源</strong>：中国知网《中国学术期刊网络出版总库》，用计算机算法随机选取 2021 年发表的学术论文；内容覆盖学术期刊论文全文（不含摘要、参考文献）</li>
+<li><strong>生成模型</strong>（含版本）：不适用（为人类撰写的原文）</li>
+<li><strong>生成方式 / 提示词</strong>：不适用</li>
+<li><strong>字段 / 结构</strong>：按专辑（学科）与分组（Text-A/Text-B/Text-C）组织</li>
+<li><strong>标注方式</strong>：不适用（原文本身即人类撰写）</li>
+<li><strong>训练/验证/测试划分</strong>：论文未说明</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h3>Data-A-AI（AI 续写数据集）</h3>
+<ul>
+<li><strong>规模</strong>：147 条（文心一言 50、讯飞星火 47、通义千问 50）</li>
+<li><strong>数据来源</strong>：取自 Text-A，从每篇全文随机截取约 300 字原文片段</li>
+<li><strong>生成模型</strong>（含版本）：文心一言、讯飞星火、通义千问（论文未标注具体版本号）</li>
+<li><strong>生成方式 / 提示词</strong>：使用 2024 年首届提示词工程大赛冠军 CO-STAR 框架，涉及上下文、目标、风格三方面；续写提示词整体为"根据原文###原文片段###续写下文，要求不超过 500 字，保留原文写作风格"</li>
+<li><strong>字段 / 结构</strong>：原文片段 + AI 续写文本</li>
+<li><strong>标注方式</strong>：后续用知网 AIGC-CHECK 系统检测并作 AIGC 行为标注（AIGC 值大于 0.5 认定为机器判断存在 AIGC 行为）</li>
+<li><strong>训练/验证/测试划分</strong>：论文未说明</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h3>Data-A-MIX（续写混写数据集）</h3>
+<ul>
+<li><strong>规模</strong>：147 条</li>
+<li><strong>数据来源</strong>：将 Data-A-AI 的原文片段与对应续写片段拼接</li>
+<li><strong>生成模型</strong>（含版本）：文心一言、讯飞星火、通义千问</li>
+<li><strong>生成方式 / 提示词</strong>：拼接（AI 续写 + 人类原文）</li>
+<li><strong>字段 / 结构</strong>：拼接文本 + AI 续写部分的拼接位置信息</li>
+<li><strong>标注方式</strong>：AIGC-CHECK 检测标注；标注位置内容同时含 AI 与人类字符时，若 AI 生成字符数占比大于 50% 则认定为正确标注</li>
+<li><strong>训练/验证/测试划分</strong>：论文未说明</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h3>Data-B-AI（AI 扩写数据集）</h3>
+<ul>
+<li><strong>规模</strong>：149 条（文心一言 50、讯飞星火 49、通义千问 50）</li>
+<li><strong>数据来源</strong>：取自 Text-B，人工选取约 30～100 字、信息量大且语义完整的原文片段</li>
+<li><strong>生成模型</strong>（含版本）：文心一言、讯飞星火、通义千问（论文未标注具体版本号）</li>
+<li><strong>生成方式 / 提示词</strong>：使用 CO-STAR 框架；扩写提示词整体为"根据原文###原文片段###进行扩写，要求不超过 500 字，保留学术风格"</li>
+<li><strong>字段 / 结构</strong>：原文片段 + AI 扩写文本</li>
+<li><strong>标注方式</strong>：AIGC-CHECK 系统检测并作 AIGC 行为标注（AIGC 值大于 0.5 认定存在 AIGC 行为）</li>
+<li><strong>训练/验证/测试划分</strong>：论文未说明</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h3>Data-B-MIX（扩写混写数据集）</h3>
+<ul>
+<li><strong>规模</strong>：149 条</li>
+<li><strong>数据来源</strong>：将 Data-B-AI 的原文片段与扩写片段拼接</li>
+<li><strong>生成模型</strong>（含版本）：文心一言、讯飞星火、通义千问</li>
+<li><strong>生成方式 / 提示词</strong>：拼接（AI 扩写 + 人类原文）</li>
+<li><strong>字段 / 结构</strong>：拼接文本 + AI 扩写部分的拼接位置信息</li>
+<li><strong>标注方式</strong>：AIGC-CHECK 检测标注；规则同 Data-A-MIX（AI 生成字符占比大于 50% 视为正确标注）</li>
+<li><strong>训练/验证/测试划分</strong>：论文未说明</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h3>Data-C（纯人类原文数据集）</h3>
+<ul>
+<li><strong>规模</strong>：50 条</li>
+<li><strong>数据来源</strong>：随机从 Text-C 每篇文献全文中随机截取约 800 字原文</li>
+<li><strong>生成模型</strong>（含版本）：不适用</li>
+<li><strong>生成方式 / 提示词</strong>：不适用</li>
+<li><strong>字段 / 结构</strong>：纯人类撰写原文片段</li>
+<li><strong>标注方式</strong>：AIGC-CHECK 系统检测；标注准确率达 98%</li>
+<li><strong>训练/验证/测试划分</strong>：论文未说明</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h2>四、实用价值</h2>
+<ul>
+<li>面向什么问题 / 场景：面向出版、教育等管理部门对提交文本进行 AIGC 自动实时检测的迫切需求，规范 AIGC 合理使用、降低 AI 对科研诚信的不良影响。</li>
+<li>设计"面向多学科学术论文文本检测数据的人机交互生成及检测方法"，覆盖多学科、多篇章结构单元，适用于评测检测算法在多学科、多类型文本单元上的检测能力。</li>
+<li>设计了 AIGC-CHECK 检测工具，融合自编码分类模型（BERT）、自回归特征分析（GPT，计算 PPL）、统计特征分析三类特征，用 XGBoost 分类，并输出 AI 生成概率及模型扩散度、内容平滑度、内容偏离度等可视化指标。</li>
+<li>针对实际中更普遍的人机混写（AI 续写、AI 扩写）场景提供检测方案与评测基准，结果为论文出版与管理部门的检测能力提供借鉴。</li>
+</ul>
+<h2>五、创新点</h2>
+<ol>
+<li>首次针对"人机混写"（AI 续写与 AI 扩写）这一更贴近实际、检测粒度更细的场景构建检测数据集并验证检测效果，弥补了此前只研究"全文 AI 生成/全文人类撰写"的空白。</li>
+<li>数据集学科覆盖更广，取自 5 个学科专辑，而非此前研究的单一学科（如化学、图书馆学），更客观地验证算法泛化性能。</li>
+<li>数据片段随机取自论文不同结构单元（引言、背景、研究方法、结论、展望等），而非仅摘要/引言等单一篇章单元，提升检测结果可信度。</li>
+<li>提出融合模型验证与统计特征分析的检测方法：聚合字词级自编码分类（BERT）、自回归 PPL（GPT）、统计特征三条链路，再用 XGBoost 分类，方法丰富性优于单一方法。</li>
+<li>引入命名实体事实向量库验证核查，为分类结果提供辅助参考。</li>
+<li>提出并计算"AI 标注率""误标率"指标，量化检测工具对混写文本中 AI/人类边界划分的细粒度能力。</li>
+</ol>
+<h2>六、关键原文引用</h2>
+<blockquote>
+<p>本文设计了一种面向多学科学术类型文本检测数据的人机交互生成及检测测试方法，数据内容覆盖学术期刊论文全文（不含摘要、参考文献），人机生成内容方式为 AI 续写与 AI 扩写，并设计了 AIGC-CHECK 检测工具。</p>
+</blockquote>
+<p><strong>说明</strong>：概括了本文的研究对象与方法定位——多学科、全文覆盖、AI 续写/扩写两种协作方式。</p>
+<blockquote>
+<p>据此，在同一学科的基础数据中进行测试，无法有效验证算法的泛化性能。而本论文的基础数据，涵盖了多个不同学科专辑的论文，对于验证方法的有效性更客观。</p>
+</blockquote>
+<p><strong>说明</strong>：说明本文数据集覆盖 5 学科的目的与相对既有单一学科研究的优势。</p>
+<blockquote>
+<p>共生成百度文心一言续写文本 50 个，讯飞星火续写文本 47 个（3 个原文片段提示无法生成相关内容）、通义千问续写文本 50 个，共计 147 个 AI 生成文本。</p>
+</blockquote>
+<p><strong>说明</strong>：给出 Data-A-AI 的具体规模与三个生成模型的样本数，是原文可核对的关键数字。</p>
+<blockquote>
+<p>提示词整体如下："根据原文###原文片段###续写下文，要求不超过 500 字，保留原文写作风格"。</p>
+</blockquote>
+<p><strong>说明</strong>：给出续写提示词原文，是数据生成可复现的关键信息（来源标注为 CO-STAR 框架）。</p>
+<blockquote>
+<p>AIGC-CHECK 采用基于融合模型验证及统计特征分析的 AI 生成论文检测方法……（1）基于自编码模型 BERT 训练字词级别内容分类模型……（2）基于自回归模型 GPT 进行内容验证分析……（3）统计特征分析……（4）融合以上三种方法提取到的所有特征，使用 XGBoost 分类算法。</p>
+</blockquote>
+<p><strong>说明</strong>：说明检测工具的技术构成——三类特征提取 + XGBoost 融合分类。</p>
+<blockquote>
+<p>Data-C 的标注准确率达到 98%，Data-A-AI 的标注准确率达到 94.6%……Data-B-AI 的标注准确率达到 93.3%。</p>
+</blockquote>
+<p><strong>说明</strong>：给出各数据集上的检测准确率，是验证方法有效性的核心结果。</p>
+<blockquote>
+<p>已有的相关研究主要采用单一方法，如模型微调、传统特征提取等进行实验验证。而本方法应用了字词级别的文本特征提取，并聚合多种特征提取方法。</p>
+</blockquote>
+<p><strong>说明</strong>：说明本文方法相对既有单一方法在特征聚合上的创新之处。</p></div>
+</section>
+<section class="paper" id="p10" data-self="是">
+  <div class="phead">
+    <div class="pnum">#10</div>
+    <div>
+      <h2>多层级架构AI生成文本检测方法与系统研究</h2>
+      <div class="chips">
+        <span class="chip ">刘梦晴（导师：梁乙凯教授）</span><span class="chip ">2026</span><span class="chip ">硕博学位论文（硕士，工学硕士）</span><span class="chip ">山东财经大学（管理科学与工程学院，管理科学与工程专业，人工智能生成内容治理方向）</span>
+        <span class="badge ok">自建：是</span>
+        <span class="chip">提及数据集 3 个</span>
+        <span class="chip">创新点 5 条</span>
+      </div>
+    </div>
+  </div>
+  <div class="md"><h1>多层级架构AI生成文本检测方法与系统研究</h1>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作者</td>
+<td>刘梦晴（导师：梁乙凯教授）</td>
+</tr>
+<tr>
+<td>年份</td>
+<td>2026</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>硕博学位论文（硕士，工学硕士）</td>
+</tr>
+<tr>
+<td>来源</td>
+<td>山东财经大学（管理科学与工程学院，管理科学与工程专业，人工智能生成内容治理方向）</td>
+</tr>
+</tbody>
+</table>
+<h2>一、论文涉及的数据集</h2>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NewsSciGen</td>
+<td>[自建]</td>
+<td>8000 个样本（4000 篇人类原文 + 4000 篇 AI 重写文本）</td>
+<td>英文</td>
+<td>从《纽约时报》、BBC News、CNN 收集 2000 篇人类撰写的新闻节选，从 arXiv 收集 2000 篇人类撰写的学术论文摘要；用 Llama3.x、DeepSeek-R1 或 GPT-4o 三种大模型对每篇原文转述/重写；二元标签（0=人类，1=AI）</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>DAGPap22</td>
+<td>[使用公开数据集]</td>
+<td>训练集 5350 条，测试集 21403 条（含超 5000 篇自动生成的科学论文节选）</td>
+<td>英文</td>
+<td>为 SDP 2022"检测自动生成的科学论文"共享任务开发；数据基于 Cabanac 等人的研究及爱思唯尔出版和编辑团队收集的数据，来源包括被 SCOPUS 索引的已撤稿论文及已发表科学文章，含同领域人类论文作对照；二元标签</td>
+<td>公开</td>
+</tr>
+<tr>
+<td>ChineseAIGen</td>
+<td>[自建]</td>
+<td>整合后多语言数据集共 32000 条标注样本（中文 8000 条 + 英文 24000 条）</td>
+<td>中英</td>
+<td>中文语料采用"提示词模板 + 问题种子"半自动化范式生成；种子为人类专家撰写，覆盖学术写作、新闻报道、社交媒体、技术文档、文学创作，按篇幅分短（50–200 字）/中（200–500 字）/长（500–1000 字）；由 GPT-4o、Claude 3.7、DeepSeek-R1、通义千问等生成候选</td>
+<td>未说明</td>
+</tr>
+</tbody>
+</table>
+<h2>二、是否自建数据集</h2>
+<p><strong>是</strong> —— 论文自建了两个数据集：英文的 NewsSciGen（新闻 + 学术摘要的人机配对重写数据，8000 样本）和中文的 ChineseAIGen（"提示词模板 + 问题种子"半自动化生成的中文 AI 文本语料库），后者与英文语料整合为 32000 条的多语言训练集。</p>
+<h2>三、自建数据集结构</h2>
+<h3>NewsSciGen</h3>
+<ul>
+<li><strong>规模</strong>：8000 个样本（4000 篇人类撰写原文 + 4000 篇 AI 生成重写文本）</li>
+<li><strong>数据来源</strong>：《纽约时报》、BBC News、CNN 的 2000 篇人类新闻节选 + arXiv 的 2000 篇人类学术论文摘要</li>
+<li><strong>生成模型</strong>（含版本）：Llama3.x [OCR待核，原文"Llama3.m"]、DeepSeek-R1、GPT-4o 三种大模型，每个样本随机分配给其中一个模型</li>
+<li><strong>生成方式 / 提示词</strong>：基于提示词的生成方式，对每篇原始文本进行转述或重写</li>
+<li><strong>字段 / 结构</strong>：每个样本条目标注二元标签（0=人类撰写，1=AI 生成）</li>
+<li><strong>标注方式</strong>：自动二元标签（生成方式决定）</li>
+<li><strong>训练/验证/测试划分</strong>：第 3 章各数据集均采用分层抽样按 80%/10%/10% 划分训练/验证/测试集</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h3>ChineseAIGen</h3>
+<ul>
+<li><strong>规模</strong>：中文语料并入多语言整合数据集后共 32000 条标注样本（中文 8000 条、英文 24000 条）</li>
+<li><strong>数据来源</strong>：人类专家撰写的"问题种子"语料库，领域涵盖学术写作、新闻报道、社交媒体、技术文档及文学创作；篇幅分为短文本（50–200 字）、中等文本（200–500 字）和长文本（500–1000 字）</li>
+<li><strong>生成模型</strong>（含版本）：GPT-4o、Claude 3.7、DeepSeek-R1、通义千问等多个生成模型</li>
+<li><strong>生成方式 / 提示词</strong>："提示词模板 + 问题种子"半自动化生成范式：结构化提示词模板（含角色设定、核心内容对齐、风格模仿、避免直接复制、长度控制等要求）；每个种子以不同温度参数生成 2–3 个候选 AI 版本，由评估者比对选优、剔除事实性错误或逻辑问题的内容</li>
+<li><strong>字段 / 结构</strong>：统一转换为标准 JSON 格式，每条含文本内容、"0/1"标签、语言标识（中文/英文）和领域分类</li>
+<li><strong>标注方式</strong>：二元标签 + 语言/领域元信息；整合后抽取部分样本进行人工质量评估</li>
+<li><strong>训练/验证/测试划分</strong>：与英文语料整合时采用分层采样控制中英文比例（因英文样本量远大于中文）；系统章（第 5 章）按 8:1:1 分层抽样划分为训练/验证/测试集</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h2>四、实用价值</h2>
+<ul>
+<li>面向大规模实时 AI 文本检测场景：新闻平台内容审核、学术期刊投稿初审、学术诚信与社交媒体内容审核等。</li>
+<li>HATDS 系统（"初筛-精检"分层架构 + Web 可视化平台）提供置信度评分、特征分析、可疑片段标注等，强调工程可用性与成本可控。</li>
+</ul>
+<h2>五、创新点</h2>
+<ol>
+<li>提出 EffLingSem 轻量检测框架：首次显式建模语义特征（Qwen3-Embedding-0.6B）与 15 维手工语言学特征的互补性，通过层次化融合分类器自适应整合，仅 120 万参数即在 DAGPap22 和 NewsSciGen 上 F1 提升分别达 2.89%、4.53%。</li>
+<li>提出基于 logits bias 的确定性输出约束机制：在输出层对指定 token 施加偏置，将预测限制在预设 token 集合内，从数学上保证 100% 输出格式规范性并提升边界样本判断确定性。</li>
+<li>构建 ChineseAIGen 中文数据集并与英文语料整合为 32000 条的多语言训练集，结合 Qwen3-8B 的 LoRA 参数高效微调（仅调 0.25% 参数）实现跨语言统一检测（中文 F1 89.34%，多语种混合 91.45%）。</li>
+<li>设计基于成本敏感策略的多层级检测系统 HATDS："初筛-精检"串联架构由轻量模型过滤约 58% 人类写作文本、仅对疑似 AI 样本触发大模型深度验证，在 F1=88.x% 前提下推理速度提升 2.07 倍、计算资源消耗降低约 58%。</li>
+<li>针对高质量规范化文本、专业领域文本、精心编辑文本、非母语写作四类边界样本的误判问题，通过大模型语义理解能力 + 检测提示词设计显著降低误伤率。</li>
+</ol>
+<h2>六、关键原文引用</h2>
+<blockquote>
+<p>"本章构建了一个同时针对学术和新闻领域的文本检测场景的专用数据集，命名为 NewsSciGen。该数据集从《纽约时报》（The New York Times）、BBC 新闻（BBC News）和 CNN 等知名国际媒体机构随机收集了 2000 篇由人类撰写的新闻节选片段，并从 arXiv 上收集了 2000 篇均为人类撰写学术论文摘要。……最终的数据集共包含 8000 个样本：4000 篇由人类撰写的原文和 4000 篇 AI 生成的重写文本。"</p>
+</blockquote>
+<p><strong>说明</strong>：完整说明 NewsSciGen 的来源、生成方式与规模。</p>
+<blockquote>
+<p>"然后，本章通过基于提示词的生成方式，使用 Llama3.m DeepSeek-R1 或 GPT-40 这三种大型语言模型对每篇原始文本进行转述或重写，每个样本被随机分配给其中一个模型。"</p>
+</blockquote>
+<p><strong>说明</strong>：NewsSciGen 的生成模型（OCR 中"Llama3.m""GPT-40"疑为 Llama3.x、GPT-4o，[OCR待核]）。</p>
+<blockquote>
+<p>"DAGPap22 包含了超过 5000 篇自动生成的科学论文节选……每个条目都包含文本内容及其对应的标签，其中训练集 5350 条，测试集 21403 条，再实际训练中混合后按照 8:1:1 的方式拆分为训练集、验证集和测试集。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明公开数据集 DAGPap22 的规模与实际训练时的再划分方式。</p>
+<blockquote>
+<p>"本文设计并实施了一种'提示词模板 + 问题种子'的半自动化内容生成范式，在保证数据质量的同时，兼顾了内容的多样性和一致性。"</p>
+</blockquote>
+<p><strong>说明</strong>：概括 ChineseAIGen 中文数据集的核心构建方法。</p>
+<blockquote>
+<p>"这些种子被输入到多个生成模型中——包括 GPT-40、Claude 3 7 以及 DeepSeek-Rl、通义千问等——通过覆盖不同架构和训练数据的生成器，使后续训练数据能够体现更丰富的生成特征。"</p>
+</blockquote>
+<p><strong>说明</strong>：ChineseAIGen 的生成模型清单（OCR 数字疑为 GPT-4o、Claude 3.7、DeepSeek-R1，[OCR待核]）。</p>
+<blockquote>
+<p>"每个种子在生成时设定了不同的温度参数，生成 2–3 个候选 AI 版本。之后由评估者对候选文本进行比对，从中选出与种子文本在内容、风格上最为吻合的版本作为最终的配对样本，剔除事实性错误或逻辑问题的生成内容。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明生成候选的人工筛选/标注质量控制流程。</p>
+<blockquote>
+<p>"经过多轮采样平衡与质量筛选，本研宄最终构建出一个包含 32000 条标注样本的多语言数据集，其中中文样本为 8000 条，英文样本为 24000 条。"</p>
+</blockquote>
+<p><strong>说明</strong>：给出整合后多语言数据集的最终规模与中英文构成。</p>
+<blockquote>
+<p>"实验表明，系统在保持较高检测精度（F1 = 88.x 4％）的前提下，相较全量大模型方案推理速度提升 2.07 倍，计算资源消耗降低约 58％。"（摘要原文数字 OCR 为"F1 = 88 巧 4 ％"，[OCR待核]）</p>
+</blockquote>
+<p><strong>说明</strong>：说明 HATDS 分层系统在精度保持下的效率收益，体现工程实用价值。</p></div>
+</section>
+<section class="paper" id="p11" data-self="是">
+  <div class="phead">
+    <div class="pnum">#11</div>
+    <div>
+      <h2>基于深度学习的AI生成中文文本检测方法研究</h2>
+      <div class="chips">
+        <span class="chip ">苏畅（校内导师：赵俊芳 Junfang Zhao 教授；产业导师：王梦晖）</span><span class="chip ">2025（2025 年 5 月）</span><span class="chip ">硕博学位论文（硕士，专业学位，应用统计）</span><span class="chip ">中国地质大学（北京）</span>
+        <span class="badge ok">自建：是</span>
+        <span class="chip">提及数据集 5 个</span>
+        <span class="chip">创新点 5 条</span>
+      </div>
+    </div>
+  </div>
+  <div class="md"><h1>基于深度学习的AI生成中文文本检测方法研究</h1>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作者</td>
+<td>苏畅（校内导师：赵俊芳 Junfang Zhao 教授；产业导师：王梦晖）</td>
+</tr>
+<tr>
+<td>年份</td>
+<td>2025（2025 年 5 月）</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>硕博学位论文（硕士，专业学位，应用统计）</td>
+</tr>
+<tr>
+<td>来源</td>
+<td>中国地质大学（北京）</td>
+</tr>
+</tbody>
+</table>
+<h2>一、论文涉及的数据集</h2>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HC3 数据集（Human-ChatGPT Comparison Corpus，Hello-SimpleAI 团队 2023 年发布）</td>
+<td>[使用公开数据集]</td>
+<td>使用中文样本 25706 条（人类生成 12853 条、ChatGPT 生成 12853 条）</td>
+<td>中英（本研究用中文）</td>
+<td>公开问答数据集的问题输入 ChatGPT 收集回答 + 爬取 wiki、百度百科高质量概念解释让 ChatGPT 改写；字段：question、human answers、chatgpt_answers；覆盖百科、法律、医学等领域</td>
+<td>公开</td>
+</tr>
+<tr>
+<td>ChatGPT 检测数据集（徐康等 2024 年构建）</td>
+<td>[使用公开数据集]</td>
+<td>中英各 180000 条人类/ChatGPT 文本；本研究用中文部分：新闻（THUCENews/新浪新闻）39691 条、社交媒体（微博）29790 条、用户评论（在线购物评论，ChineseNIpCorpus）39704 条</td>
+<td>中英（本研究用中文）</td>
+<td>人类源文本来自 THUCNews 新闻、新浪微博、在线购物评论；用不同提示词（如"作为一名新的新闻编辑者，请帮我重新编辑以下新闻"）让 ChatGPT 改写生成 AI 文本</td>
+<td>公开</td>
+</tr>
+<tr>
+<td>自建学术摘要数据集</td>
+<td>[自建]</td>
+<td>知网爬取 4[OCR待核]1 篇文献摘要（人类）+ ChatGPT-4.0 生成等量 AI 摘要</td>
+<td>中文</td>
+<td>网络爬虫以 21 个关键词检索中国知网学术文献摘要（多学科领域）；用 ChatGPT-4.0 针对每篇摘要以"请你以'XXX'为主题，生成一篇 300—400 字的摘要"生成 AI 文本</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>自建文学作品数据集</td>
+<td>[自建]</td>
+<td>8900 条样本（古文、散文、诗词、小说四类；古文取自《汉书》《后汉书》《三国志》《史记》《资治通鉴》，散文/小说取自《一个人的村庄》《忆往述怀》《朝花夕拾》等及网络文学）</td>
+<td>中文</td>
+<td>古文、散文、小说随机截取不超过 400 字段落，诗词取完整作品；用讯飞星火大模型（Spark Max）生成仿写文本</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>多模型学术摘要检测数据集（第 4 章）</td>
+<td>[自建]</td>
+<td>额外爬取知网 4000 篇学术论文摘要 + DeepSeek-R1（14B）、Phi4（14B）、Qwen2.5（14B）分别生成 4000 篇对应摘要</td>
+<td>中文</td>
+<td>用于检验模型对新大模型生成文本的泛化能力及词频、困惑度对比分析</td>
+<td>未说明</td>
+</tr>
+</tbody>
+</table>
+<h2>二、是否自建数据集</h2>
+<p><strong>是</strong> —— 作者自建了覆盖学术论文、文学创作两领域的中文检测数据集（知网爬取学术摘要 + ChatGPT-4.0 生成等量 AI 摘要；8900 条文学体裁样本 + 讯飞星火 Spark Max 仿写文本），并在第 4 章额外自建了知网摘要 + DeepSeek-R1/Phi4/Qwen2.5 三模型生成文本的数据集用于泛化性检验。</p>
+<h2>三、自建数据集结构</h2>
+<h3>1. 自建学术摘要 + 文学作品混合数据集</h3>
+<ul>
+<li><strong>规模</strong>：学术摘要 4[OCR待核]1 篇（人类，知网爬取）+ 等量 AI 生成摘要；文学作品 8900 条</li>
+<li><strong>数据来源</strong>：中国知网文献摘要（以 21 个关键词爬虫检索）；经典著作（《史记》《朝花夕拾》《一个人的村庄》等）与网络文学</li>
+<li><strong>生成模型</strong>（含版本）：ChatGPT-4.0（学术摘要 AI 侧）；讯飞星火大模型 Spark Max（文学仿写）</li>
+<li><strong>生成方式 / 提示词</strong>：对每篇知网摘要，以"请你以'港口国公共卫生风险评估规则的审视与优化'为主题，生成一篇 300—400 字的摘要"（按文献标题填入主题）调用 ChatGPT-4.0 生成；文学作品由 Spark Max 仿写</li>
+<li><strong>字段 / 结构</strong>：文本 + 来源标签（人类/AI）；摘要类含关键词、文献标题、原文摘要、提示词、AI 生成摘要</li>
+<li><strong>标注方式</strong>：按来源标注二分类标签（人类/AI 生成）；预处理剔除学位论文标识符（〖摘要〗〖学位授予单位〗）、统一段落缩进与空行以消除来源特征</li>
+<li><strong>训练/验证/测试划分</strong>：论文未说明具体比例（构建遵循数据平衡原则，人类与 AI 文本约 1:1）</li>
+<li><strong>许可与获取途径</strong>：论文未说明（知网部分为自行爬取）</li>
+</ul>
+<h3>2. 多模型学术摘要检测数据集（第 4 章）</h3>
+<ul>
+<li><strong>规模</strong>：人类摘要 4000 篇 + 三个模型各 4000 篇（合计 16000 篇）</li>
+<li><strong>数据来源</strong>：中国知网学术论文摘要</li>
+<li><strong>生成模型</strong>（含版本）：DeepSeek-R1（14B 部署版本）、Phi4（14B）、Qwen2.5（14B）——均选 14B 参数版本本地部署以保证参数等级一致</li>
+<li><strong>生成方式 / 提示词</strong>："请你以'基于事理图谱的公共卫生事件次生衍生事件预警模型构建研究'为主题，生成一篇 300—400 字的摘要"（按论文标题填入）</li>
+<li><strong>字段 / 结构</strong>：文本 + 来源标签；预处理删除各模型输出前缀（如"<strong>论文标题</strong>""<strong>摘要</strong>"）与空白行</li>
+<li><strong>标注方式</strong>：按来源（知网人类 / DeepSeek-R1 / Phi4 / Qwen2.5）分组；再按检测结果划分 TP/FP/TN/FN 四组</li>
+<li><strong>训练/验证/测试划分</strong>：论文未说明（主要用作泛化性测试）</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h2>四、实用价值</h2>
+<ul>
+<li>AI 生成中文文本检测，服务教育（防范学生作业/论文学术不端）、新闻（核实信息真伪）、学术出版等领域；已搭建公开免费检测平台 freeaidetect.top 实现社会化应用，输出生成概率、置信度区间及整体统计信息的检测报告。</li>
+</ul>
+<h2>五、创新点</h2>
+<ol>
+<li>提出 RoBERTa-text 双流特征融合模型，通过特征拼接与门控注意力机制将 RoBERTa 深层语义特征与人工设计的文本统计特征（标点密度、句子长度标准差等）动态融合。</li>
+<li>构建涵盖 HC3、ChatGPT 检测数据集及自建学术摘要、文学作品数据集的跨领域混合型多源中文语料库，提升模型泛化能力。</li>
+<li>通过消融实验量化分类器深度与各统计特征的贡献，发现句子长度标准差特征对判别能力影响尤为关键，为特征选择提供可量化依据。</li>
+<li>对 DeepSeek-R1、Phi4、Qwen2.5 三种新型大模型生成文本做检测效能对比与 TP/FP/TN/FN 分组的文本特征统计和语言学分析，揭示模型判断依据（句长变化小、标点密集的文本易被判为 AI；AI 文本词汇分布集中、人类文本词汇更分散）。</li>
+<li>开发公开检测平台 freeaidetect.top，实现检测模型的社会化落地应用。</li>
+</ol>
+<h2>六、关键原文引用</h2>
+<blockquote>
+<p>"本文构建了一个涵盖 HC3 数据集、 ChatGPT 检测数据集及自建学术摘要、文学作品数据集的多领域语料库，通过特征拼接与门控注意力机制实现语义特征与统计特征的动态融合。"</p>
+</blockquote>
+<p><strong>说明</strong>：概述论文的数据集构成（公开 + 自建）与模型核心机制。</p>
+<blockquote>
+<p>"在学术摘要方面，基于中国知网 4 巧 1 篇文献摘要构建人类作者语料，并利用 ChatGPT-4 ， 0 生成等量 AI 文本；在文学创作领域，针对古文、散文、诗词、小说四类体裁，从《史记》《朝花夕拾》等经典著作及网络文学中抽取 8900 条样本，同时使用讯飞星火大模型 (Spark Max) 生成仿写文本以增强模型泛化能力。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明自建数据集的规模、来源与生成模型（"4 巧 1 篇"数字存在 OCR 噪声，待核）。</p>
+<blockquote>
+<p>"该数据集有中英文双语数据，覆盖百科、法律、医学等多个领域，其数据包含一个字段： question （问题）、 human answers （人类回答列表）、 chatgpt_answers （ ChatGPT 回答列表）在本研宄中主要使用其中的中文文本数据，使用数据样本 25706 条，人类生成文本和 ChatGPT 生成文本各 12853 条。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明 HC3 数据集的字段结构及本研究实际使用规模（"一个字段"应为"三个字段"之 OCR 误）。</p>
+<blockquote>
+<p>"本研宄从知网数据库中额外爬取了 4000 篇学术论文摘要，并利用三种不同的语言模型分别生成了 4000 篇对应的学术论文摘要。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明第 4 章多模型泛化检验数据集的规模与构成。</p>
+<blockquote>
+<p>"本实验选择部署以上三种语言大模型的 14B 参数版本进行文本生成。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明 DeepSeek-R1、Phi4、Qwen2.5 的部署版本选择（保证参数等级一致）。</p>
+<blockquote>
+<p>"实验表明， RoBERTa-text 模型对 Phi4 生成文本的检测性能最优（召回率达 100 ％），而 Qwen 2 5 生成文本因更接近人类写作模式而更具挑战性，准确率仅为 8 &amp; 91 ％。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明自建多模型数据集上的关键实验结论（86.91% 为 OCR 识别结果）。</p>
+<blockquote>
+<p>"本文通过搭建公开检测平台（ freeaidetect.top ）实现了 AI 生成中文文本检测模型的社会化应用，为教育、新闻、学术出版等领域提供了技术支撑。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明研究成果的实际应用落地形式。</p></div>
+</section>
+<section class="paper" id="p12" data-self="是">
+  <div class="phead">
+    <div class="pnum">#12</div>
+    <div>
+      <h2>基于深度学习的AI生成学术文本检测研究</h2>
+      <div class="chips">
+        <span class="chip ">熊盼（指导教师：郑旭飞副教授、赵欣高级工程师）</span><span class="chip ">2025（2025 年 4 月 10 日提交，5 月 24 日答辩）</span><span class="chip ">硕博学位论文（硕士，专业学位，电子信息，软件工程领域）</span><span class="chip ">西南大学（重庆）</span>
+        <span class="badge ok">自建：是</span>
+        <span class="chip">提及数据集 4 个</span>
+        <span class="chip">创新点 5 条</span>
+      </div>
+    </div>
+  </div>
+  <div class="md"><h1>基于深度学习的AI生成学术文本检测研究</h1>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作者</td>
+<td>熊盼（指导教师：郑旭飞副教授、赵欣高级工程师）</td>
+</tr>
+<tr>
+<td>年份</td>
+<td>2025（2025 年 4 月 10 日提交，5 月 24 日答辩）</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>硕博学位论文（硕士，专业学位，电子信息，软件工程领域）</td>
+</tr>
+<tr>
+<td>来源</td>
+<td>西南大学（重庆）</td>
+</tr>
+</tbody>
+</table>
+<h2>一、论文涉及的数据集</h2>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CNSET（自建中文学术文本数据集）</td>
+<td>[自建]</td>
+<td>合计 2249 篇/个论文要素：人类文本 1012（摘要 310、引言 348、结论 354）、AI 文本 1012（摘要 310、引言 348、结论 354）、混合文本 225（摘要 75、引言 75、结论 75）；正文另述"从 2249 篇人类作者论文中随机选取 1237 个论文标题作为提示词生成 1237 篇机器文本"[OCR待核，两处数字不一致]</td>
+<td>中文</td>
+<td>从计算机领域科学期刊采集论文的摘要、引言、结论三要素；用论文标题构造角色扮演提示词驱动大语言模型生成对应 AI 文本；取 225 篇生成文本与学者文本混合构造混合文本</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>EnsembleSet（EnSet，分布外评测数据集）</td>
+<td>[自建/扩展]</td>
+<td>约 15000 条数据（OCR "巧000"）</td>
+<td>中文</td>
+<td>在 CNSET 基础上扩展计算机科学领域以外的学术文本（如教育学等），涵盖 ChatGPT、DeepSeek、文心一言、通义千问等多个模型与多领域分布；按"分布内/跨模型/跨领域"划分实验场景（如 EnsembleSet w/o ChatGPT、w/o 计算机科学等）</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>对抗攻击文本数据集（EnSet-PEGASUS / EnSet-ChatGPTPara / EnSet-ParaGPT）</td>
+<td>[自建]</td>
+<td>论文未说明具体条数</td>
+<td>中文</td>
+<td>在 EnsembleSet 基础上构建：① PEGASUS 摘要改写（Transformer 句子级遮蔽 + 去噪自编码）；② ChatGPT-paraphraser（Vladimir 等基于 T5 开发的改写工具）；③ ParaGPT（本文提出的最佳提示词 + 递归释义攻击框架，DeepSeek-API 提特征、T5 生成候选释义）</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>HC3 数据集</td>
+<td>[使用公开数据集]（文献综述中提及）</td>
+<td>—</td>
+<td>中英</td>
+<td>Guo 等人构建的 ChatGPT 与人类对比数据集</td>
+<td>公开</td>
+</tr>
+</tbody>
+</table>
+<h2>二、是否自建数据集</h2>
+<p><strong>是</strong> —— 自主构建了 CNSET 中文学术文本数据集（人类/AI/混合三类学术文本），并扩展出多领域多模型的 EnsembleSet 及三类攻击（PEGASUS、ChatGPT-paraphraser、ParaGPT）对抗文本数据集，用于分布外检测与对抗鲁棒性研究。</p>
+<h2>三、自建数据集结构</h2>
+<h3>CNSET</h3>
+<ul>
+<li><strong>规模</strong>：2249 个论文要素（人类文本 1012、AI 文本 1012、混合文本 225）；含摘要、引言、结论三类</li>
+<li><strong>数据来源</strong>：计算机领域科学期刊论文的摘要、引言、结论</li>
+<li><strong>生成模型</strong>（含版本）：大语言模型（提示词驱动生成）；OCR 全文中未明确写出生成所用具体模型名称 [OCR待核]</li>
+<li><strong>生成方式 / 提示词</strong>：从 2249 篇人类作者论文中随机选取 1237 个论文标题作为提示词组成部分，采用角色扮演式提示，如"我希望你扮演一个经验丰富的科研人员，你的专业领域是计算机科学，需要帮助我完成学术论文的第一部分，即摘要，论文题目是：……"</li>
+<li><strong>字段 / 结构</strong>：文本 + 类别标签（人类文本 / AI 生成文本 / 混合文本）+ 论文要素类型（摘要/引言/结论）</li>
+<li><strong>标注方式</strong>：按来源天然标注三类标签；构建流程含数据清洗与预处理（正则去除换行符、制表符，删除"感谢您的提问"等明显 AI 用语，停用词过滤、中文分词）；质量评估采用 Self-BLEU 衡量多样性、余弦相似度（多数问答对得分分布在 0.5—0.8 之间）衡量提示-生成相关性</li>
+<li><strong>训练/验证/测试划分</strong>：采用分层抽样划分为训练集、验证集和测试集，交叉验证训练，验证集调参与早停（具体比例论文未说明）</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h3>EnsembleSet（含攻击扩展）</h3>
+<ul>
+<li><strong>规模</strong>：约 15000 条（OCR 原文"包含巧 000 条数据"）</li>
+<li><strong>数据来源</strong>：扩展计算机科学以外的学术领域（如教育学），涵盖多个生成模型（ChatGPT、DeepSeek、文心一言、通义千问）</li>
+<li><strong>生成模型</strong>（含版本）：ChatGPT、DeepSeek、文心一言、通义千问；攻击文本由 PEGASUS、ChatGPT-paraphraser（T5-base）、ParaGPT（DeepSeek-API + T5 递归释义）生成</li>
+<li><strong>生成方式 / 提示词</strong>：ParaGPT 框架——调用 DeepSeek-API 对 AI/人类回答对做对比分析提取显著差异特征，重构提示词模板，以代理服务器计算生成文本的 AI 概率 P(AI)，取最小化 P(AI) 的最佳提示词；再对生成文本做递归释义攻击（词汇多样性、语序多样性两个参数控制，T5 生成多候选，余弦相似度选最优，逐轮迭代）</li>
+<li><strong>字段 / 结构</strong>：文本 + 来源（模型/攻击方式）标签</li>
+<li><strong>标注方式</strong>：按生成模型/攻击方式标注；用于分布内、跨模型、跨领域三场景评测（排除某模型/某领域文本训练、对被排除文本测试，计算加权半均值）</li>
+<li><strong>训练/验证/测试划分</strong>：按表 3-2 场景划分（EnsembleSet w/o 文心一言/通义千问/ChatGPT/DeepSeek/计算机科学/教育学）；RobustDetector 阶段用 EnSet 及三种攻击文本子集渐进式微调五类检测器</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h2>四、实用价值</h2>
+<ul>
+<li>面向 AI 生成学术文本检测（学术不端审查、维护学术公信力）：OODetector 应对跨领域、跨模型（分布外）学术文本检测；RobustDetector 应对改写、润色、优化提示词等逃避检测的对抗场景；并设计实现了集成两模型的 AI 生成学术文本检测系统（含文心一言 API 与释义模型的文本优化辅助功能）。</li>
+</ul>
+<h2>五、创新点</h2>
+<ol>
+<li>构建了面向正式学术文本（摘要、引言、结论）的中文数据集 CNSET，填补学术论文/研究报告类检测数据相对有限的空缺。</li>
+<li>提出 OODetector：融合 DeBERTa 全局语义表示、BiGRU 双向序列建模与注意力机制动态加权的多层次检测框架，缓解分布外场景下性能衰减。</li>
+<li>设计 ParaGPT 对抗文本生成框架：基于最佳提示词构建策略（DeepSeek-API 提取 AI/人类差异特征并以最小化 AI 概率选择提示）与递归释义攻击（词汇/语序双多样性参数、多候选余弦相似度筛选、逐轮迭代改写），生成高质量逃避检测样本。</li>
+<li>提出 RobustDetector 三重防御机制：对抗样本微调 DistilRoBERTa 编码器 + InfoNCE 对比学习强化特征空间区分能力 + JS 散度最小化的一致性校准，提升对抗场景鲁棒性。</li>
+<li>基于软件工程方法设计实现了集成 OODetector 与 RobustDetector 的 AI 生成学术文本检测系统，并提供文心一言 API 驱动的 AI 文本优化功能。</li>
+</ol>
+<h2>六、关键原文引用</h2>
+<blockquote>
+<p>"本章自主构建了一个名为 CNSET 的中文数据集。……首先从计算机领域的科学期刊中采集论文的三个核心要素：摘要、引言和结论。……首先从 2249 篇人类作者论文中随机选取了 1237 个论文标题作为大语言模型的提示词组成，进而生成了 1237 篇机器撰写的学术文本。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明 CNSET 的来源、规模与生成方式（表 3-1 中合计数字与正文 1237 篇存在出入，OCR 待核）。</p>
+<blockquote>
+<p>"EnsembleSet 数据集扩展了除计算机科学领域以外的学术文本，包含巧 000 条数据，涵盖了多个领域与模型的文本分布。为了探宄模型在分布内外的表现，划分出了三个实验场景，分别为分布内、跨领域以及跨模型。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明分布外评测数据集 EnsembleSet 的规模（约 15000 条）与实验场景设计。</p>
+<blockquote>
+<p>"我希望你扮演一个经验丰富的科研人员，你的专业领域是计算机科学，需要帮助我完成学术论文的第一部分，即摘要，论文题目是：……"</p>
+</blockquote>
+<p><strong>说明</strong>：CNSET 生成时使用的角色扮演提示词原文示例。</p>
+<blockquote>
+<p>"首先调用 DeepSeek-AP1 对 AI/ 人类回答对进行对比分析，提取表征两类文本分布的显著性差异特征，随后将该特征集作为约束条件重构提示词模板，通过代理服务器计算在该提示词下生成文本的 AI 概率值 PAIO ……当 PAI 最小时，提示词的效用分数 U(p) 达到最优。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明 ParaGPT 最佳提示词构建策略——用 DeepSeek-API 提特征、最小化 AI 概率选择提示。</p>
+<blockquote>
+<p>"一是 PEGASUS 摘要改写……二是 ChatGPT-paraphraser……三是 ParaGPT：对应 421 小节所提出的生成框架……基于上述数据集，采用渐进式微调策略训练五类检测模型。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明对抗文本数据集的三种攻击来源与渐进式微调训练策略。</p>
+<blockquote>
+<p>"该检测方法一方面通过引入高质量对抗样本对编码器进行微调，另一方面加入了对比学习强化模型在特征空间中的区分能力，同时通过最小化 JS 散度从输出空间约束模型，使得扰动前后预测概率保持稳定。"</p>
+</blockquote>
+<p><strong>说明</strong>：概括 RobustDetector 的三重防御机制（摘要原文）。</p>
+<blockquote>
+<p>"该系统集成了 OODetector 与 RobustDetector ，能够在多种场景下高效检测学术文本。……将文心一一 API 与释义模型集成至系统，为用户提供文本优化的辅助功能。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明检测系统的构成与文本优化辅助功能（"文心一一"为"文心一言"OCR 误识）。</p></div>
+</section>
+<section class="paper" id="p13" data-self="部分自建">
+  <div class="phead">
+    <div class="pnum">#13</div>
+    <div>
+      <h2>基于特征融合的AI生成文本识别与定位研究</h2>
+      <div class="chips">
+        <span class="chip ">余洋（导师：朱峋副教授；答辩委员会主席：张沪寅教授）</span><span class="chip ">2025（2025 年 3 月 18 日提交，5 月 16 日答辩）</span><span class="chip ">硕博学位论文（硕士）</span><span class="chip ">江汉大学（专业名称：计算机技术，研究方向：自然语言处理）</span>
+        <span class="badge mid">自建：部分自建</span>
+        <span class="chip">提及数据集 3 个</span>
+        <span class="chip">创新点 4 条</span>
+      </div>
+    </div>
+  </div>
+  <div class="md"><h1>基于特征融合的AI生成文本识别与定位研究</h1>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作者</td>
+<td>余洋（导师：朱峋副教授；答辩委员会主席：张沪寅教授）</td>
+</tr>
+<tr>
+<td>年份</td>
+<td>2025（2025 年 3 月 18 日提交，5 月 16 日答辩）</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>硕博学位论文（硕士）</td>
+</tr>
+<tr>
+<td>来源</td>
+<td>江汉大学（专业名称：计算机技术，研究方向：自然语言处理）</td>
+</tr>
+</tbody>
+</table>
+<h2>一、论文涉及的数据集</h2>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>扩展 SnifferBench 数据集（ATDPS 实验用）</td>
+<td>[使用公开数据集 + 扩展]</td>
+<td>1400 个样本、28802 条句子（OCR "1 400 个样本"）；GPT-2/GPT-3/GPT-Neo/GPT-J/GPT-4/LLaMA-2/Human 各 200 个样本</td>
+<td>英文</td>
+<td>基于 SnifferBench（含人类文本及 GPT-3、LLaMA-2 等生成文本）扩展引入 GPT-4 生成文本；人类文本来自 XSum 新闻摘要、IMDB 电影评论等多领域；商业模型 GPT-3 因访问限制用 GPT-3.5-turbo 替代生成</td>
+<td>基于公开数据集扩展</td>
+</tr>
+<tr>
+<td>GoodNews 数据集（SPLoc 实验用）</td>
+<td>[使用公开数据集 + 处理]</td>
+<td>训练集 10000、验证集 1000、测试集 1000</td>
+<td>英文</td>
+<td>来源于纽约时报 2010 至 2018 年的文章 URL；过滤无效链接与非英语文章后，用 GPT2-1.5B、GPTNeo-2.7B 等依文章标题和初始段落生成句子（top-k=40、top-p 0.94—0.98 采样），NLTK 分句筛选后替换原文部分内容，每篇文章含≥3 个机器生成片段（40—300 tokens）[OCR待核："摔 3 个"]</td>
+<td>公开</td>
+</tr>
+<tr>
+<td>VisualNews 数据集（SPLoc 零样本实验用）</td>
+<td>[使用公开数据集 + 处理]</td>
+<td>1000（评估）+ 1000（训练分类）</td>
+<td>英文</td>
+<td>数据来自《卫报》、BBC、《今日美国》和《华盛顿邮报》；按与 GoodNews 类似的生成替换流程构建</td>
+<td>公开</td>
+</tr>
+</tbody>
+</table>
+<h2>二、是否自建数据集</h2>
+<p><strong>部分自建</strong> —— 论文未完全从零构建数据集，而是在公开 SnifferBench 数据集基础上扩展（引入 GPT-4 生成文本、GPT-3.5-turbo 替代生成），并用 GPT2-1.5B、GPTNeo-2.7B 等模型对 GoodNews、VisualNews 做机器生成句子的注入替换处理，形成实验用混合文本定位数据。</p>
+<h2>三、自建数据集结构</h2>
+<h3>扩展 SnifferBench 数据集（ATDPS 检测实验）</h3>
+<ul>
+<li><strong>规模</strong>：1400 个样本、28802 条句子；AI 与人类各 200 个样本/来源（GPT-2、GPT-3（GPT-3.5-turbo 替代）、GPT-Neo、GPT-J、GPT-4、LLaMA-2、Human 各 200）</li>
+<li><strong>数据来源</strong>：SnifferBench 公开数据集 + 自行引入 GPT-4 生成文本；人类文本涵盖 XSum 新闻摘要、IMDB 电影评论、社交媒体评论、网络文本等领域</li>
+<li><strong>生成模型</strong>（含版本）：GPT-2、GPT-J、GPT-Neo、LLaMA-2（开源）；GPT-3.5-turbo（替代 GPT-3）；GPT-4</li>
+<li><strong>生成方式 / 提示词</strong>：提示工程方法——从人类撰写文本中随机选取前三个句子作为提示输入各 LLM 生成对应 AI 文本，保证主题风格一致与内容连贯</li>
+<li><strong>字段 / 结构</strong>：文本 + 来源标签（具体生成模型或 Human）；token 级对数概率经 Token-to-Word 对齐策略（多 token 取平均、一 token 多词重复分配）转为词汇级概率特征</li>
+<li><strong>标注方式</strong>：按生成模型来源天然标注（多分类：判断文本是哪种 AI 或人类撰写）</li>
+<li><strong>训练/验证/测试划分</strong>：按类别分层抽样随机分区，90% 训练、10% 测试；重复 5 次实验取平均</li>
+<li><strong>许可与获取途径</strong>：基于公开 SnifferBench 扩展；扩展部分论文未说明是否发布</li>
+</ul>
+<h3>GoodNews / VisualNews 处理数据（SPLoc 定位实验）</h3>
+<ul>
+<li><strong>规模</strong>：GoodNews 训练 10000 / 验证 1000 / 测试 1000；VisualNews 1000（评估）+ 1000（训练分类）</li>
+<li><strong>数据来源</strong>：纽约时报 2010—2018 年文章 URL（GoodNews）；《卫报》、BBC、《今日美国》、《华盛顿邮报》（VisualNews）</li>
+<li><strong>生成模型</strong>（含版本）：GPT2-1.5B、GPTNeo-2.7B 等</li>
+<li><strong>生成方式 / 提示词</strong>：依文章标题和初始段落生成句子，top-k 采样（k=40）与 top-p 采样（p∈0.94—0.98）获取多样化结果；NLTK 分段分句，挑选结构完整、语法正确的句子替换原文部分内容，每篇文章含约 3 个机器生成片段（长度 40—300 tokens）</li>
+<li><strong>字段 / 结构</strong>：句子级文本 + 句子级标签（机器生成/人类撰写）</li>
+<li><strong>标注方式</strong>：替换位置即机器生成句子的金标准位置</li>
+<li><strong>训练/验证/测试划分</strong>：GoodNews 按上表划分；VisualNews 仅用于零样本评估</li>
+<li><strong>许可与获取途径</strong>：公开数据集</li>
+</ul>
+<h2>四、实用价值</h2>
+<ul>
+<li>面向虚假信息传播、伪造新闻等风险下的 AIGT 检测：ATDPS 面向整篇文本的 AI 来源识别（可区分多种 LLM）；SPLoc 面向混合文本（部分 AI 生成、部分人类撰写）的局部 AI 文本定位与短文本检测，服务内容审核、信息真实性核查、媒体公信力维护与 AI 技术规范化治理。</li>
+</ul>
+<h2>五、创新点</h2>
+<ol>
+<li>提出 ATDPS 模型：首次在 AIGT 检测中同时集成多语言模型（GPT-2、GPT-3、GPT-Neo、GPT-J、LLaMA-2）词级对数概率特征与 BERT 语义特征，并用时间卷积网络（TCNs）编码概率特征的时间依赖。</li>
+<li>提出 SPLoc 模型：结合预训练 RoBERTa 语义特征与困惑度特征，利用滑动窗口技术与全局自注意力机制实现混合文本中局部 AI 生成句子的精确定位（短文本、混合文本 mAP 提升约 47.3%，OCR "4q3"）。</li>
+<li>对公开 SnifferBench 数据集进行扩展（引入 GPT-4 文本），并以"人类文档前几句作为 AIGT 提示"的生成策略增强数据的真实性和复杂性。</li>
+<li>通过对比实验与消融研究验证概率特征、语义特征、TCNs、滑动窗口等各模块贡献，给出长文本用 ATDPS、短文本/混合文本用 SPLoc 的适用性结论。</li>
+</ol>
+<h2>六、关键原文引用</h2>
+<blockquote>
+<p>"本文的数据集构建基于现有的 SnifferBench 数据集，并在此基础上进行了扩展。SnifferBench 数据集包含了人类撰写的文本以及由多种大语言模型（如 GPT-3 、 LLaMA-2 等）生成的 AI 文本。为了增强数据集的多样性和时效性，本研宄进一步引入了由 GPT-4 生成的文本……"</p>
+</blockquote>
+<p><strong>说明</strong>：说明 ATDPS 实验数据集在公开 SnifferBench 基础上扩展引入 GPT-4 文本。</p>
+<blockquote>
+<p>"最终的数据集包含 1 400 个样本， 28802 条句子，其中 AI 生成文本和人类撰写文本各占 200 个样本，确保了数据集的类别平衡……"</p>
+</blockquote>
+<p><strong>说明</strong>：说明扩展后数据集的总体规模与类别平衡设计。</p>
+<blockquote>
+<p>"对于商业模型（如 GPT-3 ），由于访问限制，研宄使用了 GPT-3 巧 turbo 作为替代生成工具。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明 GPT-3 类数据实际由 GPT-3.5-turbo 替代生成（OCR 原文"GPT-3 巧 turbo"应为 GPT-3.5-turbo）。</p>
+<blockquote>
+<p>"从人类撰写的文本中随机选取前三个句子作为提示，输入到不同的大语言模型中生成对应的 AI 文本。这种生成策略不仅确保了生成内容的连贯性，还使得生成的文本与人类文本在语义和结构上具有较高的相似性。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明 AI 文本的提示词构造方式（人类文档前 3 句作提示）。</p>
+<blockquote>
+<p>"接着利用多种语言模型，如 GPT2-1.5B 、 GPTNeo-2.7B 等，依据文章的标题和初始段落生成句子。……保证每篇文章包含摔 3 个机器生成文本片段，且这些片段的长度在 40 ． 300tokens 之间。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明 GoodNews/VisualNews 上混合文本的构造方式（"摔 3 个"应为"至少 3 个"，OCR 待核）。</p>
+<blockquote>
+<p>"在数据集的划分上，研宄采用了随机分区的方法。具体来说，按类别分层抽样，将数据集的 90 ％用于训练， 10 ％用于测试。为了减少随机性对实验结果的影响，研宄重复了 5 次实验，并报告了平均结果。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明 ATDPS 实验的训练/测试划分与重复实验设置。</p>
+<blockquote>
+<p>"特别是在处理短文本和混合文本时，模型的平均精度（ mAP ）提升了 4q3 ％。并且模型在 VisualNews 数据集上处理零样本任务时，模型依然能够保持较高的检测精度。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明 SPLoc 在短文本/混合文本定位上的量化收益（约 47.3%）与零样本泛化能力。</p>
+<blockquote>
+<p>"本章是首个在 AIGT 检测中同时集成概率特征和语义特征，并使用 TCNs 处理时间特征的研宄。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明 ATDPS 方法的新颖性主张。</p></div>
+</section>
+<section class="paper" id="p14" data-self="是">
+  <div class="phead">
+    <div class="pnum">#14</div>
+    <div>
+      <h2>基于特征融合的机器生成文本检测方法研究</h2>
+      <div class="chips">
+        <span class="chip ">吴春晖（导师：陈静 副教授）</span><span class="chip ">2025</span><span class="chip ">硕博学位论文（硕士）</span><span class="chip ">天津职业技术师范大学</span>
+        <span class="badge ok">自建：是</span>
+        <span class="chip">提及数据集 2 个</span>
+        <span class="chip">创新点 4 条</span>
+      </div>
+    </div>
+  </div>
+  <div class="md"><h1>基于特征融合的机器生成文本检测方法研究</h1>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作者</td>
+<td>吴春晖（导师：陈静 副教授）</td>
+</tr>
+<tr>
+<td>年份</td>
+<td>2025</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>硕博学位论文（硕士）</td>
+</tr>
+<tr>
+<td>来源</td>
+<td>天津职业技术师范大学</td>
+</tr>
+</tbody>
+</table>
+<h2>一、论文涉及的数据集</h2>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HGPT3.5（论文 OCR 常写作 "HGPT3.5/HGPT3 巧"）</td>
+<td>[自建]</td>
+<td>人类文本 5005 条 + 机器文本 5005 条，共 10010 条</td>
+<td>中文</td>
+<td>人类文本取自 CSL（中文科技文献）、wiki2019zh、news2016zh、webtext2019zh 等公开中文语料；机器文本由 GPT3.5 API 逐条生成</td>
+<td>论文未说明是否公开</td>
+</tr>
+<tr>
+<td>HC3（Human ChatGPT Comparison）</td>
+<td>[使用公开数据集]</td>
+<td>按标签各 3903（训练）/1300（验证）/1301（测试）</td>
+<td>中英</td>
+<td>由 Guo 等人构建，来源与生成方式与 HGPT3.5 不同，作为非同源测试集</td>
+<td>公开</td>
+</tr>
+</tbody>
+</table>
+<h2>二、是否自建数据集</h2>
+<p><strong>是</strong> —— 论文针对中文机器生成文本语料缺乏的问题，自建了覆盖多领域、多风格的中文机器与人类文本数据集 HGPT3.5；人类文本来自公开中文语料库，机器文本由 GPT3.5 API 逐条生成。此外实验还额外引入公开的 HC3 数据集作为非同源对照。</p>
+<h2>三、自建数据集结构</h2>
+<h3>HGPT3.5</h3>
+<ul>
+<li><strong>规模</strong>：人类文本 5005 条，机器文本 5005 条，合计 10010 条。人类文本构成：论文摘要 2005 条、维基百科 1000 条、新闻 1000 条、问答 1000 条。</li>
+<li><strong>数据来源</strong>：公开中文语料库，包括（1）Chinese Scientific Literature Dataset（CSL），来源于国家科技资源共享服务工程技术研究中心，涵盖 2010—2020 年发表期刊论文元信息，主要使用论文摘要部分；（2）wiki2019zh，含 100 万个结构良好的中文维基百科词条；（3）news2016zh，含来自 6.3 万个媒体的 250 万篇新闻报道；（4）webtext2019zh，含 410 万条来自社交媒体、问答社区等平台的文本。</li>
+<li><strong>生成模型</strong>（含版本）：GPT3.5（经 GPT3.5 API 调用）。</li>
+<li><strong>生成方式 / 提示词</strong>：采用基于人类文本构造提示词的生成策略，从原始人类文本中提取语义要素嵌入提示词模板；按文本类型精细化设计提示词，明确文本起始语句、要求包含的关键词、预期字数等要素。示例：论文摘要类提示词为"请写一篇农业工程领域的论文摘要，题目是《基于电容信号的排种监测系统研究》，关键词包括：{排种器、电容、传感器、监测系统}。摘要应以'为了对排种器性能可靠性进行分析'为开头，并包含约 324 字的内容。"；对全部人类文本逐条生成对应机器文本。</li>
+<li><strong>字段 / 结构</strong>：文本 + 标签（人类文本标签 0(human)、机器文本标签 1(machine)）；类型覆盖论文摘要、维基百科、新闻、问答四类，对应风格为学术书面文本、日常书面文本、日常半书面文本、日常口语文本。</li>
+<li><strong>标注方式</strong>：机器文本与人类文本按来源对应成对生成，标签为 human / machine 二元标签（论文未说明人工标注流程）。</li>
+<li><strong>训练/验证/测试划分</strong>：按 6：2：2 划分为训练集、验证集和测试集，且保证每个子集中机器与人类文本比例均衡。表 4-1 显示 HGPT3.5 每类标签训练 3006 条 / 验证 1002 条 / 测试 1002 条；HC3 每类标签训练 3903 条 / 验证 1300 条 / 测试 1301 条 [OCR待核：分项数字与总数略有出入]。</li>
+<li><strong>许可与获取途径</strong>：论文未说明（未给出数据公开链接或下载方式）。</li>
+</ul>
+<h2>四、实用价值</h2>
+<ul>
+<li>面向中文机器生成文本与人类原创文本的区分（中文 AI 文本检测 / 中文 AI 率识别）。</li>
+<li>服务于生成式 AI 内容的规范治理，呼应《生成式人工智能服务管理暂行办法》《人工智能生成合成内容标识办法》对 AI 生成内容标注的要求。</li>
+<li>关注检测模型对训练数据之外、由其他大语言模型生成文本的泛化能力（跨域 / 非同源检测），可用于识别未知来源的机器生成文本。</li>
+</ul>
+<h2>五、创新点</h2>
+<ol>
+<li>针对中文机器生成文本语料匮乏，构建了覆盖多领域、多风格的中文机器与人类文本数据集 HGPT3.5。</li>
+<li>提出基于多语言学特征融合的 MLF-BERT 模型，用双通道并行提取特征并与深层语义特征融合，从语言学先验知识提升检测敏感性。</li>
+<li>通过词频、词性、字词常用度、实体多样性、篇章凝聚力等多维度差异分析，刻画了中英人机文本的语言学差异。</li>
+<li>引入域对抗训练（DA-BERT 模型），以文本域分类器 + 梯度反转机制抑制表层域特征干扰，提升对未知模型生成文本的识别能力。</li>
+</ol>
+<h2>六、关键原文引用</h2>
+<blockquote>
+<p>（1）针对中文机器生成文本语料缺乏的问题，构建覆盖多领域、多风格的中文机器与人类文本数据集一一 HGPT3 5。</p>
+</blockquote>
+<p><strong>说明</strong>：明确论文的核心数据贡献是自建中文人机文本数据集 HGPT3.5（即 HGPT3.5）。</p>
+<blockquote>
+<p>从清洗后的语料库中，按照来源随机抽取一定数量文本，最终构成包含多种类型及风格的人类文本数据集，共计 5005 条文本。</p>
+</blockquote>
+<p><strong>说明</strong>：给出人类文本数据集的总规模为 5005 条。</p>
+<blockquote>
+<p>使用 GPT3.5 API 基于数据集中全部人类文本逐条生成对应的机器文本，总计得到 5005 条机器文本，与人类文本数据集整合构成 HGPT3.5 数据集。</p>
+</blockquote>
+<p><strong>说明</strong>：说明机器文本由 GPT3.5 API 逐条生成，规模 5005 条，与人类文本合并为 HGPT3.5。</p>
+<blockquote>
+<p>本文选用目前应用广泛且性能稳定的 GPT3 巧大语言模型生成文本。</p>
+</blockquote>
+<p><strong>说明</strong>：指明生成模型为 GPT3.5（OCR "GPT3 巧"）。</p>
+<blockquote>
+<p>（4）保留中文字符占比大于 60％且字符数量在 100 至 1000 之间的文本，过短的文本难以包含足够的特征，过长的文本在生成对应机器文本时，容易遇到生成文本内容偏离等问题。</p>
+</blockquote>
+<p><strong>说明</strong>：说明数据清洗时的长度与中文占比筛选规则。</p>
+<blockquote>
+<p>此外，为了验证模型在不同分布异质数据下的预测表现，本章额外引入非同源的 HC3 数据集进行实验。</p>
+</blockquote>
+<p><strong>说明</strong>：说明非同源测试使用公开的 HC3 数据集。</p>
+<blockquote>
+<p>将数据集按照 6 ： 2 ： 2 的比例划分为训练集、验证集和测试集……保证每个子集中机器与人类文本的比例为凵，并且每个子集中的类别分布均衡。</p>
+</blockquote>
+<p><strong>说明</strong>：说明数据集 6:2:2 划分及类别均衡策略（"凵"系 OCR 噪声，疑为 1:1）。</p></div>
+</section>
+<section class="paper" id="p15" data-self="否">
+  <div class="phead">
+    <div class="pnum">#15</div>
+    <div>
+      <h2>基于统一模式提取的AI生成文本检测方法</h2>
+      <div class="chips">
+        <span class="chip ">刘润东（导师：丁峰 校聘教授；答辩委员会主席：曹远龙）</span><span class="chip ">2025</span><span class="chip ">硕博学位论文（硕士）</span><span class="chip ">南昌大学 软件学院</span>
+        <span class="badge no">自建：否</span>
+        <span class="chip">提及数据集 4 个</span>
+        <span class="chip">创新点 5 条</span>
+      </div>
+    </div>
+  </div>
+  <div class="md"><h1>基于统一模式提取的AI生成文本检测方法</h1>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作者</td>
+<td>刘润东（导师：丁峰 校聘教授；答辩委员会主席：曹远龙）</td>
+</tr>
+<tr>
+<td>年份</td>
+<td>2025</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>硕博学位论文（硕士）</td>
+</tr>
+<tr>
+<td>来源</td>
+<td>南昌大学 软件学院</td>
+</tr>
+</tbody>
+</table>
+<h2>一、论文涉及的数据集</h2>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HC3（Human ChatGPT Comparison）</td>
+<td>[使用公开数据集]</td>
+<td>人类文本与生成文本各 19561 条</td>
+<td>英文</td>
+<td>大部分人类书写数据来源于公开问答（QA）数据集，部分来自维基百科；ChatGPT 生成文本由相同问题输入 ChatGPT 得到</td>
+<td>公开</td>
+</tr>
+<tr>
+<td>Larmm（Lamin1-lm，OCR 亦作 "Lammi"）</td>
+<td>[使用公开数据集]</td>
+<td>人类文本与生成文本各 28606 条</td>
+<td>英文</td>
+<td>作者基于现有和新生成的指令开发了一组 2.58M 指令，覆盖广泛主题；使用 ChatGPT 基于指令生成</td>
+<td>公开</td>
+</tr>
+<tr>
+<td>Argilla（dolly-curate-falcon7b-instruct-generations）</td>
+<td>[使用公开数据集]</td>
+<td>人类文本与生成文本各 10025 条</td>
+<td>英文</td>
+<td>由阿联酋技术创新研究所（TII）开源大规模语言模型 Falcon（70 亿参数版本）生成</td>
+<td>公开</td>
+</tr>
+<tr>
+<td>Alpaca（vicgalle/alpaca-gpt4）</td>
+<td>[使用公开数据集]</td>
+<td>人类文本与生成文本各 15821 条</td>
+<td>英文</td>
+<td>由 GPT-4 结合 Alpaca 提示集生成（Alpaca 提示集含 52,000 条指令及对应演示数据）</td>
+<td>公开</td>
+</tr>
+</tbody>
+</table>
+<h2>二、是否自建数据集</h2>
+<p><strong>否</strong> —— 论文全部采用公开数据集（HC3、Larmm、Argilla、Alpaca 四个），分属三种文本生成模型（ChatGPT、Falcon、GPT-4），未自建数据集；第三章与第四章实验均在这些公开数据集上进行。</p>
+<h2>三、自建数据集结构</h2>
+<p>论文未自建数据集，本节不适用。</p>
+<h2>四、实用价值</h2>
+<ul>
+<li>AI 生成文本检测（区分 AI 生成文本与人类书写文本），强调跨数据集/跨模型的泛化能力与对抗攻击下的鲁棒性。</li>
+<li>面向虚假信息传播、学术欺诈与学术诚信（学生用 AI 完成写作）、舆论治理、信息内容安全等场景。</li>
+<li>关注检测方法的通用性、可解释性与鲁棒性，以适应持续涌现的新型生成模型。</li>
+</ul>
+<h2>五、创新点</h2>
+<ol>
+<li>提出"生成文本统一模式"概念，并借用几何视角（分类中心 c 与分类半径 r）对其进行描述与定义。</li>
+<li>提出基于 BERT 微调的检测方法 ChatZoom，利用 AI 生成文本在特征空间中的聚集特性做模式提取与检测。</li>
+<li>设计带标签平滑与自定义损失的第二阶段训练，用边界公平性（Boundary Fairness）指标调整分类边界，缓解数据分布不均。</li>
+<li>提出基于交叉注意力机制的多特征检测方法，融合 TF-IDF 关键词特征与 POS 词性标注特征。</li>
+<li>通过可视化（雷达图 / 文本分布）直观展示 AI 生成文本的集中分布，增强方法可解释性。</li>
+</ol>
+<h2>六、关键原文引用</h2>
+<blockquote>
+<p>本章使用的数据集有四个，来自于三种不同的文本生成模型。HC3 和 Larmm 数据集由 ChatGPT 生成，Argilla 数据集由模型生成，Alpaca 数据集则由 GPT 4 生成，使用由不同模型生成的数据集确保研究的广泛性和代表性。</p>
+</blockquote>
+<p><strong>说明</strong>：说明第四章/第三章共用的四个数据集及其生成模型来源。</p>
+<blockquote>
+<p>HC3（Human ChatGPT Comparison）数据集……数量上包含人类文本和生成文本各 19561 条。</p>
+</blockquote>
+<p><strong>说明</strong>：给出 HC3 数据集的规模。</p>
+<blockquote>
+<p>Larmm 数据集：作者首先在现有和新生成的指令的基础上仔细开发了一组 2.58M 的指令……数量上包含人类文本和生成文本各 28606 条。</p>
+</blockquote>
+<p><strong>说明</strong>：给出 Larmm 数据集的规模与指令来源。</p>
+<blockquote>
+<p>Argilla 数据集：Falcon 是由阿联酋技术创新研究所开发的开源大规模语言模型……本研究使用的数据集由 70 亿参数版本生成的文本组成。数量上包含人类文本和生成文本各 1 0025 条。</p>
+</blockquote>
+<p><strong>说明</strong>：说明 Argilla（Falcon-7B 生成）数据集的来源与规模（"1 0025 条"即 10025 条）。</p>
+<blockquote>
+<p>Alpaca 数据集：数据集由 GPT 4 结合 Alpaca 提示集生成。Alpaca 提示集包含 52,000 条指令及其对应的演示数据……数量上包含人类文本和生成文本各 15821 条。</p>
+</blockquote>
+<p><strong>说明</strong>：说明 Alpaca（GPT-4 生成）数据集的来源与规模。</p>
+<blockquote>
+<p>首先，在前述四个数据集上评估各方法的检测性能。数据集按照 3 ： 1 的[比例划分]……</p>
+</blockquote>
+<p><strong>说明</strong>：说明评估时数据集按 3:1 划分（训练/测试）[OCR 原文在此处截断，比例后文字缺失，待核]。</p>
+<blockquote>
+<p>具体而言，使用 HC3 数据集训练检测器，并使用剩余三个数据集进行测试，以验证模型在不同文本生成模型上的泛化性能。</p>
+</blockquote>
+<p><strong>说明</strong>：说明跨数据集（跨生成模型）泛化实验的训练/测试设置。</p></div>
+</section>
+<section class="paper" id="p16" data-self="是">
+  <div class="phead">
+    <div class="pnum">#16</div>
+    <div>
+      <h2>大模型生成文本检测技术研究</h2>
+      <div class="chips">
+        <span class="chip ">刘鹄鸣（导师：陈峥副教授）</span><span class="chip ">2025</span><span class="chip ">硕博学位论文（硕士，软件工程）</span><span class="chip ">电子科技大学（信息与软件工程学院）</span>
+        <span class="badge ok">自建：是</span>
+        <span class="chip">提及数据集 8 个</span>
+        <span class="chip">创新点 5 条</span>
+      </div>
+    </div>
+  </div>
+  <div class="md"><h1>大模型生成文本检测技术研究</h1>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作者</td>
+<td>刘鹄鸣（导师：陈峥副教授）</td>
+</tr>
+<tr>
+<td>年份</td>
+<td>2025</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>硕博学位论文（硕士，软件工程）</td>
+</tr>
+<tr>
+<td>来源</td>
+<td>电子科技大学（信息与软件工程学院）</td>
+</tr>
+</tbody>
+</table>
+<h2>一、论文涉及的数据集</h2>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HC3-Chinese</td>
+<td>[使用公开数据集]（作者清洗）</td>
+<td>清洗后 22231 条人类回答 + 17383 条 ChatGPT 回答</td>
+<td>中文</td>
+<td>公开的中文人类回答与 ChatGPT 回答对比数据集；问题与人类回答来自领域专家参与构建的问答数据集、网络高赞问答帖及百科网站概念，ChatGPT 对同一问题作答；涵盖金融、医药、心理学、法律等多领域</td>
+<td>公开</td>
+</tr>
+<tr>
+<td>ChatGPT-CNews</td>
+<td>[自建]</td>
+<td>人类文本与大模型文本各 2000 条</td>
+<td>中文</td>
+<td>人类文本来源于清华大学 THUCNews 数据集（新浪新闻，14 个类别）；截取每条数据前 20 个词元作为前缀，调用 gpt-3.5-turbo API 续写（Top-p=0.9）</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>CPM-CNews</td>
+<td>[自建]</td>
+<td>人类文本与大模型文本各 40000 条</td>
+<td>中文</td>
+<td>人类文本来源于 THUCNews；大模型文本由 Base 阶段模型 CPM 以前 20 个词元为前缀续写；CPM 先用 80000 条 THUCNews 数据微调 5 个 epochs 以增强新闻生成能力</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>THUCNews（第 4 章子集）</td>
+<td>[使用公开数据集]（作者构建配对）</td>
+<td>每个生成模型下 3000 条（人类与机器文本各半）</td>
+<td>中文</td>
+<td>源于新浪新闻、共 14 类，本章选社会、财经、教育、时政、体育五个热点类别作人类文本；由 GLM4-9B-Chat、Qwen2.5-14B-Instruct、InternLM2.5-20B-Chat 以角色扮演指令续写前 30 个字符生成（top-p=0.95）</td>
+<td>公开（原数据集）</td>
+</tr>
+<tr>
+<td>CSL（第 4 章子集）</td>
+<td>[使用公开数据集]（作者构建配对）</td>
+<td>每个生成模型下 3000 条（人类与机器文本各半）</td>
+<td>中文</td>
+<td>中文科技论文数据集，每条含标题、摘要、关键词等字段，选取摘要字段作人类文本；由上述三个对齐大模型续写生成（top-p=0.95）</td>
+<td>公开（原数据集）</td>
+</tr>
+<tr>
+<td>WebText（第 4 章子集）</td>
+<td>[使用公开数据集]（作者构建配对）</td>
+<td>每个生成模型下 3000 条（人类与机器文本各半）</td>
+<td>中文</td>
+<td>高质量论坛问答数据，选取点赞数大于 30 的回答作人类文本，其对应问题用于让 LLM 作答生成（约 200 字回答，top-p=0.95）</td>
+<td>公开（原数据集）</td>
+</tr>
+<tr>
+<td>XSum / Writing / PubMed（第 4 章英文数据集）</td>
+<td>[使用公开数据集]（作者重新生成）</td>
+<td>各 300 条（单一采样温度下，人类与机器文本各半）</td>
+<td>英文</td>
+<td>采用 Fast-DetectGPT 工作中的三个数据集：XSum（新闻文章）、Writing（小说故事）、PubMed（生物医学研究问答）；LLM 文本由 GPT-4 以采样温度 0.8/1.0/1.2 续写或问答生成</td>
+<td>公开（原数据集）</td>
+</tr>
+<tr>
+<td>THUCNews-Sub / CSL-Sub（第 5 章）</td>
+<td>[自建]（在上一章数据基础上调整）</td>
+<td>各 6000 条</td>
+<td>中文</td>
+<td>由 THUCNews 与 CSL 数据集中由 GLM4-9B-Chat 和 InternLM2.5-20B-Chat 生成的数据构成（剔除由 Qwen2.5-14B-Instruct 生成的部分以保证公平，删除 WebText 部分）</td>
+<td>未说明</td>
+</tr>
+</tbody>
+</table>
+<h2>二、是否自建数据集</h2>
+<p><strong>是（部分自建，同时使用公开数据集）</strong> —— 论文以公开数据集（HC3-Chinese、THUCNews、CSL、WebText、XSum、Writing、PubMed）为人类文本来源，自行调用 gpt-3.5-turbo、CPM、GLM4-9B-Chat、Qwen2.5-14B-Instruct、InternLM2.5-20B-Chat、GPT-4 等模型续写/作答构建 LLM 生成文本，形成 ChatGPT-CNews、CPM-CNews、THUCNews-Sub、CSL-Sub 等自建数据集。</p>
+<h2>三、自建数据集结构</h2>
+<h3>ChatGPT-CNews（第 3 章）</h3>
+<ul>
+<li><strong>规模</strong>：人类文本和大模型文本各 2000 条</li>
+<li><strong>数据来源</strong>：人类文本来源于清华大学公开的 THUCNews 数据集（根据新浪新闻筛选过滤生成，含财经、教育、科技、社会、时政等 14 个类别）</li>
+<li><strong>生成模型</strong>（含版本）：gpt-3.5-turbo（API 调用）</li>
+<li><strong>生成方式 / 提示词</strong>：截取 THUCNews 中每条数据的前 20 个词元作为前缀进行续写，解码参数 Top-p 设置为 0.9</li>
+<li><strong>字段 / 结构</strong>：人类文本与大模型文本二分类配对</li>
+<li><strong>标注方式</strong>：按来源自动标注（人类/大模型）</li>
+<li><strong>训练/验证/测试划分</strong>：作为相近分布检测任务的测试集使用（训练集为 HC3-Chinese）</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h3>CPM-CNews（第 3 章）</h3>
+<ul>
+<li><strong>规模</strong>：人类文本和大模型文本各 40000 条</li>
+<li><strong>数据来源</strong>：人类文本来源于 THUCNews 数据集</li>
+<li><strong>生成模型</strong>（含版本）：CPM（Base 阶段模型），先用 80000 条 THUCNews 数据对原始 CPM 模型微调 5 个 epochs 以增强新闻生成能力</li>
+<li><strong>生成方式 / 提示词</strong>：以 THUCNews 中每条数据的前 20 个词元为前缀续写</li>
+<li><strong>字段 / 结构</strong>：人类文本与大模型文本二分类配对</li>
+<li><strong>标注方式</strong>：按来源自动标注</li>
+<li><strong>训练/验证/测试划分</strong>：作为不同分布检测任务的训练集使用（测试集为 HC3-Chinese）</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h3>第 4 章中文检测数据集（THUCNews / CSL / WebText 配对语料）</h3>
+<ul>
+<li><strong>规模</strong>：THUCNews、CSL、WebText 各 3000 条（单一生成模型下的规模，人类文本与机器文本数量均等）</li>
+<li><strong>数据来源</strong>：THUCNews（新浪新闻 5 个热点类别）、CSL（中文科技论文摘要）、WebText（点赞数&gt;30 的论坛回答）</li>
+<li><strong>生成模型</strong>（含版本）：GLM4-9B-Chat、Qwen2.5-14B-Instruct、InternLM2.5-20B-Chat（OpenCompass 榜单中文评分靠前的三个不同规模开源对齐大模型）</li>
+<li><strong>生成方式 / 提示词</strong>：THUCNews 与 CSL 采用角色扮演指令续写人类文本前 30 个字符（"你是一个新闻编辑，请你续写下面的新闻…"/"你是一个论文写手，请你续写下面的论文摘要…"）；WebText 直接命令 LLM 对问题作答（"请用 200 字左右回答下列问题…"）；生成参数 top-p 为 0.95</li>
+<li><strong>字段 / 结构</strong>：人类文本与 LLM 文本二分类配对；三个数据集分别对应虚假新闻、论文作弊、虚假回答三类滥用场景</li>
+<li><strong>标注方式</strong>：按来源自动标注</li>
+<li><strong>训练/验证/测试划分</strong>：零样本检测，不涉及训练集划分</li>
+<li><strong>许可与获取途径</strong>：原数据集公开，构建的配对语料论文未说明是否公开</li>
+</ul>
+<h3>第 4 章英文检测数据集（XSum / Writing / PubMed）</h3>
+<ul>
+<li><strong>规模</strong>：各 300 条（单一采样温度下，人类文本与机器文本数量均等）</li>
+<li><strong>数据来源</strong>：Fast-DetectGPT 工作中使用的数据集</li>
+<li><strong>生成模型</strong>（含版本）：GPT-4</li>
+<li><strong>生成方式 / 提示词</strong>：沿用原文方式续写/问答，采样温度为 0.8、1.0、1.2 三种设置（额外增加高温生成以评估检测能力上限）</li>
+<li><strong>字段 / 结构</strong>：人类文本与 LLM 文本二分类配对</li>
+<li><strong>标注方式</strong>：按来源自动标注</li>
+<li><strong>训练/验证/测试划分</strong>：零样本检测，不涉及训练集划分</li>
+<li><strong>许可与获取途径</strong>：原数据集公开</li>
+</ul>
+<h3>THUCNews-Sub / CSL-Sub（第 5 章）</h3>
+<ul>
+<li><strong>规模</strong>：各 6000 条</li>
+<li><strong>数据来源</strong>：第 4 章数据集调整而来——剔除由 Qwen2.5-14B-Instruct 生成的部分（因本章特征计算模型为 Qwen2.5-14B-Instruct，保证公平），删除 WebText 部分</li>
+<li><strong>生成模型</strong>（含版本）：GLM4-9B-Chat 和 InternLM2.5-20B-Chat 生成的数据</li>
+<li><strong>生成方式 / 提示词</strong>：同第 4 章</li>
+<li><strong>字段 / 结构</strong>：人类文本与 LLM 文本二分类配对</li>
+<li><strong>标注方式</strong>：按来源自动标注</li>
+<li><strong>训练/验证/测试划分</strong>：零样本检测，不涉及训练集划分</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h2>四、实用价值</h2>
+<ul>
+<li>面向虚假新闻识别、学术不端/论文作弊检测、虚假产品评价与论坛虚假回答识别等内容安全与学术诚信场景。</li>
+<li>最终实现的检测系统支持多算法切换与参数设定，提供词元级别和句子级别的可视化检测结果，可用于对 LLM 生成内容的审查与大模型规范使用监管。</li>
+</ul>
+<h2>五、创新点</h2>
+<ol>
+<li>提出基于时序网络融合多元特征的监督学习检测算法：修正传统位次特征（对数修正）并新提出适配核采样解码的累积概率特征，用时序神经网络融合分类，同分布检测 F1 比传统统计方法高 9.28%，跨分布泛化性超过微调 PLM 方法。</li>
+<li>提出基于对偶网络差分分析的零样本检测算法：以 Chat LLM 作机器偏好模型、Base LLM 作人类偏好模型构成对偶网络，计算文本在双模型视角下的差分偏好分数，AUC 比最佳基线最高提升达 47%，且可解释性更强、对采样参数更稳定。</li>
+<li>提出基于风格对比提示差分分析的轻量级零样本检测算法：仅需易获取的对齐大模型，计算文本在"LLM 风格提示"与"人类风格提示"下的偏好差异即可检测，新闻和学术论文数据集上 AUC 较最优基线分别提升 21% 和 18%。</li>
+<li>自建多组中文检测数据集（ChatGPT-CNews、CPM-CNews、THUCNews/CSL/WebText 配对语料），并设计同分布、相近分布、不同分布三个难度递增的检测任务，弥补评估泛化性的标准数据集缺失问题。</li>
+<li>开发了集成多种检测算法的大模型文本检测系统，支持算法切换、参数设定及词元级/句子级可视化，面向实际部署。</li>
+</ol>
+<h2>六、关键原文引用</h2>
+<blockquote>
+<p>"本章对 HC3-Chinese 数据集进一步清洗，得到了 22231 条人类回答和 17383 条 ChatGPT 回答，分别作为人类文本和大模型文本。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明第 3 章使用的公开数据集 HC3-Chinese 的清洗后规模与构成。</p>
+<blockquote>
+<p>"该数据集是本章自行构建的中文新闻类型数据集。……本章截取 THUCNews 中每条数据的前 20 个词元作为前缀，调用 gpt-3.5-turbo API 对其进行续写，解码参数 Top-p 设置为 0.9。本数据集中人类文本和大模型文本各 2000 条。"</p>
+</blockquote>
+<p><strong>说明</strong>：完整说明自建数据集 ChatGPT-CNews 的来源、生成模型、参数与规模。</p>
+<blockquote>
+<p>"本章使用 80000 条 THUCNews 数据对原始的 CPM 模型进一步微调 5 个 epochs，以增强其生成新闻的能力。本数据集中人类文本和大模型文本各 40000 条。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明自建数据集 CPM-CNews 的生成模型微调方式与规模。</p>
+<blockquote>
+<p>"（2）针对评估检测方法泛化性的标准数据集缺失问题，本章构建了同分布、相近分布和不同分布……"</p>
+</blockquote>
+<p><strong>说明</strong>：说明第 3 章自建数据集与三个难度递增检测任务的设计动机（原文该句在 OCR 中部分截断，[OCR待核]）。</p>
+<blockquote>
+<p>"本章选取了 OpenCompass 榜单中中文评分靠前的三个不同规模的开源大模型 GLM4-9B-Chat、Qwen2.5-14B-Instruct 和 InternLM2.5-20B-Chat 分别对每条人类文本构建相应的 LLM 文本。……本章选取生成参数 top-p 为 0.95。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明第 4 章中文数据的生成模型选择依据与解码参数。</p>
+<blockquote>
+<p>"对于英文数据集，本章采用了 Fast-DetectGPT 工作中使用到的三个数据集，包括 XSum、Writing、PubMed。……本章额外选用采样温度为 1.0 和 1.2 并沿用原文的方式对上述三个数据集重新生成多样化表达，以更进一步的评估检测模型。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明第 4 章英文数据的来源与多温度再生成的评估设计。</p>
+<blockquote>
+<p>"最终，本章实验数据集由 THUCNews 与 CSL 数据集中由 GLM4-9B-Chat 和 InternLM2.5-20B-Chat 生成的数据构成，各数据集数据量分别为 6000 条。……本章将处理后的数据集分别命名为 THUCNews-Sub 和 CSL-Sub。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明第 5 章实验数据集（THUCNews-Sub、CSL-Sub）的构成与规模。</p>
+<blockquote>
+<p>"本算法在多领域、多语言、多生成条件等多样化数据集上表现出更高的检测精度和稳定性，AUC 值比最佳基线最高提升达 47％。"</p>
+</blockquote>
+<p><strong>说明</strong>：概括对偶网络差分算法在自建多样化数据集上的效果。</p></div>
+</section>
+<section class="paper" id="p17" data-self="是">
+  <div class="phead">
+    <div class="pnum">#17</div>
+    <div>
+      <h2>大语言模型生成与学者撰写学术内容特征分析与识别</h2>
+      <div class="chips">
+        <span class="chip ">王伟正（导师：乔鸿）</span><span class="chip ">2025</span><span class="chip ">硕博学位论文（硕士，图书情报专业硕士；领域：情报分析与用户研究；全日制）</span><span class="chip ">山东师范大学</span>
+        <span class="badge ok">自建：是</span>
+        <span class="chip">提及数据集 5 个</span>
+        <span class="chip">创新点 5 条</span>
+      </div>
+    </div>
+  </div>
+  <div class="md"><h1>大语言模型生成与学者撰写学术内容特征分析与识别</h1>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作者</td>
+<td>王伟正（导师：乔鸿）</td>
+</tr>
+<tr>
+<td>年份</td>
+<td>2025</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>硕博学位论文（硕士，图书情报专业硕士；领域：情报分析与用户研究；全日制）</td>
+</tr>
+<tr>
+<td>来源</td>
+<td>山东师范大学</td>
+</tr>
+</tbody>
+</table>
+<h2>一、论文涉及的数据集</h2>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>学者撰写学术摘要数据集</td>
+<td>[自建]</td>
+<td>992 篇（初筛 1010 篇）</td>
+<td>中文</td>
+<td>情报学领域 2020—2023 年 G35 情报学 Q1 分区 9 本 CSSCI 期刊论文摘要，按被引次数降序、筛选被引≥24 次共 1010 篇；剔除字符数在 5 分位数以下和 95 分位数以上，保留字符数 200–500 之间的 992 篇</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>大语言模型生成摘要数据集</td>
+<td>[自建]</td>
+<td>992 条（与学者摘要一一对应）</td>
+<td>中文</td>
+<td>以同一批论文标题为输入，用 Python 调用 ChatGPT3.5 的 API 按 CRISPE 框架提示词生成</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>摘要识别数据集（域内 ID + 域外 OOD）</td>
+<td>[自建]</td>
+<td>共 2584 条（域内 1984 + 域外 600）</td>
+<td>中文</td>
+<td>域内＝情报学领域学者摘要 992 篇 + ChatGPT 生成摘要 992 条；域外＝高等教育学 7 本核心期刊 2020—2022 年高被引论文 300 篇 + ChatGPT 依题目生成的 300 条</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>图灵测试样本集</td>
+<td>[自建]</td>
+<td>30 个三元组（主题 + 学者摘要 + ChatGPT 摘要）</td>
+<td>中文</td>
+<td>从学者撰写与 ChatGPT 生成摘要中随机抽取，分配给 26 名测试人员（6 名专家 + 20 名研究生）</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>情报学领域词表</td>
+<td>[自建]</td>
+<td>2689 个词语</td>
+<td>中文</td>
+<td>下载来源期刊近三年 8344 篇论文关键词作高频统计、去重、人工筛选；再补充 993 篇高水平论文关键词，人工筛选定稿</td>
+<td>未说明</td>
+</tr>
+</tbody>
+</table>
+<h2>二、是否自建数据集</h2>
+<p><strong>是</strong> —— 论文自建了"大语言模型生成 + 学者撰写"两类中文学术摘要配对数据集（共 1984 条，各 992），并在此基础上派生域内/域外测试集；学者摘要取自 CSSCI 期刊已发表论文，AI 摘要由 ChatGPT3.5 依题目生成。全部数据均为自建，未使用公开英文基准数据集。</p>
+<h2>三、自建数据集结构</h2>
+<h3>情报学领域学术摘要数据集（学者撰写 + ChatGPT 生成）</h3>
+<ul>
+<li><strong>规模</strong>：学者撰写 992 篇 + 大语言模型生成 992 条，合计 1984 条</li>
+<li><strong>数据来源</strong>：根据《中国学术期刊影响因子年报》选出 G35 情报学 Q1 分区名称中含"情报"的 9 本期刊——《图书情报工作》《情报杂志》《情报理论与实践》《情报学报》《情报科学》《现代情报》《图书情报知识》《情报资料工作》《图书与情报》（各刊占比分别为 16.9%、15.6%、16.1%、6.2%、18.1%、11.6%、3.6%、5.5%、6.2%[OCR待核]）</li>
+<li><strong>生成模型</strong>（含版本）：ChatGPT3.5（gpt-3.5-turbo，通过 API 调用）</li>
+<li><strong>生成方式 / 提示词</strong>：基于 CRISPE 框架设计 Prompt，原文照录："你是情报学领域的一名资深教授，请你协助我撰写一篇情报学领域的学术论文的摘要部分，题目为"XXX"，请你根据题目帮我撰写相应的论文摘要，内容要求具有学术性，字数要求不能少于 200 字，同时也不能多于 400 字。"第六章另设计了带少样本示例的提示语：先给出两篇"题目+摘要"参考示例，再要求模型模仿示例风格撰写</li>
+<li><strong>字段 / 结构</strong>：每条包含"论文题目 + 摘要文本 + 来源标签"；预处理包括领域词表构建、停用词表构建、jieba 中文（精准模式）分词、类别标注</li>
+<li><strong>标注方式</strong>：规则式来源标注——大语言模型生成摘要标记为 0，学者撰写摘要标记为 1（域内文本与生成文本比例为 1:1）；另设人工图灵测试（配对文本/单文本两种任务，专家与研究生两组）</li>
+<li><strong>训练/验证/测试划分</strong>：第五章 BERT-CNN 实验将 1984 条按 70% 训练 / 15% 验证 / 15% 测试；第六章指令调优按域内 8:2 划分（794 篇训练、198 篇域内测试）+ 300 篇域外测试</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h3>域外（高等教育学）摘要数据集</h3>
+<ul>
+<li><strong>规模</strong>：学者撰写 300 篇 + ChatGPT 生成 300 条，合计 600 条</li>
+<li><strong>数据来源</strong>：《中国高等教育》《中国高教研究》《高等教育研究》《北京大学教育评论》《清华大学教育研究》《高校教育管理》《国家教育行政学院学报》共 7 本高等教育学核心期刊，筛选 2020—2022 年间高被引论文 300 篇</li>
+<li><strong>生成模型</strong>（含版本）：ChatGPT3.5</li>
+<li><strong>生成方式 / 提示词</strong>：取得论文题目后由 ChatGPT3.5 依题目生成对应摘要，提示词要求"内容要求具有逻辑性、学术性，字数要求不能少于 200 字，同时也不能多于 400 字"，并附两篇题目与摘要作为参考示例（少样本）</li>
+<li><strong>字段 / 结构</strong>：题目 + 摘要 + 来源标签（Human / AI）</li>
+<li><strong>标注方式</strong>：按来源规则标注</li>
+<li><strong>训练/验证/测试划分</strong>：全部 600 条仅作为域外（OOD）测试集，不参与训练</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h3>图灵测试样本集</h3>
+<ul>
+<li><strong>规模</strong>：30 个三元组；测试人员 26 名（6 名情报学专家且常用 ChatGPT，20 名研究生且不常用 ChatGPT）</li>
+<li><strong>数据来源</strong>：从上述 992 对摘要中抽取</li>
+<li><strong>生成模型</strong>（含版本）：ChatGPT3.5（生成侧）</li>
+<li><strong>生成方式 / 提示词</strong>：不适用（复用已生成摘要）</li>
+<li><strong>字段 / 结构</strong>：&lt;主题，学者撰写摘要，ChatGPT 生成摘要&gt;</li>
+<li><strong>标注方式</strong>：人工判别——测试人员判断哪篇为 ChatGPT 生成（配对文本）或判断单篇是否由 ChatGPT 生成（单文本）</li>
+<li><strong>训练/验证/测试划分</strong>：不适用</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h2>四、实用价值</h2>
+<ul>
+<li>面向学术不端审查与学术诚信体系建设：识别论文摘要是否为 AI 生成，遏制 AIGC 在学术写作中的滥用与误用（论文指出生成内容可绕过原创性检测系统、满足学术期刊与学位论文查重标准）。</li>
+<li>面向期刊审稿与查重场景：为编辑部/审稿人甄别"大语言模型生成 vs 学者撰写"提供自动化分类器，解决人工识别工作量大、主观性强、专家识别率仍偏低的问题。</li>
+<li>面向情报学垂直领域及通用领域的检测模型部署：为研究者与企业提供可参考的领域专用检测方案（含跨领域检测）。</li>
+<li>附属价值：中文语料下两类学术摘要的语言学与主题差异分析结论，可服务于学术写作规范与 AI 辅助写作的合理使用边界。</li>
+</ul>
+<h2>五、创新点</h2>
+<ol>
+<li>研究视角创新：从语言学视角出发，用图灵测试 + 文本特征对比分析大语言模型生成与学者撰写摘要的差异，覆盖词汇、词性、困惑度、可读性、ROUGE、文本相似性等维度，填补中文语料（以中文期刊论文为数据）实证研究不足的空白。</li>
+<li>提出基于 BERT-CNN 的识别方法：用 BERT 做文本表示、CNN 提取多尺度语义特征，解决 Word2vec 无法捕捉上下文复杂语义、传统机器学习文本表示稀疏等问题（域内准确率 97.70%）。</li>
+<li>首次在主题视角下引入 BERTopic 主题模型做两类摘要的深层结构对比：通过 Sentence-Transformer + UMAP + HDBSCAN 聚类，生成主题分布、层次结构、相似度、文档-主题分布等图示进行主题间与主题-主题词关系分析。</li>
+<li>提出基于开源大模型指令调优的检测方法：用 Qwen-7B 做指令调优，结合上下文学习、思维链、少样本等推理端指令策略，将检测任务重构为指令响应，缓解监督分类器对精确配对训练数据的依赖及域外性能下降问题（域外准确率 95.67%）。</li>
+<li>融合"深度学习 + 大语言模型指令调优"两类黑盒检测路径，构建面向情报学领域的专用检测模型并同时评估域内与域外性能。</li>
+</ol>
+<h2>六、关键原文引用</h2>
+<blockquote>
+<p>为解决上述问题，本文以情报学领域的学术论文摘要为数据集，使用 ChatGPT 根据题目生成对应的摘要文本，通过分析词汇特征、文本复杂度、文本质量特征以及主题特征等方面的差异来探索大语言模型生成摘要与学者撰写摘要的差异性。</p>
+</blockquote>
+<p><strong>说明</strong>：交代论文的核心数据构建路径与四条对比分析维度（词汇、复杂度、质量、主题）。</p>
+<blockquote>
+<p>本文以情报学领域 2020—2023 年间的学术论文为研究对象，根据中国科学文献计量评价研究中心出版的《中国学术期刊影响因子年报》，选出 G35 情报学 QI 分区期刊名称中带有情报的期刊……最终筛选被引次数大于等于 24 次的论文总共 1 010 篇作为学者撰写摘要样本。</p>
+</blockquote>
+<p><strong>说明</strong>：说明学者撰写摘要的来源期刊选取依据、时间范围与筛选规则。</p>
+<blockquote>
+<p>本研究剔除字符数在 5 分位数以下和 95 分位数以上的摘要，最终保留字符数处于 200 至 500 之间的 992 篇摘要，以上 992 篇论文摘要为人类撰写摘要数据集。</p>
+</blockquote>
+<p><strong>说明</strong>：说明最终人类摘要数据集的规模（992 篇）及长度清洗规则。</p>
+<blockquote>
+<p>本文通过 Python 代码调用 ChatGPT3 巧的 API 来获取大语言模型生成的摘要内容。</p>
+</blockquote>
+<p><strong>说明</strong>：明确生成模型为 ChatGPT3.5（OCR 中"3 巧"即 3.5）及其获取方式为 API 调用。</p>
+<blockquote>
+<p>本研宄构建大语言模型生成摘要的 Prompt 如下："你是情报学领域的一名资深教授，请你协助我撰写一篇情报学领域的学术论文的摘要部分，题目为"XXX"，请你根据题目帮我撰写相应的论文摘要，内容要求具有学术性，字数要求不能少于 200 字，同时也不能多于 400 字。"</p>
+</blockquote>
+<p><strong>说明</strong>：给出生成提示词原文（CRISPE 框架），是复现数据集的关键信息。</p>
+<blockquote>
+<p>将大语言模型生成摘要标记为 0，学者撰写摘要标记为，为后续图灵测试和文本分类做准各。</p>
+</blockquote>
+<p><strong>说明</strong>：说明标注规则（OCR 丢失了学者摘要的标签"1"）；第六章提示词中亦写明"AI 生成摘要为 0，人类撰写摘要为 1"。</p>
+<blockquote>
+<p>本章所选取的数据集为第三章收集的大语言模型生成与学者撰写摘要数据集，共 1984 条数据。将数据集划分 70 ％作为训练集……划分巧％作为验证集……划分巧％作为测试集。</p>
+</blockquote>
+<p><strong>说明</strong>：给出 BERT-CNN 实验的数据规模与划分比例。</p>
+<blockquote>
+<p>域内数据集由第三章情报学领域摘要数据集构成，域外数据集收集细节如下：选择高等教育学领域的专业核心期刊……筛选 2020 2022 间的高被引论文 300 篇作为学者撰写摘要样本……本文将域内数据集按照 8 ： 2 划分，794 篇摘要用于训练检测模型以及对大语言模型进行指令调优，198 篇摘要用于评估模型的域内检测能力，再通过 300 篇域外摘要对模型的域外检测性能进行评估。</p>
+</blockquote>
+<p><strong>说明</strong>：完整说明域内/域外数据集的构成与训练-测试划分（794 / 198 / 300，对应总数 2584）。</p>
+<blockquote>
+<p>实验发现，BERT-CNN 能够解决传统分类器存在的语义理解能力差的问题，识别准确率达到了 97.70 ％……大语言模型少样本、思维链等复杂指令策略在摘要识别任务上的应用效果显著，在域外数据集上的识别准确率达到了 95.67 ％。</p>
+</blockquote>
+<p><strong>说明</strong>：给出两个自建模型的域内/域外关键性能指标。</p>
+<p><strong>OCR 说明</strong>：论文第六章在介绍基线模型时出现"本文采用 LLaMA-2-7B 作为指令调优的基本模型"，但同段随后又写"本文采用 Qwen-7B 作为指令调优的基本模型"，且全文（摘要、绪论、技术路线）均以 Qwen-7B 为指令调优基座，LLaMA-2-7B/13B 在实验中出现于基线对比表中，故 LLaMA-2-7B 一句判为 OCR/表述冗余，实际基座取 Qwen-7B <code>[OCR待核]</code>。</p></div>
+</section>
+<section class="paper" id="p18" data-self="部分自建">
+  <div class="phead">
+    <div class="pnum">#18</div>
+    <div>
+      <h2>大语言模型生成文本检测与语言隐写技术研究</h2>
+      <div class="chips">
+        <span class="chip ">项慧（导师：吴震东 教授）</span><span class="chip ">2025</span><span class="chip ">硕博学位论文（硕士，学术学位；专业名称：网络空间安全；所在学院：网络空间安全学院）</span><span class="chip ">杭州电子科技大学</span>
+        <span class="badge mid">自建：部分自建</span>
+        <span class="chip">提及数据集 4 个</span>
+        <span class="chip">创新点 6 条</span>
+      </div>
+    </div>
+  </div>
+  <div class="md"><h1>大语言模型生成文本检测与语言隐写技术研究</h1>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作者</td>
+<td>项慧（导师：吴震东 教授）</td>
+</tr>
+<tr>
+<td>年份</td>
+<td>2025</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>硕博学位论文（硕士，学术学位；专业名称：网络空间安全；所在学院：网络空间安全学院）</td>
+</tr>
+<tr>
+<td>来源</td>
+<td>杭州电子科技大学</td>
+</tr>
+</tbody>
+</table>
+<h2>一、论文涉及的数据集</h2>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Wiki-HC</td>
+<td>[自建]</td>
+<td>1,666 个问答三元组（表 3-2 列示：国际象棋 157、物理 585、地理 479、生物 355[OCR待核]）</td>
+<td>英文</td>
+<td>问题与人类回答由爬虫从维基百科随机爬取，涵盖地理、生物、物理、国际象棋等领域；ChatGPT 回答与 DeepSeek-r1 回答为将爬取问题分别输入两个模型生成</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>HC3-ALL</td>
+<td>[使用公开数据集]（含自建扩展）</td>
+<td>1,568 个问答三元组（4 个领域各随机选取 392 个）</td>
+<td>英文</td>
+<td>问题、人类回答、ChatGPT 回答取自 Guo 等（2023）Human ChatGPT Comparison Corpus（HC3）英文子集 HC3-English 的计算机科学、开放问答、经济学、医学四领域；DeepSeek-r1 回答为本文新生成</td>
+<td>HC3 公开于 Hugging Face（Hello-SimpleAI/HC3）；HC3-ALL 本身未说明</td>
+</tr>
+<tr>
+<td>无意义信息记忆数据集（Meaning / Meaning_base64 / Random_base64）</td>
+<td>[自建]</td>
+<td>论文未说明具体样本数量</td>
+<td>中文</td>
+<td>有意义信息全部取自小说《活着》；Meaning_base64 为对 Meaning 样本输入输出做 Base64 编码；Random_base64 为比照样本长度从 Base64 的 64 个字符中随机采样组合</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>数据组织方式对比数据集（FirstForm–FifthForm）</td>
+<td>[自建]</td>
+<td>论文未说明具体样本数量（样本数同 Meaning_base64）</td>
+<td>中文</td>
+<td>以 Meaning_base64 为基础加工而成，5 种数据集中每样本输出相同、仅作为"键"的输入形式不同（有意义/无意义字符的前后位置组合）</td>
+<td>未说明</td>
+</tr>
+</tbody>
+</table>
+<h2>二、是否自建数据集</h2>
+<p><strong>部分自建</strong> —— 检测部分既使用了公开的 HC3 英文子集（HC3-ALL 中的问题、人类回答、ChatGPT 回答）并扩展生成 DeepSeek-r1 回答，也自建了 Wiki-HC（维基百科爬取问题 + 模型回答）；隐写部分则完全自建基于《活着》与 Base64 编码/随机采样的记忆能力实验数据集。论文未说明这些数据的开源或获取途径。</p>
+<h2>三、自建数据集结构</h2>
+<h3>Wiki-HC</h3>
+<ul>
+<li><strong>规模</strong>：1,666 个问答三元组 &lt;问题，人类回答，ChatGPT 回答&gt;，扩展为四元组 &lt;问题，人类回答，ChatGPT 回答，DeepSeek-r1 回答&gt;</li>
+<li><strong>数据来源</strong>：通过爬虫技术从维基百科上随机爬取问题与人类回答，覆盖地理、生物、物理、国际象棋等领域</li>
+<li><strong>生成模型</strong>（含版本）：ChatGPT、DeepSeek-r1（论文明确选用 DeepSeek-r1 而非同系列的 OpenAI-o1，原因是 DeepSeek-r1 开源、更易获取使用）</li>
+<li><strong>生成方式 / 提示词</strong>：将爬取到的问题分别输入 ChatGPT 和 DeepSeek-r1 生成回答（论文未给出具体提示词）</li>
+<li><strong>字段 / 结构</strong>：&lt;问题，人类回答，ChatGPT 回答，DeepSeek-r1 回答&gt;</li>
+<li><strong>标注方式</strong>：按文本来源天然标注（模型回答＝AI 生成文本，维基百科回答＝人类编写文本），构成二分类样本</li>
+<li><strong>训练/验证/测试划分</strong>：域内测试时每个数据集随机选取 80% 作训练集、剩余作测试集；域外测试中训练集与测试集取自不同数据集</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h3>HC3-ALL</h3>
+<ul>
+<li><strong>规模</strong>：1,568 个问答三元组（计算机科学、开放问答、经济学、医学各随机选取 392 个）</li>
+<li><strong>数据来源</strong>：Guo 等（2023）建立的 Human ChatGPT Comparison Corpus（HC3）英文子集 HC3-English</li>
+<li><strong>生成模型</strong>（含版本）：ChatGPT（沿用 HC3 原有数据）、DeepSeek-r1（新增生成）</li>
+<li><strong>生成方式 / 提示词</strong>：将 HC3-English 中选取的 1,568 个问题输入 DeepSeek-r1 生成回答（论文未给出具体提示词）</li>
+<li><strong>字段 / 结构</strong>：&lt;问题，人类回答，ChatGPT 回答，DeepSeek-r1 回答&gt;</li>
+<li><strong>标注方式</strong>：按来源天然标注（Human / AI）</li>
+<li><strong>训练/验证/测试划分</strong>：域内测试随机 80% 训练 / 20% 测试；亦作为跨数据集的域外测试来源</li>
+<li><strong>许可与获取途径</strong>：HC3 公开于 Hugging Face（Hello-SimpleAI/HC3）；HC3-ALL 的获取途径论文未说明</li>
+</ul>
+<h3>无意义信息记忆数据集（Meaning / Meaning_base64 / Random_base64）</h3>
+<ul>
+<li><strong>规模</strong>：论文未说明样本总数（仅说明每条样本的输入长度均为 20、输出长度不定）</li>
+<li><strong>数据来源</strong>：所有有意义信息取自小说《活着》</li>
+<li><strong>生成模型</strong>（含版本）：微调对象为智谱 AI 与清华大学 KEG 实验室联合发布的 ChatGLM3-6B</li>
+<li><strong>生成方式 / 提示词</strong>：无意义信息通过 Base64 编码有意义信息获得，或通过随机采样 Base64 的 64 个字符生成；Meaning 数据集样本输入输出长度总和介于 100–200 之间（上限 200 是为防止 Base64 编码后长度超过 1024、降低微调显存）</li>
+<li><strong>字段 / 结构</strong>：&lt;输入（键），输出（值）&gt;；Meaning_base64 输入输出均为 Base64 字符串；Random_base64 为等长的纯随机字符</li>
+<li><strong>标注方式</strong>：不适用（记忆/提取任务，以 Rouge-1、Rouge-2、Rouge-L、Bleu-4、Accuracy 评估提取准确性）</li>
+<li><strong>训练/验证/测试划分</strong>：由于研究的是记忆与提取能力而非泛化能力，"本章中所有的测试集就是验证集"</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h3>数据组织方式对比数据集（FirstForm–FifthForm）</h3>
+<ul>
+<li><strong>规模</strong>：论文未说明样本总数；每样本输入长度均为 20，输入输出长度总和介于 100–1024 之间</li>
+<li><strong>数据来源</strong>：以 Meaning_base64 数据集为基础加工（源自小说《活着》）</li>
+<li><strong>生成模型</strong>（含版本）：ChatGLM3-6B（微调策略同上节，仅微调最后 2 个 encoder 模块，采用 freeze tuning）</li>
+<li><strong>生成方式 / 提示词</strong>：五种组织方式——FirstForm 输入全为有意义信息；SecondForm 前 10 字符有意义、后 10 字符无意义；ThirdForm 前 10 字符无意义、后 10 字符有意义；FourthForm 前 5 与后 5 字符有意义、中间 10 字符无意义；FifthForm 前 5 与后 5 字符无意义、中间 10 字符有意义</li>
+<li><strong>字段 / 结构</strong>：&lt;输入（键，形式不同），输出（值，五数据集间相同）&gt;</li>
+<li><strong>标注方式</strong>：不适用（同上，以 Rouge/Bleu/Accuracy 评估）</li>
+<li><strong>训练/验证/测试划分</strong>：测试集即验证集</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<blockquote>
+<p>注：论文另设语言隐写实验（LSB/LSC），其秘密信息载体与超参数设置沿用上述记忆能力实验（ChatGLM3-6B，num_train_epochs=4、learning_rate=5e-5、warmup_ratio=0.01、batch_size=8、fp16=True）；评测维度为嵌入容量（LSB 提升 10 倍、LSC 达 200+ BPW）、KL 散度（&lt;1）、传输成功率（接近 100%）等，但论文未明确披露隐写实验所用文本语料/数据集的规模与来源。</p>
+</blockquote>
+<h2>四、实用价值</h2>
+<ul>
+<li>面向内容安全与虚假信息治理：提供自动化的大语言模型生成文本检测器，应对大语言模型降低恶意内容创作门槛所带来的虚假信息、学术论文代写、钓鱼邮件生成等风险（论文引用"假新闻在社交媒体的传播速度是真实新闻的 6 倍"）。</li>
+<li>面向学术不端与教育场景：识别由大语言模型代写的学术内容。</li>
+<li>面向检测器泛化难题：解决检测器过拟合域内数据、在大语言模型迭代更新与数据分布变化下性能骤降的问题（域内约 99%、域外约 95%）。</li>
+<li>面向信息隐蔽通信：语言隐写技术用于秘密信息的隐蔽传输，要求兼具高嵌入容量、鲁棒性、隐蔽性、安全性与不可感知性。</li>
+<li>面向检测技术选型：指出基于水印的检测会削弱生成文本自然度、增加困惑度且须由模型开发者实现，难以由第三方自主完成，为第三方可部署的检测方案提供替代思路。</li>
+</ul>
+<h2>五、创新点</h2>
+<ol>
+<li>提出 EBF Detection（基于 BERT 与语言特征参量集成学习的大语言模型生成文本检测方法）：借鉴 Bagging 思想，将文本非统计特征与高阶自然语言统计特征并行融合，在不削弱生成文本自然度与困惑度的情况下提升对数据分布变化和大语言模型更新的泛化能力。</li>
+<li>在 EBF 内部提出两个基于 BERT 文本特征学习的基检测器 BERT+TextCNN-ALL 与 BERT+TextCNN-LAST：前者挖掘从浅层到深层、从分词到句子的文本特征，后者挖掘分词间上下文关系特征，再交由 TextCNN 分类。</li>
+<li>提出基于高阶自然语言统计特征集的多特征检测器：把特征工程与深度神经网络结合（3 个隐藏层、每层 16 个 ReLU 神经元），融合 log-probability、log-rank、entropy 与本文新提出的 LLM-Deviation 四个特征。</li>
+<li>提出新的高阶统计特征 LLM-Deviation：以"假设大语言模型采用贪婪解码"为参照，将实际文本与该假设解码结果的概率/排名偏差纳入特征，弥补前三类特征仅基于文本自身、未与模型生成结果对比的不足。</li>
+<li>发现大语言模型对"无意义信息"也具有强大记忆与准确提取能力，并据此提出两种语言隐写方法 LSB（基于大语言模型后门的语言隐写）与 LSC（基于公开内容的语言隐写），突破既有语言隐写嵌入容量低的瓶颈（LSB 提升 10 倍、LSC 达 200+ BPW，KL 散度 &lt;1、传输成功率接近 100%，LSC 还具备抗隐写分析能力与鲁棒性）。</li>
+<li>实证发现只有直接调整大语言模型参数（如仅微调最后两层）才能实现大量无意义信息的记忆与提取，LoRA 等高效微调技术无法做到——6B 模型可准确记忆并提取长度至少上百万的无意义秘密信息。</li>
+</ol>
+<h2>六、关键原文引用</h2>
+<blockquote>
+<p>本章实验使用的数据集有 Wiki-HC 数据集和 HC3 -ALL 数据集，均有一千多个问答四元组 &lt; 问题，人类回答， ChatGPT 回答， DeepSeek-rl 回答 &gt;</p>
+</blockquote>
+<p><strong>说明</strong>：说明检测实验所用两个数据集的数量量级与统一的四元组字段结构。</p>
+<blockquote>
+<p>Wiki-HC 数据集是本文构造的数据集，其中包含巧 66 个问答三元组 &lt; 问题，人类回答， ChatGPT 回答 &gt;，涵盖了地理、生物、物理和国际象棋等领域。 Wiki-HC 数据集的 &lt; 问题，人类回答， ChatGPT 回答， DeepSeek-rl 回答 &gt; 中的问题和人类回答均是我们通过爬虫技术从维基百科上随机爬取下来的， ChatGPT 回答和 DeepSeek-r 1 回答则是将爬取到的问题分别输入到 ChatGPT 和 DeepSeek-rl 中生成的</p>
+</blockquote>
+<p><strong>说明</strong>：明确 Wiki-HC 为自建数据集（"巧 66"即 1,666），并给出数据来源（维基百科爬取）与生成方式（分别输入两个模型）。</p>
+<blockquote>
+<p>HC3-ALL 数据集的问答四元组……中的问题、人类回答和 ChatGPT 回答是从 Guo 等人（ 2023 ）……Human ChatGPT Comparison Corpus （ HC3 ）的英文子集 HC3-Enghsh 数据集的计算机科学、开放问答、经济学和医学四个领域的数据中分别随机选取 392 个问答三元组所构成的，总共包含巧 68 个问答三元组，而 DeepSeek-r1 回答则是将上述巧 68 个问题输入到 DeepSeek-r 1 中生成的。 HC3-ALL 数据集公开在 Huggmgface 上</p>
+</blockquote>
+<p><strong>说明</strong>：说明 HC3-ALL 的公开数据来源、规模（1,568）与公开获取途径（"巧 68"即 1,568）。</p>
+<blockquote>
+<p>之所以使用 DeepSeek-r 1 而不是和 ChatGPT 同系列的 OpenAI-01 ，是因为 DeepSeek-rl 是开源的，更容易获取使用</p>
+</blockquote>
+<p><strong>说明</strong>：说明模型选型理由（开源可获取），也解释了数据集覆盖"最初性能"与"最新性能"两代生成模型的设计意图。</p>
+<blockquote>
+<p>本章中所有的有意义信息都取自于小说《活着》，所有的无意义信息有些是通过 Base 64 编码有意义信息获得的，有些是通过随机采样 Base 64 编码中的 64 个字符所生成的</p>
+</blockquote>
+<p><strong>说明</strong>：隐写/记忆能力实验数据集的构造来源与方式（唯一给出的数据来源说明）。</p>
+<blockquote>
+<p>使用上述构造的三种数据集对 ChatGLM3-6B 模型进行微调后，测试模型对于信息的记忆和提取能力…… Meamng 数据集中的信息的记忆和提取成功率为 100 ％，而 Meaning base64 数据集中信息的记忆和提取成功率为 98 ％， Random base64 数据集中信息的记忆和提取成功率为 99 ％</p>
+</blockquote>
+<p><strong>说明</strong>：给出记忆能力实验的基座模型（ChatGLM3-6B）与三数据集的提取成功率，是后续隐写方法可行性论证的基础。</p>
+<blockquote>
+<p>实验结果表明， EBF Detection 在 ChatGPT 和 DeepSeek-rl 等不同大语言模型生成文本的检测任务中表现优异，在域内数据上的平均检测准确率达到 99 ％左右，在域外数据上的平均检测准确率达到了 95 ％左右</p>
+</blockquote>
+<p><strong>说明</strong>：给出检测方法的核心性能指标（域内约 99%、域外约 95%）。</p>
+<blockquote>
+<p>实验结果表明，这两种方法不仅实现了高嵌入容量 (LSB 提升 10 倍， LSC 达 200 + BPW ），在不可感知性和隐蔽性方面表现突出（ KL 散度 &lt; 1 ），并且传输成功率接近 100 ％， LSC 更是具有良好的抗隐写分析能力和鲁棒性</p>
+</blockquote>
+<p><strong>说明</strong>：给出两种语言隐写方法的嵌入容量与各评估维度结论。</p>
+<blockquote>
+<p>实验发现只有直接对大语言模型中的参数进行调整，才能使大语言模型有效记忆大量无意义信息， LoRA 等高效微调技术无法使大语言模型记忆大量无意义信息</p>
+</blockquote>
+<p><strong>说明</strong>：给出消融性结论——记忆大量无意义信息必须直接调整参数（本文用仅微调最后 2 个 encoder 模块的 freeze tuning）。</p></div>
+</section>
+<section class="paper" id="p19" data-self="是">
+  <div class="phead">
+    <div class="pnum">#19</div>
+    <div>
+      <h2>社交媒体中AI生成文本检测方法研究</h2>
+      <div class="chips">
+        <span class="chip ">桂嘉弈（Jiavi Gui；导师：吴晓非 Xiaofei Wu）</span><span class="chip ">2025</span><span class="chip ">硕博学位论文（硕士，学术学位；学科专业：人工智能；学院：人工智能学院；答辩日期 2025.05.29）</span><span class="chip ">北京邮电大学</span>
+        <span class="badge ok">自建：是</span>
+        <span class="chip">提及数据集 7 个</span>
+        <span class="chip">创新点 5 条</span>
+      </div>
+    </div>
+  </div>
+  <div class="md"><h1>社交媒体中AI生成文本检测方法研究</h1>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作者</td>
+<td>桂嘉弈（Jiavi Gui；导师：吴晓非 Xiaofei Wu）</td>
+</tr>
+<tr>
+<td>年份</td>
+<td>2025</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>硕博学位论文（硕士，学术学位；学科专业：人工智能；学院：人工智能学院；答辩日期 2025.05.29）</td>
+</tr>
+<tr>
+<td>来源</td>
+<td>北京邮电大学</td>
+</tr>
+</tbody>
+</table>
+<h2>一、论文涉及的数据集</h2>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AIGen 数据集</td>
+<td>[自建]</td>
+<td>约 24,000 条（其中 20% 经 1–3 次递归增强）</td>
+<td>英文</td>
+<td>由 IMDB、SemEval、SubjQA、Writing-Prompts、OUTFOX、HC3、DAIGT v2 等公开数据，经大模型驱动的增强框架自动生成改写/提示/对抗三类攻击样本</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>SocialAIGen 数据集</td>
+<td>[自建]</td>
+<td>18,000 条（人类文本 6,000 + AI 生成文本 6,000 + AI 增强文本 6,000）</td>
+<td>英文</td>
+<td>基于 MultiSocial 训练集约 6k 条人类文本，通过多模型生成 + 社交风格扰动 + 递归对抗增强构建；经主题标注分 12 个类别</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>MultiSocial（基准）</td>
+<td>[使用公开数据集]</td>
+<td>训练集约 6k 条英文人类文本（基准覆盖 22 种语言、5 个社交平台）</td>
+<td>多语言（本文使用英文部分）</td>
+<td>采集自 Twitter、Telegram、Gab、Discord、WhatsApp 五大平台，涵盖评论、话题帖、私信对话等场景，覆盖政治、娱乐、科技等主题</td>
+<td>公开</td>
+</tr>
+<tr>
+<td>OUTFOX</td>
+<td>[使用公开数据集]</td>
+<td>1,500 篇人类议论文 + 对应 AI 生成文本</td>
+<td>英文</td>
+<td>由英语母语者撰写的议论文，配 Flan-T5-XXL、ChatGPT、GPT-3.5 三种生成器产生的文本；仅 ChatGPT 生成文本含对抗性增强数据对</td>
+<td>公开</td>
+</tr>
+<tr>
+<td>IMDB、SemEval</td>
+<td>[使用公开数据集]</td>
+<td>论文写作"AI 生成样本数量约为 1,0 条"（疑为 1,000 条）[OCR待核]</td>
+<td>英文</td>
+<td>电影评论与社交媒体帖子，代表社交媒体人类写作短文本</td>
+<td>公开</td>
+</tr>
+<tr>
+<td>SubjQA、Writing-Prompts</td>
+<td>[使用公开数据集]</td>
+<td>论文写作"样本规模约为各 2,条"（疑为各 2,000 条）[OCR待核]</td>
+<td>英文</td>
+<td>涵盖书籍、电子产品、议论文等多种文本类型</td>
+<td>公开</td>
+</tr>
+<tr>
+<td>OUTFOX、HC3、DAIGT v2（抽样）</td>
+<td>[使用公开数据集]</td>
+<td>论文写作"每个数据集均抽样约 1,0 条"（疑为约 1,000 条）[OCR待核]</td>
+<td>英文</td>
+<td>均为人类与 AI 生成配对语料，领域涵盖社交媒体、问答、Wiki、财经、医学、学术论文及社会、科技、教育等</td>
+<td>公开</td>
+</tr>
+</tbody>
+</table>
+<h2>二、是否自建数据集</h2>
+<p><strong>是</strong> —— 论文在多个公开语料基础上自建了两个数据集：通用对抗增强数据集 AIGen（约 24,000 条，覆盖改写/提示/对抗三类攻击）与社交媒体专用数据集 SocialAIGen（18,000 条，含人类文本、AI 生成文本、AI 增强文本三类）。二者均由论文提出的大模型驱动数据增强框架（AIDER-augmentor / SocialAIDER-augmentor）生成，论文未说明其开源或获取途径。</p>
+<h2>三、自建数据集结构</h2>
+<h3>AIGen 数据集</h3>
+<ul>
+<li><strong>规模</strong>：约 24,000 条；其中 20% 样本经过 1–3 次递归增强；单次攻击样本 100,6400 条（改写、对抗、提示）[OCR待核]，一次递归 3,200 条、二次递归 1,600 条[OCR待核]</li>
+<li><strong>数据来源</strong>：IMDB、SemEval（社交媒体人类短文本）、SubjQA、Writing-Prompts（书籍/电子产品/议论文等）、OUTFOX、HC3、DAIGT v2（人类-AI 配对语料）</li>
+<li><strong>生成模型</strong>（含版本）：GLM3-130b、GLM4-air、GLM4、GPT-3.5-turbo、GPT-4、GPT-4o（在多样性 temperature 组合下生成 AI 文本）；增强扰动由 GPT-4 Turbo 施加</li>
+<li><strong>生成方式 / 提示词</strong>：先做初步生成——从动态更新的攻击指令池中依分层随机采样策略抽取攻击指令，用 GPT-4 Turbo 对原始 AI 文本施加改写、提示、对抗等扰动；对无原生 AI 文本的数据集辅以 mask 预测、主题摘要重写、改写、续写等操作生成 AI 文本。再做递归增强——抽取 20% 初步生成样本再次施加随机攻击指令，重复生成随机 1–2 轮扰动文本，生成过程施加输出长度、内容保持、格式要求等约束</li>
+<li><strong>字段 / 结构</strong>：AI 生成文本 + 对应增强文本（配对样本），并携带 human/AI 来源标签；统计指标含样本数量、样本平均长度、单次攻击样本数量、递归增强样本数量、平均编辑距离、词汇多样性（TTR）、句法复杂度（依存深度）</li>
+<li><strong>标注方式</strong>：按来源规则标注；数据清洗阶段用预设规则 + GPT-4o 模型辅助剔除重复内容、乱码与低质量样本；统一编码格式并屏蔽电话、网址、地址等特殊字符以保护隐私；有意保留人类文本天然的拼写与语法错误</li>
+<li><strong>训练/验证/测试划分</strong>：按 4:1 划分（80% 训练、20% 测试）；实验随机种子固定为 42；增强模块阈值固定为多样性筛选 0.75、有效性筛选 0.60</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h3>SocialAIGen 数据集</h3>
+<ul>
+<li><strong>规模</strong>：18,000 条（人类文本 6,000、AI 生成文本 6,000、AI 增强文本 6,000）</li>
+<li><strong>数据来源</strong>：基于 MultiSocial 训练集约 6k 条英文人类文本，原始数据采集自 Twitter、Telegram、Gab、Discord、WhatsApp 五大平台，覆盖政治、娱乐、科技等 12 个主要主题类别</li>
+<li><strong>生成模型</strong>（含版本）：GLM-4-air、GLM-4-9b、GLM-4-plus、GPT-4o、GPT-4-Turbo、Deepseek-v3 六种生成模型（模板化指令生成）；论文另提及抽取 MultiSocial 配套的 GPT-3.5、Gemini、Mistral-7b-v0.2 生成文本[OCR待核，原文此处残缺]</li>
+<li><strong>生成方式 / 提示词</strong>：模板化指令与第三章数据生成方法一致（不同 temperature 组合下辅以 mask 预测、主题摘要重写、改写、续写）；两阶段增强——先由 SocialAIDER-augmentor 施加社交风格扰动（emoji 替换、标签扰动、拼写错误生成等社交特有攻击），再实施递归对抗增强（在 25% 样本上进行 1–2 轮递归攻击；第五章 5.3.1 节表述为"对 25% 样本进行 1–3 轮递归增强"）</li>
+<li><strong>字段 / 结构</strong>：配对的人类文本 / AI 生成文本 / AI 增强文本 + 主题标签（12 类）；统计指标含样本数量、样本平均长度（词数）、表情符号密度（个/百词）、话题标签数量（条/文本）、递归攻击占比、BERTScore、标点重复模式（连续重复 3 次以上的标点频次）；如 AI 增强文本表情符号密度达 0.87 个/百词，较原始生成文本提升 218%</li>
+<li><strong>标注方式</strong>：四维质量控制——Sentence-BERT 语义相似度（阈值 65%）保障语义一致性、Jensen-Shannon 散度确保社交媒体局部模式保真度、基于 GPT-4o 的对抗性评估验证扰动有效性、人工审核（500 样本抽检）消除生成错误</li>
+<li><strong>训练/验证/测试划分</strong>：按 8:2 比例划分训练集与测试集</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<blockquote>
+<p>检测模型侧的数据使用：第四章 AIDER-detector 使用 AIGen + OUTFOX；模型主干为 ALBERT-base，第一阶段在 50 万条跨领域文本上做生成特征预训练（学习率 2e-5、batch size 16、AdamW + CosineAnnealingLR），第二阶段在成对三元组样本上细化训练。</p>
+</blockquote>
+<h2>四、实用价值</h2>
+<ul>
+<li>面向社交媒体虚假信息治理与网络空间安全：识别平台上呈爆炸式增长的 AI 生成文本，应对其"缺乏可信度、含虚假信息与误导性言论"的问题（论文引用 NewsGuard 已识别 400 多个 AI 生成网站、Europol 预计 2026 年 90% 网络内容由 AI 生成）。</li>
+<li>面向平台内容审核与舆论治理：AI 生成文本检测是监管、过滤、调节等后续处理的前提步骤。</li>
+<li>面向对抗场景下的检测鲁棒性：针对改写攻击（DIPPER 三轮递归改写使 RoBERTa 检测器 AUROC 从 0.89 降至 0.32）、对抗攻击（DeepWordBug 使检测器召回率从 97.44% 归零）、提示工程攻击等提供防御思路。</li>
+<li>面向社交媒体特有文本形态的检测：针对非正规、碎片化、符号丰富的短文本（emoji、话题标签、重复标点、拼写错误、非正式缩略语、图文混排）做专用优化。</li>
+<li>面向学术/教育等其他文本领域：其"数据增强—通用检测—场景优化"三级框架与 AIGen 数据集可迁移至通用 AI 生成文本检测任务。</li>
+</ul>
+<h2>五、创新点</h2>
+<ol>
+<li>数据增强策略创新：提出基于大模型的递归式对抗数据增强框架（AIDER-augmentor），通过动态指令生成与递归攻击机制，构建覆盖多攻击类型和跨领域主题的 AI 生成文本数据集 AIGen；实验显示其生成的对抗样本可使基线模型 F1 分数下降最多 50%。</li>
+<li>检测算法优化：设计融合对比学习与主题解耦的两阶段检测模型（AIDER-detector），利用三元组损失、梯度反转层与变分信息瓶颈增强模型对生成特征的敏感性并抑制主题相关性干扰，在对抗场景下性能衰减平均最低。</li>
+<li>场景适配性提升：提出社交媒体专用检测框架（SocialAIDER-detector），通过多尺度卷积核（1D 卷积核 3/5/7）与社交模式增强模块（SPM）精准捕捉短文本中的符号重复、非正式表达等局部模式特征；在 SocialAIGen 数据集上 F1 达 93.4%。</li>
+<li>社交媒体专用数据增强：提出 SocialAIDER-augmentor，引入符合社交媒体语言风格的攻击指令种子（emoji 替换、标签扰动、拼写错误生成等），在 MultiSocial 基础上构建 SocialAIGen。</li>
+<li>体系化闭环：将"数据增强—通用检测—场景优化"三个模块构成闭环技术体系（对应第三、四、五章），形成兼具鲁棒性、泛化性和场景适应性的端到端解决方案。</li>
+</ol>
+<h2>六、关键原文引用</h2>
+<blockquote>
+<p>在此基础上，进一步提出了社交媒体专用的数据增强框架，通过引入符合社交媒体语言风格的攻击指令种子，如针对 emoji 替换、标签扰动及拼写错误生成等专门策略，在 Multi Social 数据集基础上构建了包含人类文本、 AI 生成文本及 AI 增强文本的社交媒体 AI 生成文本数据集 Social AIGen</p>
+</blockquote>
+<p><strong>说明</strong>：说明 SocialAIGen 的构建基础、社交媒体特有攻击类型与三类文本构成。</p>
+<blockquote>
+<p>该数据集共计约 24 ， 0 条样本，且其中 20 ％的样本经过 1 至 3 次递归增强……数据集采用 4 ： 1 的比例划分，其中 80 ％样本用于训练， 20 ％用于测试……此外，川 Gen 数据集覆盖了多领域、多生成器 (GPT 系列和 GLM 系列）</p>
+</blockquote>
+<p><strong>说明</strong>：给出 AIGen 数据集的规模（约 24,000 条）、递归增强比例、划分比例与多生成器覆盖情况。</p>
+<blockquote>
+<p>在数据来源方面，我们选用多个公开数据集以及自采集数据，共同构成了丰富的语料库…… 1. IMDB 和 SemEval ：主要提供电影评论和社交媒体帖子，代表社交媒体人类写作短文本…… 2 ， SubjQA 和 Writing-Prompts ：涵盖书籍、电子产品、议论文等多种文本类型…… 3. OUTFOX 、 HC3 以及 Dai v2 ：这些数据集均为人类与 AI 生成配对语料</p>
+</blockquote>
+<p><strong>说明</strong>：说明 AIGen 的上游数据来源与各源数据的定位（此处数字因 OCR 残缺，规模数值需回原文核对）。</p>
+<blockquote>
+<p>对于 IMDB 、 SemEval 、 SubjQA 和 Writing-Prompts 等无原生 AI 文本的数据集，我们采用 GLM3 130b 、 GLM4a1r 、 GLM4 、 GPT3.5turbo GPT4 及 GPT40 在不同 m ra “ e 组合下，并辅以 mask 预测、主题摘要重写、改写和续写等操作，生成对应的 AI 文本</p>
+</blockquote>
+<p><strong>说明</strong>：列出生成 AI 文本所用模型（GLM3-130b、GLM4-air、GLM4、GPT-3.5-turbo、GPT-4、GPT-4o）与生成操作（"m ra e"应为 temperature）。</p>
+<blockquote>
+<p>在递归增强阶段，为了拓展生成样本的攻击深度和复杂性，我们设计了递归攻击机制。具体来说，抽取 20 ％的初步生成样本会被选作递归增强对象，对其再次施加随机攻击指令，重复生成随机的一至两轮扰动文本</p>
+</blockquote>
+<p><strong>说明</strong>：说明递归增强的具体做法与比例。</p>
+<blockquote>
+<p>数据质量控制方面，建立四维评估体系：通过 Sentence-BERT 计算语义相似度得分 SBERT （阈值设置为 65 ％）保障语义一致性，采用 Jensen-Shannon 散度确保社交媒体局部模式保真度，基于 GPT-40 的对抗性评估验证扰动有效性，并通过人工审核（ 5 佣样本抽检）消除生成错误</p>
+</blockquote>
+<p><strong>说明</strong>：说明 SocialAIGen 的四维质量控制与标注审核机制（"5 佣"即 500）。</p>
+<blockquote>
+<p>Social AIGen 数据集基于 MultiSocial 框架构建，涵盖 Twitter, Telegram 、 Gab 、 Discord 和五大社交平台，包含 ] 8 ， 000 条样本（人类文本 6 ， 000 条、 AI 生成文本 6 ， 000 条、 AI 增强文本 6 ， 000 条）……通过主题标注模块进行话题分类，覆盖政治、娱乐、科技等 ] 2 个主要类别……数据集按 8 ： 2 比例划分训练集与测试集</p>
+</blockquote>
+<p><strong>说明</strong>：给出 SocialAIGen 的规模（18,000 条 / 三类各 6,000）、平台来源、主题类别数与划分比例（OCR 中的"Twitter, ... 和五大社交平台"对应 Twitter/Telegram/Gab/Discord/WhatsApp）。</p>
+<blockquote>
+<p>模型主干网络选用 ALBERT-base ，其预训练参数通过两阶段优化：第一阶段参照 4 ． 2 ． ] 节在 50 万条跨领域文本上进行生成特征预训练</p>
+</blockquote>
+<p><strong>说明</strong>：说明检测器基座模型与第一阶段预训练所用数据规模（50 万条跨领域文本）。</p>
+<blockquote>
+<p>在 SocialAIGen 数据集上，该框架 FI 达 93 ． 4 ％</p>
+</blockquote>
+<p><strong>说明</strong>：给出社交媒体专用检测框架的核心性能指标（F1 = 93.4%）。</p>
+<blockquote>
+<p>该框架生成的对抗样本可使基线模型 F 1 分数下降最多 50 ％</p>
+</blockquote>
+<p><strong>说明</strong>：量化说明所提递归对抗数据增强框架的攻击强度（即使 F1 下降最多 50%），佐证增强样本的"难度"。</p></div>
+</section>
+<section class="paper" id="p20" data-self="否">
+  <div class="phead">
+    <div class="pnum">#20</div>
+    <div>
+      <h2>融合语言学知识的大模型生成文本检测研究</h2>
+      <div class="chips">
+        <span class="chip ">刘旭蓉</span><span class="chip ">2025</span><span class="chip ">硕博学位论文（硕士，电子信息硕士）</span><span class="chip ">佛山大学（Foshan University）</span>
+        <span class="badge no">自建：否</span>
+        <span class="chip">提及数据集 5 个</span>
+        <span class="chip">创新点 5 条</span>
+      </div>
+    </div>
+  </div>
+  <div class="md"><h1>融合语言学知识的大模型生成文本检测研究</h1>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作者</td>
+<td>刘旭蓉</td>
+</tr>
+<tr>
+<td>年份</td>
+<td>2025</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>硕博学位论文（硕士，电子信息硕士）</td>
+</tr>
+<tr>
+<td>来源</td>
+<td>佛山大学（Foshan University）</td>
+</tr>
+</tbody>
+</table>
+<h2>一、论文涉及的数据集</h2>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HC3（Human ChatGPT Comparison Corpus）</td>
+<td>[使用公开数据集]</td>
+<td>近 40,000 个问题及对应答案；HC3-en 含 58,000 条人类回答与 26,000 条 ChatGPT 回答，源自 24,000 个问题</td>
+<td>中英（本文实验用英文语料）</td>
+<td>覆盖开放域、计算机科学、金融、医学、法律、心理学等；来源于 ELI5、WikiQA、Crawled Wikipedia、Medical Dialog、FiQA 等</td>
+<td>公开</td>
+</tr>
+<tr>
+<td>PAN24（生成式人工智能作者身份识别数据集）</td>
+<td>[使用公开数据集]</td>
+<td>2021 年多条美国新闻头条的真实与虚假新闻文章；虚假新闻由 13 种不同大语言模型生成</td>
+<td>英文</td>
+<td>虚假新闻由 alpaca-7b、bigscience-bloomz-7b1、chavinlo-alpaca-13b、gemini-pro、gpt-3.5-turbo-0125、gpt-4-turbo-preview、llama-2-7b/70b-chat、mistral-7b/8x7b-instruct、qwen1.5-72b、text-bison-002、vicgalle-gpt2 等 13 个模型生成</td>
+<td>公开</td>
+</tr>
+<tr>
+<td>TweepFake</td>
+<td>[使用公开数据集]</td>
+<td>25,000 条推文（人类写作与机器生成分布均匀）</td>
+<td>英文</td>
+<td>用于分析 Twitter 上虚假推文，机器推文由 GPT-2、RNN、Markov、LSTM、CharRNN 生成</td>
+<td>公开</td>
+</tr>
+<tr>
+<td>IDMGSP</td>
+<td>[使用公开数据集]</td>
+<td>16,000 篇已发布科学论文</td>
+<td>英文</td>
+<td>主要来源于 arXiv，涵盖多个学科领域，用于区分机器生成科学论文与人类论文</td>
+<td>公开</td>
+</tr>
+<tr>
+<td>TURINGBENCH</td>
+<td>[使用公开数据集]</td>
+<td>200,000 篇文本样本，涉及 20 个标签（4 个神经文本生成模型 + 1 个人类标签）</td>
+<td>英文</td>
+<td>基于从多个新闻媒体收集的 10,000 篇新闻生成，用于图灵测试与作者归属任务</td>
+<td>公开</td>
+</tr>
+</tbody>
+</table>
+<h2>二、是否自建数据集</h2>
+<p><strong>否</strong> —— 本文全部实验均使用公开数据集（第二章用 HC3，第三章用 PAN24，第四章持续学习任务集为 HC3、PAN24、TweepFake、IDMGSP、TURINGBENCH 组成的四个任务序列）。论文未提及自建数据集或数据发布。</p>
+<h2>三、自建数据集结构</h2>
+<h3>无自建数据集</h3>
+<ul>
+<li>论文围绕公开数据集开展语言学知识分析、模型构建与持续学习实验，未构建数据集，故本节内容均<strong>论文未说明</strong>（不存在）。</li>
+</ul>
+<h2>四、实用价值</h2>
+<ul>
+<li>面向 <strong>文本溯源、内容可信度评估</strong> 及大模型技术的规范应用。</li>
+<li>面向 <strong>教育、新闻、法律</strong> 等领域的内容审查与 <strong>学术诚信检测</strong>（如识别大模型生成文本、缓解大模型负面效应），并构建了检测原型系统。</li>
+</ul>
+<h2>五、创新点</h2>
+<ol>
+<li>系统性地从 <strong>文体学、音韵学、句法学、语义学、语用学</strong> 五个语言学分支量化分析人类文本与大模型生成文本的差异，并通过 SHAP 框架对比各类语言学知识在检测中的重要性。</li>
+<li>揭示"显式语言学统计特征无法准确区分不同大模型生成的文本"，主张须将语言学知识深度融入检测模型，为后续检测模型设计提供理论依据。</li>
+<li>提出基于 <strong>文体学知识</strong> 的大模型生成文本检测模型（STDM）：通过掩码语言模型（MLM）加强对文本词汇/文体学知识的学习，并在判别模型中融合不同大模型生成文本的文体学特点。</li>
+<li>提出基于 <strong>语义语言学知识</strong> 的大模型生成文本检测模型：引入 <strong>语义熵</strong> 量化文本语义复杂度，在持续学习中建模模型对语义变化的敏感性，并据此选择重演（Replay）样本，缓解灾难性遗忘。</li>
+<li>构建了融合语言学知识的大语言模型生成文本检测原型系统。</li>
+</ol>
+<h2>六、关键原文引用</h2>
+<blockquote>
+<p>实验结果表明，显式的语言学统计特征无法准确区分不同大模型生成的文本，需将语言学知识深度融合至检测模型，以提升检测能力，并为后续文本检测模型的设计提供理论支持。</p>
+</blockquote>
+<p><strong>说明</strong>：第一条核心结论——纯语言学特征统计不足以区分不同大模型，需将语言学知识融入模型。</p>
+<blockquote>
+<p>该模型通过掩码语言模型加强对文本文体学知识的学习，在判别模型中融合不同大语言模型生成文本的文体学特点，提升对文本来源模型的识别能力。在 PAN24 数据集上的实验结果表明，该方法能够有效融合语言学知识，提高了大语言模型生成文本检测的性能。</p>
+</blockquote>
+<p><strong>说明</strong>：第三章基于文体学知识的 STDM 模型方法与实验验证。</p>
+<blockquote>
+<p>该模型引入语义熵量化文本的语义复杂度，在持续学习过程中建模检测模型对语义变化的敏感性，并基于此选择重演样本，实现检测模型的自适应学习。</p>
+</blockquote>
+<p><strong>说明</strong>：第四章基于语义熵的持续学习检测方法核心机制。</p>
+<blockquote>
+<p>面对不断增加的大模型生成文本类型，能够有效缓解灾难性遗忘，具有持续学习的能力。</p>
+</blockquote>
+<p><strong>说明</strong>：持续学习模型的核心收益——应对新模型、缓解灾难性遗忘。</p>
+<blockquote>
+<p>本节在 HC3 数据集（表 2，4）上从五个不同语言学知识的角度对大语言模型生成文本数据特征分布进行可视化比较分析。</p>
+</blockquote>
+<p><strong>说明</strong>：第二章语言学对比分析所依托的数据集为 HC3。</p>
+<blockquote>
+<p>我们在 PAN24 生成式人工智能作者身份识别数据集上进行实验。PAN24 数据集包含 2021 年多条美国新闻头条的真实和虚假新闻文章，虚假新闻生成于 13 种不同的大语言模型……</p>
+</blockquote>
+<p><strong>说明</strong>：第三章实验所用数据集为公开的 PAN24，并列出参与生成虚假新闻的 13 个大模型。</p>
+<blockquote>
+<p>将五个数据集组成四个任务序列，如表 4，2 所示：HC3→PAN24→TweepFake→IDMGSP→TURINGBENCH</p>
+</blockquote>
+<p><strong>说明</strong>：第四章持续学习实验采用五个公开数据集构成的任务序列。</p></div>
+</section>
+<section class="paper" id="p21" data-self="是">
+  <div class="phead">
+    <div class="pnum">#21</div>
+    <div>
+      <h2>面向专利领域的 AI 生成文本检测方法的研究</h2>
+      <div class="chips">
+        <span class="chip ">胡伟</span><span class="chip ">2025</span><span class="chip ">硕博学位论文（硕士，工学硕士）</span><span class="chip ">广东技术师范大学</span>
+        <span class="badge ok">自建：是</span>
+        <span class="chip">提及数据集 4 个</span>
+        <span class="chip">创新点 3 条</span>
+      </div>
+    </div>
+  </div>
+  <div class="md"><h1>面向专利领域的 AI 生成文本检测方法的研究</h1>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作者</td>
+<td>胡伟</td>
+</tr>
+<tr>
+<td>年份</td>
+<td>2025</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>硕博学位论文（硕士，工学硕士）</td>
+</tr>
+<tr>
+<td>来源</td>
+<td>广东技术师范大学</td>
+</tr>
+</tbody>
+</table>
+<h2>一、论文涉及的数据集</h2>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PAD</td>
+<td>[自建]</td>
+<td>中文 67,902 条 + 英文 47,058 条，合计 114,960 条</td>
+<td>中英</td>
+<td>由 Google Patents 爬取的已授权发明专利（标题、摘要、权利要求书）；用 ChatGPT-3.5-Turbo 依据权利要求书生成摘要；覆盖人工智能、生物医药、电气工程、机械制造四个领域</td>
+<td>公开（论文称"公开可用的数据集"）</td>
+</tr>
+<tr>
+<td>CHEAT</td>
+<td>[使用公开数据集]</td>
+<td>15K 条人类撰写摘要 + 35K 条 ChatGPT 生成摘要</td>
+<td>英文</td>
+<td>用于检测 ChatGPT 生成的虚假学术内容；作为 PAD 质量评估的对照数据集</td>
+<td>公开</td>
+</tr>
+<tr>
+<td>M4</td>
+<td>[使用公开数据集]</td>
+<td>未在本文给出总量</td>
+<td>多语言（超 10 种）</td>
+<td>跨生成器/领域/语言的检测基准；作为 PAD 质量评估的对照数据集</td>
+<td>公开</td>
+</tr>
+<tr>
+<td>MGTBench</td>
+<td>[使用公开数据集]</td>
+<td>含 Essay、WP、Reuters 三类，各类约 1,000 篇</td>
+<td>英文</td>
+<td>首个 MGT 检测基准框架；作为 PAD 质量评估的对照数据集</td>
+<td>公开</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>注：第二章还介绍了 HC3、HC3-Chinese、GROVER Dataset、TweepFake、GPT-2 Output Dataset、TuringBench、ArguGPT、GABenchmark、Scientific-articles Benchmark 等公开数据集（仅作综述，非本文实验使用）。</p>
+</blockquote>
+<h2>二、是否自建数据集</h2>
+<p><strong>是</strong> —— 论文针对专利领域提出一种利用大模型自动生成专利摘要的数据集构建方法，并构建了公开可用的专利文本生成检测数据集 <strong>PAD</strong>（含人工智能、生物医药、电气工程、机械制造四个领域，中英双语）；用 ROUGE、BERTScore、MoverScore 评估其质量，并与 CHEAT、M4、MGTBench 等公开数据集对比。</p>
+<h2>三、自建数据集结构</h2>
+<h3>PAD</h3>
+<ul>
+<li><strong>规模</strong>：中文 67,902 条，英文 47,058 条（合计 114,960 条）。分领域（中文/英文）：人工智能 17,827 / 9,118，生物医药 12,508 / 7,613，电气工程 18,694 / 10,581，机械制造 18,873 / 19,746。</li>
+<li><strong>数据来源</strong>：Google Patents 网站（https://patents.google.com/）爬取；筛选条件包括四个领域对应的 CPC 分类号、已授权发明专利、授权时间区间（人工智能/电气工程/机械制造为 2021-01-01—2022-01-01，生物医药为 2022-01-01 之前）、关键词存在于专利全文、语言为中文/英文；只保存专利标题、摘要和权利要求书。时间节点选在 2022 年（ChatGPT 公布）之前，以避免近期专利撰写已使用大语言模型。</li>
+<li><strong>生成模型（含版本）</strong>：OpenAI 的 ChatGPT-3.5-Turbo。</li>
+<li><strong>生成方式 / 提示词</strong>：使用中英文 prompt 提示模板，将专利权利要求书输入模型生成摘要；设置与 HC3 相同的 temperature 参数以控制输出基本一致；中文模板要求模型以"资深专利代理师"身份生成摘要，符合中国知识产权局撰写规范（专利名词唯一性、句间衔接性），最后输出 300 字以内的摘要。</li>
+<li><strong>字段 / 结构</strong>：CSV 格式，每个文件两列——第一列 <code>text</code>（摘要文本），第二列 <code>label</code>（来源标签，0 表示人类撰写，1 表示 AI 模型生成）。</li>
+<li><strong>标注方式</strong>：按来源自动赋标签（人类摘要 = 0，AI 生成摘要 = 1）；并做去重与缺失值处理。</li>
+<li><strong>训练/验证/测试划分</strong>：论文未说明。</li>
+<li><strong>许可与获取途径</strong>：论文称 PAD 为"公开可用的数据集"，但具体许可协议与下载/获取途径论文未说明。</li>
+</ul>
+<h2>四、实用价值</h2>
+<ul>
+<li>面向 <strong>专利审查</strong>（提升审查员效率、降低"预言性"专利风险）、<strong>伪造专利/低质量专利文本识别</strong>、<strong>知识产权保护</strong>，以及 AI 生成内容检测在专利这一垂直领域的标准化数据集与轻量化检测方法需求。</li>
+</ul>
+<h2>五、创新点</h2>
+<ol>
+<li>首次面向 <strong>专利文本</strong> 这一垂直领域提出 AI 生成文本检测数据集的 <strong>自动构建方法</strong>，并构建公开可用的中英双语数据集 <strong>PAD</strong>（四领域，合计 114,960 条）。</li>
+<li>在 PAD 上进行 <strong>专利文本 AI 与人类撰写的探索性差异分析</strong>（词汇特征、词性特征、依存关系、情感极性、语言困惑度）。</li>
+<li>提出面向专利领域的检测方法 <strong>PAA-BLS</strong>：结合 <strong>宽度学习系统（BLS）</strong>，引入 <strong>残差注意力机制</strong> 与 <strong>专利文本自适应权重</strong>，在保证检测性能的同时有效平衡模型复杂度、降低资源与推理成本。</li>
+</ol>
+<h2>六、关键原文引用</h2>
+<blockquote>
+<p>本文提出了一种利用大模型自动生成专利摘要的数据集构建方法。具体而言，本文先是通过爬虫获取已授权的专利摘要以及其对应的权利要求书，并利用 ChatGPT 3.5 Turbo 模型，将权利要求书生成一组中文和英文的专利摘要文本。由此构建了一个可用于专利文本生成检测的公开可用的数据集 PAD。所构建的数据集涉及四个领域的专利：人工智能、生物医药、电气工程、机械制造。</p>
+</blockquote>
+<p><strong>说明</strong>：PAD 数据集的构建来源、生成模型、覆盖领域与"公开可用"定位。</p>
+<blockquote>
+<p>最后，进行数据清洗操作之后，本文构建的 PAD 数据集的数据量如表 3-1 所示，中文数据总量为 67902 条，英文数据总量为 47058 条。</p>
+</blockquote>
+<p><strong>说明</strong>：PAD 的规模（中文 67,902 条、英文 47,058 条）。</p>
+<blockquote>
+<p>本文保存的 CSV 文件中有两列数据，第一列是 text 表示摘要文本，第二列是 label 表示摘要的来源标签。</p>
+</blockquote>
+<p><strong>说明</strong>：PAD 的数据结构与字段。</p>
+<blockquote>
+<p>假如你是一个资深的专利代理师，请就下面括号内的专利权利要求书生成它的摘要，要求符合中国知识产权局撰写规范中强调的专利名词的唯一性和句与句之间的衔接性，要求最后输出：300 字以内的摘要。</p>
+</blockquote>
+<p><strong>说明</strong>：中文生成提示模板，可用于复现生成过程。</p>
+<blockquote>
+<p>其中时间节点选在 2022 年之前是为了避免在近两年有些专利文本在撰写和提交专利五书的过程中使用来大语言模型，故筛选时间节点选在来 ChatGPT 模型公布之前。</p>
+</blockquote>
+<p><strong>说明</strong>：数据来源筛选的时间节点设计动机（确保"人类撰写"文本的纯净性）。</p>
+<blockquote>
+<p>本文结合宽度学习系统，引入残差注意力机制和专利文本自适应权重，设计了一种面向专利领域的 AI 生成文本检测方法 PAA-BLS……实验结果表明，本文提出的方法可以有效平衡模型复杂度和检测性能。</p>
+</blockquote>
+<p><strong>说明</strong>：本文提出的轻量化检测方法 PAA-BLS 及其优势。</p>
+<blockquote>
+<p>本文在 ROUGE、BERTScore、MoverScore 等指标上与 M4、MGTBench、CHEAT 等公开数据集进行对比，以评估本文数据集的构建质量。</p>
+</blockquote>
+<p><strong>说明</strong>：PAD 的质量评估方式与对照的公开数据集。</p>
+<blockquote>
+<p>在本文构建的 PAD 数据集上，本文将 PAA-BLS 与现有的检测方法进行了实验对比……实验结果表明，本文提出的方法可以有效平衡模型复杂度和检测性能。</p>
+</blockquote>
+<p><strong>说明</strong>：PAA-BLS 在 PAD 上的实验评价定位。</p></div>
+</section>
+<section class="paper" id="p22" data-self="是">
+  <div class="phead">
+    <div class="pnum">#22</div>
+    <div>
+      <h2>面向大模型的生成文本检测研究</h2>
+      <div class="chips">
+        <span class="chip ">王睿源</span><span class="chip ">2025</span><span class="chip ">硕博学位论文（硕士）</span><span class="chip ">大连理工大学</span>
+        <span class="badge ok">自建：是</span>
+        <span class="chip">提及数据集 3 个</span>
+        <span class="chip">创新点 4 条</span>
+      </div>
+    </div>
+  </div>
+  <div class="md"><h1>面向大模型的生成文本检测研究</h1>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作者</td>
+<td>王睿源</td>
+</tr>
+<tr>
+<td>年份</td>
+<td>2025</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>硕博学位论文（硕士）</td>
+</tr>
+<tr>
+<td>来源</td>
+<td>大连理工大学</td>
+</tr>
+</tbody>
+</table>
+<h2>一、论文涉及的数据集</h2>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MAT</td>
+<td>[自建]</td>
+<td>见下方"自建数据集结构"；人类回答 10,000 条 + 各模型各类生成数据 1,000~3,000 条不等</td>
+<td>英文</td>
+<td>基于 HealthCareMagic-100k 医学问答垂类数据，用多种大模型、多种提示方法生成</td>
+<td>论文未说明</td>
+</tr>
+<tr>
+<td>HealthCareMagic-100k</td>
+<td>[使用公开数据集]</td>
+<td>100,000 条以上医患单轮问答</td>
+<td>英文</td>
+<td>从真实在线网站收集的医患单轮问答数据集，作为 MAT 的生成素材</td>
+<td>公开（论文称"开源"）</td>
+</tr>
+<tr>
+<td>SemEval-2024 Task 8</td>
+<td>[使用公开数据集]</td>
+<td>见论文表 4.1（Train/Dev/Test 多文本域，单类约 3,000 条）</td>
+<td>英文</td>
+<td>单语言大模型生成文本检测赛道数据集；含 6 种大模型（Davinci、ChatGPT、Cohere、Dolly-v2、BLOOMz、GPT-4）与 6 种文本域（Wikipedia、Wikihow、Reddit、arXiv、PeerRead、Outfox 等）；第 4 章算法实验使用</td>
+<td>公开</td>
+</tr>
+</tbody>
+</table>
+<h2>二、是否自建数据集</h2>
+<p><strong>是</strong> —— 论文基于开源医学问答数据 HealthCareMagic-100k，结合 4 种大模型与 3 种提示方法自动生成，构建了面向医学垂类的大模型生成文本检测数据集 <strong>MAT</strong>（将不同生成器/生成方法产生的数据视为不同"文本域"），用于验证各类数据作为训练集/测试集的效果。第 4 章算法实验使用公开数据集 SemEval-2024 Task 8。</p>
+<h2>三、自建数据集结构</h2>
+<h3>MAT</h3>
+<ul>
+<li><strong>规模</strong>：人类回答 10,000 条；各模型×各生成方式生成量（论文表 3.3）：InstructGPT 0-shot 2,995 / 5-shot 3,000 / 改写 2,999；GPT-4 0-shot 981 / 5-shot 986 / 改写 999；ERNIE-Bot 3.5 0-shot <code>[OCR待核，原文作"四09"]</code> / 5-shot 2,844 / 改写 2,463；ERNIE-Bot 4.0 5-shot 1,735 / 改写 1,404（其 0-shot 数据因大多含中文字符未被采用）。每类数据原计划生成 1,000~3,000 条。</li>
+<li><strong>数据来源</strong>：开源数据集 HealthCareMagic-100k（真实在线网站收集的医患单轮问答）。</li>
+<li><strong>生成模型（含版本）</strong>：GPT-3.5-Turbo-Instruct（论文称 InstructGPT）、GPT-4、ERNIE-Bot 3.5、ERNIE-Bot 4.0；均通过在线 API 生成。</li>
+<li><strong>生成方式 / 提示词</strong>：三种提示方法——(1) 0-shot 生成方案（仅给问题，赋予"医学专家"角色）；(2) 改写方案（给问题与医生原答案，要求模型改写）；(3) 5-shot 上下文学习方案（用 BGE 编码 + Faiss 检索最相近 5 个问答作为示例）。对 ERNIE 系列额外添加翻译指令以确保英文输出。</li>
+<li><strong>字段 / 结构</strong>：论文未明确给出字段定义（人类医生回复作为负样本，模型生成为正样本）。</li>
+<li><strong>标注方式</strong>：按来源标注——真实人类医生回答为负样本，大模型生成为正样本（另设文本域标签用于辅助任务）。</li>
+<li><strong>训练/验证/测试划分</strong>：为定量实验，每类生成数据取 800 条生成数据 + 800 条随机人类答案作训练集；从每类剩余数据随机取 150 条作测试集；共构建 11 个训练集与 11 个测试集，训练/测试不相交，进行 5 次随机抽样取平均。</li>
+<li><strong>许可与获取途径</strong>：论文未说明。</li>
+</ul>
+<h2>四、实用价值</h2>
+<ul>
+<li>面向 <strong>大模型生成文本检测</strong> 的数据与算法两大核心问题：缓解特定垂类（医学问答）数据匮乏与生成方案单一；提升检测算法 <strong>跨域泛化性</strong>。</li>
+<li>为防范 <strong>电信诈骗、谣言传播、虚假信息</strong> 等大模型滥用提供技术支撑，并基于 Django 部署前后端网页 Demo，便于实际检测使用。</li>
+</ul>
+<h2>五、创新点</h2>
+<ol>
+<li>构建了面向 <strong>医学问答垂类</strong> 的大模型生成文本检测数据集 <strong>MAT</strong>，同时兼顾 <strong>多种生成模型</strong>（GPT-3.5-Instruct、GPT-4、ERNIE-Bot 3.5/4.0）与 <strong>多种生成方法</strong>（0-shot、改写、5-shot 上下文学习）。</li>
+<li>将"不同生成器/不同生成方法产生的数据"视为不同 <strong>文本域</strong>，系统给出各类数据作为训练集/测试集及溯源任务的 <strong>基线结果</strong>，量化分析生成模型与提示方法对检测器泛化性的影响。</li>
+<li>提出融合 <strong>对比学习 + 多层混合专家（MMoE）</strong> 的跨域检测算法：构建基于 MMoE 的多任务特征抽取模块，引入 <strong>文本域分类辅助任务</strong> 对分类器各专家进行 <strong>负载均衡</strong>，并基于辅助任务与监督对比学习构建 <strong>混合损失</strong>。</li>
+<li>基于 Django 框架部署模型并构建前后端，实现了便于实际使用的大模型生成文本检测网页。</li>
+</ol>
+<h2>六、关键原文引用</h2>
+<blockquote>
+<p>本文基于医学问答垂类数据构建了一个结合多种生成方法和多种生成模型的大语言模型生成文本检测数据集……同时采用多种大语言模型进行生成，如 GPT 系列、ERNIE 系列等。</p>
+</blockquote>
+<p><strong>说明</strong>：MAT 数据集的定位——医学垂类、多生成方法、多生成模型。</p>
+<blockquote>
+<p>本文采用 HealthCareMagic-100k 数据集进行大模型生成文本构建。这是一个从真实在线网站收集的医患单轮问答数据集，包含 100000 条以上的医患问答数据。本文希望采用真实的人类医生撰写的文本作为数据集中的负样本。</p>
+</blockquote>
+<p><strong>说明</strong>：MAT 的数据来源与负样本（人类医生回答）来源。</p>
+<blockquote>
+<p>在此基础上，本文选用 4 种国内外大模型进行生成任务，包括 InstructGPT、GPT-4、ERNIE-Bot 3.5 和 ERNIE-Bot 4.0。</p>
+</blockquote>
+<p><strong>说明</strong>：MAT 用于生成的 4 个大模型。</p>
+<blockquote>
+<p>这三种提示方法分别是 0-shot 生成方案，改写方案和 5-shot 的上下文学习生成方案。</p>
+</blockquote>
+<p><strong>说明</strong>：MAT 的三种生成方法。</p>
+<blockquote>
+<p>由于 0-shot 设置下 ERNIE-Bot 4.0 生成的大多数文本均包含中文字符，所以最终在的数据集中并未采用这部分数据。出于成本因素考虑，每类数据生成了 1000 到 3000 条的文本数据。</p>
+</blockquote>
+<p><strong>说明</strong>：MAT 各类生成数据的规模与部分类别被剔除的原因。</p>
+<blockquote>
+<p>本文基于 SemEval-2024 task8 中的单语言大模型生成文本检测赛道的数据集进行实验……数据集中分别采用了 6 种大模型用于大模型生成文本的检测，包括 Davinci、ChatGPT、Cohere、Dolly-v2、BLOOMz、GPT-4，同时包含 Wikipedia 和 Wikihow 等 6 种不同的文本域。</p>
+</blockquote>
+<p><strong>说明</strong>：第 4 章算法实验所使用的公开跨域数据集（SemEval-2024 Task 8）。</p>
+<blockquote>
+<p>构建基于 MMoE 的特征提取模块，同时通过引入辅助任务为分类器中的混合专家模型中的各个专家进行负载均衡，基于辅助任务和监督对比学习方法构建混合损失。</p>
+</blockquote>
+<p><strong>说明</strong>：跨域检测算法的核心设计（MMoE + 辅助任务负载均衡 + 混合损失）。</p>
+<blockquote>
+<p>本文基于 Django 框架部署模型并构建前后端，实现了一个用于机器生成文本检测的网页。</p>
+</blockquote>
+<p><strong>说明</strong>：论文的工程化/部署成果。</p></div>
+</section>
+<section class="paper" id="p23" data-self="是">
+  <div class="phead">
+    <div class="pnum">#23</div>
+    <div>
+      <h2>面向教育领域的机器生成文本检测方法研究</h2>
+      <div class="chips">
+        <span class="chip ">姚彪</span><span class="chip ">2025</span><span class="chip ">硕博学位论文（硕士）</span><span class="chip ">华中师范大学</span>
+        <span class="badge ok">自建：是</span>
+        <span class="chip">提及数据集 2 个</span>
+        <span class="chip">创新点 4 条</span>
+      </div>
+    </div>
+  </div>
+  <div class="md"><h1>面向教育领域的机器生成文本检测方法研究</h1>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作者</td>
+<td>姚彪</td>
+</tr>
+<tr>
+<td>年份</td>
+<td>2025</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>硕博学位论文（硕士）</td>
+</tr>
+<tr>
+<td>来源</td>
+<td>华中师范大学</td>
+</tr>
+</tbody>
+</table>
+<h2>一、论文涉及的数据集</h2>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>面向教育领域的机器生成文本检测数据集（论文未给正式简称）</td>
+<td>[自建]</td>
+<td>文档级：中文作文 822 / 中文诗歌 1,008 / 中文摘要 1,094 / 英文作文 1,020 / 英文诗歌 1,008 / 英文摘要 1,000（条）；任务数据集训练集 4,000 / 验证集 500 / 测试集 500</td>
+<td>中英</td>
+<td>网络爬虫抓取教育领域人工文本 + 整合公开语料库/在线资源仓库；再用 GPT-3.5、LLaMA3-8B、Qwen2.5-7B 生成/改写机器文本</td>
+<td>论文未说明</td>
+</tr>
+<tr>
+<td>公开语料库与在线资源仓库（整合使用，未具名）</td>
+<td>[使用公开数据集]</td>
+<td>论文未说明</td>
+<td>中英</td>
+<td>论文称"整合现有的公开语料库和在线资源仓库，从中筛选出与教育领域相关的高质量人工语料"</td>
+<td>公开</td>
+</tr>
+</tbody>
+</table>
+<h2>二、是否自建数据集</h2>
+<p><strong>是（部分自建）</strong> —— 论文面向教育领域构建了一个机器生成文本检测数据集：人工文本部分由网络爬虫采集并整合公开语料库/在线资源，机器文本由多个大模型基于两类提示模板生成与改写，并做文档级切分为句子级。该数据集涵盖中英文作文、现代诗歌、论文摘要等教育场景常见文本形式。</p>
+<h2>三、自建数据集结构</h2>
+<h3>面向教育领域的机器生成文本检测数据集</h3>
+<ul>
+<li><strong>规模</strong>：文档级统计（论文表 3.2）——中文作文 822 条、中文诗歌 1,008 条、中文摘要 1,094 条、英文作文 1,020 条、英文诗歌 1,008 条、英文摘要 1,000 条；平均长度（字/词）分别约 700 / 250 / 250 / 250 / 150 / 250。任务数据集（论文表 3.5）：训练集 4,000、验证集 500、测试集 500。</li>
+<li><strong>数据来源</strong>：网络爬虫收集教育领域人工文本（关注不同教育阶段的多样性）；并整合现有公开语料库与在线资源仓库筛选高质量人工语料；数据含正文与标题，经清洗去噪（去无关信息、格式错误、重复样本）。</li>
+<li><strong>生成模型（含版本）</strong>：GPT-3.5、LLaMA3-8B、Qwen2.5-7B。</li>
+<li><strong>生成方式 / 提示词</strong>：调用模型 API，设计两类 prompt 模板——(1) <strong>生成模板</strong>（按给定标题生成对应文本，如中文作文要求不少于 700 字）；(2) <strong>改写模板</strong>（<strong>全文改写</strong>，保持语义基本不变前提下整体重构，涵盖同义替换、语序调整、段落重组、风格转换等）。生成与人工文本等量以保证平衡。</li>
+<li><strong>字段 / 结构</strong>：文本对结构；进入 BERT 时按 <code>[CLS] sentence1 [SEP] sentence2 [SEP]</code> 拼接，文本对由"原始文本 + 其再生成版本"构成；使用 WordPiece 分词，含 input-ids、token-type-ids、attention mask。</li>
+<li><strong>标注方式</strong>：数据切分后对每个短文本片段精确标注其来源（人工文本 / 机器文本）。</li>
+<li><strong>训练/验证/测试划分</strong>：训练集 4,000、验证集 500、测试集 500；长文本用 Qwen 模型按语义完整性切分为句子级短文本片段。</li>
+<li><strong>许可与获取途径</strong>：论文未说明。</li>
+</ul>
+<h2>四、实用价值</h2>
+<ul>
+<li>面向 <strong>教育场景下的学术诚信</strong>（识别学生用大模型生成的作业、论文、在线考试答案）与 <strong>学术不端防范</strong>，弥补现有检测技术在教育和学术领域精度不足的问题。</li>
+<li>兼顾 <strong>在线</strong>（基于文本再生成、精度高）与 <strong>离线</strong>（轻量级 LLaMA3-8B 微调、低成本可本地部署）两种应用形态。</li>
+</ul>
+<h2>五、创新点</h2>
+<ol>
+<li>构建了专门面向 <strong>教育领域</strong> 的机器生成文本检测数据集（含中英文作文、现代诗歌、论文摘要），采用"生成模板 + 全文改写模板"两类提示生成机器文本，并提供文档级与句子级两种粒度。</li>
+<li>提出 <strong>基于文本再生成</strong> 的检测方法：将原始文本与其再生成版本配对成文本对，用 BERT 捕捉文本对间的语义变化特征，显著优于大模型零样本方法。</li>
+<li>提出 <strong>基于轻量级大模型微调的离线检测方法</strong>：以 LLaMA3-8B 为基座，用 <strong>LoRA</strong> 高效参数微调，并在模型架构中引入专门的 <strong>文本分类输出层</strong>（LLaMA-Detector），兼顾精度与低资源可部署性。</li>
+<li>发现不同大语言模型在再生成时呈现各自独特的修正模式（句法结构调整、词汇替换、语法调整），为检测提供了新的判别线索。</li>
+</ol>
+<h2>六、关键原文引用</h2>
+<blockquote>
+<p>首先利用网络爬虫和整合公开数据集构建人工语料库。随后，调用多个大语言模型生成对应的机器文本，并通过精细化处理，构建细粒度的高质量训练语料。之后，使用大模型对原始文本进行再生成，并将原始文本及其再生成版本配对，以构建文本对。利用 BERT 模型对文本对之间语义变化的特征向量进行细致捕捉与分析。</p>
+</blockquote>
+<p><strong>说明</strong>：第三章基于文本再生成检测方法的整体流程（语料构建 → 文本对 → BERT 特征捕捉）。</p>
+<blockquote>
+<p>该数据集涵盖了多种文本类型，包括中英文作文、现代诗歌以及论文摘要等教育场景中常见的文本形式。数据集的构建过程主要包括四个关键步骤：人工数据获取、机器数据获取、数据切分和文本再生成。</p>
+</blockquote>
+<p><strong>说明</strong>：自建数据集的文本类型与四步构建流程。</p>
+<blockquote>
+<p>本研宄选取了 GPT-3.5、LLaMA3-8B 和 Qwen2.5.7B 作为文本生成模型，以获取高质量的机器生成文本……第一类是生成模板，用于根据标题要求生成对应的文本……第二类是改写模板，用于让模型对已有文本进行改写……其中，改写部分采用全文改写策略。</p>
+</blockquote>
+<p><strong>说明</strong>：机器文本所用的三个生成模型与两类提示模板（生成 / 全文改写）。</p>
+<blockquote>
+<p>我们通过调用对应模型的 API 接口，生成了与人工文本数量相等的机器文本，从而确保了数据集的平衡性。</p>
+</blockquote>
+<p><strong>说明</strong>：数据集正负样本等量、保证平衡。</p>
+<blockquote>
+<p>具体而言，我们采用 Qwen 模型对人工文本和机器生成文本进行语义切分，依据语义完整性与上下文连贯性将长文本划分为多个短文本片段。在切分完成后，我们对生成的短文本进行精确标注，确保每个片段的来源（人工文本或机器文本）得到完整保留。</p>
+</blockquote>
+<p><strong>说明</strong>：文档级到句子级的切分方式与来源标注方法。</p>
+<blockquote>
+<p>本方法选择了参数规模较小且具有较好推理效率的开源大语言模型 LLaMA3-8B 作为基座模型，通过高效参数微调技术 LoRA，对该模型进行针对机器文本判别任务的适配性优化和微调训练。</p>
+</blockquote>
+<p><strong>说明</strong>：第四章离线检测方法（LLaMA3-8B + LoRA 微调）。</p>
+<blockquote>
+<p>本研宄在模型基础架构中引入了专门的文本分类输出层结构，使得模型能够高效捕捉和强化不同文本类别间的细微语义及句法特征。研宄发现经微调后的 LLaMA-Detector 在性能表现上明显优于传统通用预训练模型，同时在参数规模控制与推理速度方面也表现出更好地可部署性。</p>
+</blockquote>
+<p><strong>说明</strong>：LLaMA-Detector 的关键改动（分类输出层）与可部署性优势。</p></div>
+</section>
+<section class="paper" id="p24" data-self="是">
+  <div class="phead">
+    <div class="pnum">#24</div>
+    <div>
+      <h2>基于水印注入的人工智能生成文本可检测性增强研究</h2>
+      <div class="chips">
+        <span class="chip ">张约翰（导师：陆伟教授）</span><span class="chip ">2024（二〇二四年五月）</span><span class="chip ">硕博学位论文（硕士）</span><span class="chip ">武汉大学（信息管理学院，数据科学专业，研究方向：自然语言处理）</span>
+        <span class="badge ok">自建：是</span>
+        <span class="chip">提及数据集 5 个</span>
+        <span class="chip">创新点 4 条</span>
+      </div>
+    </div>
+  </div>
+  <div class="md"><h1>基于水印注入的人工智能生成文本可检测性增强研究</h1>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作者</td>
+<td>张约翰（导师：陆伟教授）</td>
+</tr>
+<tr>
+<td>年份</td>
+<td>2024（二〇二四年五月）</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>硕博学位论文（硕士）</td>
+</tr>
+<tr>
+<td>来源</td>
+<td>武汉大学（信息管理学院，数据科学专业，研究方向：自然语言处理）</td>
+</tr>
+</tbody>
+</table>
+<h2>一、论文涉及的数据集</h2>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>结构化摘要数据集（SA task，自建评测用生成文本集）</td>
+<td>[自建]</td>
+<td>论文未说明（OCR 未见明确条数）</td>
+<td>英文</td>
+<td>采用 GPT-2、text-davinci-002、ChatGPT 生成结构化摘要文本，用于评测检测器有效性；摘要信息随机抽样自已有研究的数据集（Guo 等人、Ma 等人的对比语料）</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>问答任务生成文本集（QA task，自建评测用生成文本集）</td>
+<td>[自建]</td>
+<td>论文未说明</td>
+<td>英文</td>
+<td>引导 LLM 为给定问题生成答案；问题抽样自已有人类/ChatGPT 对比研究数据集</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>风格控制子数据集</td>
+<td>[自建]（属上两数据集的扩展）</td>
+<td>论文未说明</td>
+<td>英文</td>
+<td>在提示中加入"以某人的风格写作"及莎士比亚、海明威、托尔斯泰、加夫列尔·加西亚·马尔克斯、乔治·奥威尔、诺拉·罗伯茨、J.K.罗琳等作家示例文本，对比不同提示工程方法</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>同义词生成与排序任务问题集 / 思维链（CoT）金标准数据集（第 5 章，用于蒸馏增强 ChatGLM3-6B）</td>
+<td>[自建]</td>
+<td>论文未说明</td>
+<td>中文为主</td>
+<td>数据来自金融、医学、开放问答、论坛问答、百科知识等多领域来源；由闭源模型（ChatGPT、Kimi 等）API 生成，经数据清洗、格式/内容自动检查、人工抽样审核、有毒内容过滤等质量控制</td>
+<td>未说明</td>
+</tr>
+<tr>
+<td>HC3 数据集、GPABenchmark 数据集、M4 数据集</td>
+<td>[使用公开数据集]（仅在文献综述中提及）</td>
+<td>论文未展开</td>
+<td>中英</td>
+<td>现有 AI 生成文本检测研究数据集</td>
+<td>公开</td>
+</tr>
+</tbody>
+</table>
+<h2>二、是否自建数据集</h2>
+<p><strong>是</strong> —— 论文自行构建了多套专有数据集：第 3 章用提示工程（GPT-2/text-davinci-002/ChatGPT）生成问答与摘要润色任务的可检测性评测文本集；第 5 章基于多领域数据源和闭源模型知识蒸馏构建了基于思维链的金标准数据集，用于 LoRA+ 增强 ChatGLM3-6B。</p>
+<h2>三、自建数据集结构</h2>
+<h3>1. 提示工程评测数据集（问答任务 QA task + 摘要润色/结构化摘要 SA task）</h3>
+<ul>
+<li><strong>规模</strong>：论文未说明（OCR 中未见明确条数）</li>
+<li><strong>数据来源</strong>：问题与摘要信息通过随机抽样采自已有人研究的数据集（Guo 等人、Ma 等人的 AI/人类对比语料）</li>
+<li><strong>生成模型</strong>（含版本）：GPT-2（白盒）、text-davinci-002、ChatGPT（黑盒 API）</li>
+<li><strong>生成方式 / 提示词</strong>：按四原则设计提示——设定角色（如"你是一个高智能的问答机器人"）、明确任务、在三引号内提供信息、明确指示输出格式（如 JSON：question、answer）；摘要润色核心句为 "polish the following abstract"；另加风格控制语句"以某人的风格写作"并配合莎士比亚诗歌、海明威段落等示例文本；多轮对话格式中向模型解释困惑度与爆发度概念以规避检测器；生成后经格式检查与过滤（剔除过短/过长/特殊符号过多的文本）</li>
+<li><strong>字段 / 结构</strong>：问答任务为 question、answer（JSON 格式）；摘要任务为原文摘要与润色后摘要</li>
+<li><strong>标注方式</strong>：按生成来源（模型/风格）天然分组，用于对 ZeroGPT、GPTZero 等检测器做可检测性评估</li>
+<li><strong>训练/验证/测试划分</strong>：论文未说明（评测性质数据集）</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h3>2. 同义词生成与排序任务问题集 / CoT 金标准数据集</h3>
+<ul>
+<li><strong>规模</strong>：论文未说明</li>
+<li><strong>数据来源</strong>：金融、医学、开放问答、论坛问答、百科知识等多领域数据</li>
+<li><strong>生成模型</strong>（含版本）：闭源模型（综合 ChatGPT、Kimi 等多个模型输出），用于蒸馏到基模型 ChatGLM3-6B</li>
+<li><strong>生成方式 / 提示词</strong>：设计多种提示与问题模板，融入 Chain-of-Thought（CoT）中间推理步骤生成同义词候选；候选词经等概率哈希映射（BLAKE2 加密哈希）编码为蓝色词/绿色词</li>
+<li><strong>字段 / 结构</strong>：原句 + 同义词候选集 + 排序结果（金标准答案）</li>
+<li><strong>标注方式</strong>：自动化质量控制（格式检查 + 内容检查：长度、相关性、语义一致性）+ 人工抽样审核；有毒有害词列表过滤；多模型集成做偏见平衡</li>
+<li><strong>训练/验证/测试划分</strong>：论文未说明</li>
+<li><strong>许可与获取途径</strong>：论文未说明</li>
+</ul>
+<h2>四、实用价值</h2>
+<ul>
+<li>为检测 ChatGPT/GPT-4 等 LLM 生成文本提供"主动水印"检测方案，应用于：学术出版领域检测论文中的 AI 内容、教育评估识别学生作业作弊、媒体与内容平台的 AI 生成内容标注、网络空间虚假信息过滤；方案可嵌入各类文本生成大模型服务，为添加水印、禁止滥用等政策实施提供技术支撑。</li>
+</ul>
+<h2>五、创新点</h2>
+<ol>
+<li>从普通用户视角提出基于提示工程（角色扮演、风格转换）的 AI 生成文本检测器有效性评估方法，填补了以用户为中心的可检测性研究空白。</li>
+<li>面向文本生成阶段提出以句子结构为水印隐藏对象的句采样水印方法（优化集束搜索实现句法结构集束搜索），填补令牌采样阶段与句层级水印研究空缺，实现无偏差水印添加。</li>
+<li>面向文本分发阶段提出基于熵筛选、词性理解、上下文知识引导候选集处理与等概率哈希映射（BLAKE2）的生成后水印注入与 z 检验识别方法（DPTW），并利用 LoRA+ 蒸馏闭源模型知识增强 ChatGLM3-6B。</li>
+<li>定义"文本功能性"概念，提出以文本功能性为核心的文本水印综合评估框架/基准，弥补当前水印评估体系空缺。</li>
+</ol>
+<h2>六、关键原文引用</h2>
+<blockquote>
+<p>"（ 2 ）面向文本生成阶段，设计了一种在生成过程中添加水印信息的方法。利用优化后的集束搜索，使用句子结构作为隐藏水印的对象，借此减少对模型生成过程的干扰。"</p>
+</blockquote>
+<p><strong>说明</strong>：概述第 4 章核心创新——以句子结构为水印对象、优化集束搜索实现生成时无偏差水印注入。</p>
+<blockquote>
+<p>"本文使用不同参数规模的 LLM 生成结构化摘要数据集（ SA task ），用于评测人工智能生成文本检测器。本文采用 GPT 系列模型，例如 GPT-2 、 text-davmci-002 和 ChatGPT 作为文本生成模型。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明第 3 章自建评测数据集的用途与生成模型清单（OCR 原文 text-davmci-002 应为 text-davinci-002）。</p>
+<blockquote>
+<p>"对于风格控制子数据集中，本文选择了莎士比亚、海明威、托尔斯泰、加夫列尔·加西亚·马尔克斯、乔治奥威尔、诺拉哕伯茨、 JK 罗琳等横跨不同时代不同风格的多位作家。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明风格控制子数据集的构造方式——用多位作家风格提示生成规避检测的文本。</p>
+<blockquote>
+<p>"本文使用从多个领域和来源构建的数据，包括但不限于金融、医学、开放问答、论坛问答和百科知识等。这种跨领域的数据采集策略不仅增加了数据集的多样性，而且提高了数据集在不同应用场景下的适用性和泛化能力。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明第 5 章金标准数据集（同义词生成与排序任务问题集）的多领域来源构成。</p>
+<blockquote>
+<p>"本文蒸馏提取更强大的黑盒闭源模型的知识，并迁移融入到本文选取的 ChatGLM3-6B 模型中……本文基于闭源模型 API 平台与精心设计的过滤系统来实现这一强闭源模型知识的蒸馏提取过程，最终得到在候选集处理任务上的黄金标准结果。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明金标准数据集的构建目的与方式——蒸馏闭源模型知识到 ChatGLM3-6B 以增强候选集处理的上下文感知能力。</p>
+<blockquote>
+<p>"鉴于当前文本水印算法评估框架稀缺、对文本功能性关注不足，论文提出一个以文本功能性为核心的文本水印综合评估框架。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明第 4 项创新点——提出面向文本功能性的水印评估框架。</p></div>
+</section>
+<section class="paper" id="p25" data-self="部分自建">
+  <div class="phead">
+    <div class="pnum">#25</div>
+    <div>
+      <h2>基于生成式对抗网络与特征融合的机器生成文本检测与溯源研究</h2>
+      <div class="chips">
+        <span class="chip ">俞文军（Wenjun Yu，导师：许斌 副教授 / Assoc. Prof. Bin Xu）</span><span class="chip ">2024</span><span class="chip ">硕博学位论文（硕士，专业学位硕士）</span><span class="chip ">南京邮电大学</span>
+        <span class="badge mid">自建：部分自建</span>
+        <span class="chip">提及数据集 2 个</span>
+        <span class="chip">创新点 4 条</span>
+      </div>
+    </div>
+  </div>
+  <div class="md"><h1>基于生成式对抗网络与特征融合的机器生成文本检测与溯源研究</h1>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作者</td>
+<td>俞文军（Wenjun Yu，导师：许斌 副教授 / Assoc. Prof. Bin Xu）</td>
+</tr>
+<tr>
+<td>年份</td>
+<td>2024</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>硕博学位论文（硕士，专业学位硕士）</td>
+</tr>
+<tr>
+<td>来源</td>
+<td>南京邮电大学</td>
+</tr>
+</tbody>
+</table>
+<h2>一、论文涉及的数据集</h2>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>检测实验数据集（检测任务）</td>
+<td>[部分自建]</td>
+<td>论文未给出总条数</td>
+<td>英文</td>
+<td>人类文本取自 xsum、WritingP（WritingPrompts）、SQuAD、Yelp 四个公开数据集；机器文本由 GPT-2、GPT-3、GPT-J、GPT-Neo、ChatGPT、PaLM、LLaMA 等 LLM 生成</td>
+<td>人类源数据集公开；机器文本部分论文未说明</td>
+</tr>
+<tr>
+<td>溯源实验数据集（溯源任务）</td>
+<td>[部分自建]</td>
+<td>论文未给出总条数</td>
+<td>英文</td>
+<td>与检测数据集同源的人类文本 + 多个 LLM 生成的机器文本，标签细化到具体来源（human / gpt2 / chatgpt / llama 等）</td>
+<td>人类源数据集公开；机器文本部分论文未说明</td>
+</tr>
+</tbody>
+</table>
+<h2>二、是否自建数据集</h2>
+<p><strong>部分自建</strong> —— 论文直接采用 xsum、WritingP、SQuAD、Yelp 等公开人类文本数据集，并自行利用多个 LLM（GPT 系列、PaLM、LLaMA 等）在这些人类文本上生成对应的机器文本，从而构建检测与溯源两类实验数据集。论文未给出数据集的总条数。</p>
+<h2>三、自建数据集结构</h2>
+<h3>检测实验数据集（第三章）</h3>
+<ul>
+<li><strong>规模</strong>：论文未说明具体条数（仅说明由四类人类文本 + 对应机器文本构成）。</li>
+<li><strong>数据来源</strong>：人类文本来自 xsum（英文新闻摘要）、WritingP（新闻、科学论文、评论、散文）、SQuAD（斯坦福基于维基百科的问答数据）、Yelp（商业与服务评论）。</li>
+<li><strong>生成模型</strong>（含版本）：OpenAI 的 GPT 系列（GPT-2、GPT-3、ChatGPT 等）、谷歌 PaLM 模型、Meta LLaMA 模型。</li>
+<li><strong>生成方式 / 提示词</strong>：三种提示方式——（1）延续提示：要求 LLM 根据原始人类文本的前 20 个单词继续生成文本；（2）专题提示：使用论点、新闻标题、故事主题等提示指导生成；（3）指定提示：向 LLM 提供包含特定文本风格要求的信息以引导生成。</li>
+<li><strong>字段 / 结构</strong>：文本 + 标签（人类编写标记为 "human"，LLM 生成标记为 "machine"）；数据集样例含"来源""样例""标签"字段。</li>
+<li><strong>标注方式</strong>：按生成来源进行二元标注（human / machine）。</li>
+<li><strong>训练/验证/测试划分</strong>：80％ / 10％ / 10％。</li>
+<li><strong>许可与获取途径</strong>：论文未说明（人类源数据集本身公开，自建机器文本未给出公开途径）。</li>
+</ul>
+<h3>溯源实验数据集（第四章）</h3>
+<ul>
+<li><strong>规模</strong>：论文未说明具体条数；在四个数据集（XSum、WritingP、SQuAD、Yelp）上进行实验。</li>
+<li><strong>数据来源</strong>：与第三章同源的人类文本 + 由多个 LLM 生成的机器文本。</li>
+<li><strong>生成模型</strong>（含版本）：GPT-2、GPT-3、GPT-J、GPT-Neo、ChatGPT、PaLM、LLaMA。</li>
+<li><strong>生成方式 / 提示词</strong>：以人类文本数据集的前 20 个单词作为提示指导生成；此外围绕特定主题（如"教育"、"科技"、"生活"）指导 LLM 生成。</li>
+<li><strong>字段 / 结构</strong>：文本 + 来源标签（人类文本标记 "human"，机器文本标记其具体生成来源，如 gpt2、chatgpt、llama 等），构成多分类标签。</li>
+<li><strong>标注方式</strong>：将机器生成文本标注出具体来源模型（细粒度多分类）。</li>
+<li><strong>训练/验证/测试划分</strong>：80％ / 10％ / 10％。</li>
+<li><strong>许可与获取途径</strong>：论文未说明。</li>
+</ul>
+<h2>四、实用价值</h2>
+<ul>
+<li>机器生成文本检测（判断文本由机器生成还是人类编写）与溯源（识别文本由哪个具体 LLM 生成）。</li>
+<li>面向虚假信息传播治理、学术诚信（学生用 LLM 完成作业/论文）、版权与知识产权保护、内容真实性核查与责任归属界定。</li>
+<li>配套实现了机器生成文本检测及溯源系统，带错误反馈与数据库迭代优化，面向实际检测/监管场景落地。</li>
+</ul>
+<h2>五、创新点</h2>
+<ol>
+<li>提出基于生成式对抗网络（GAN）的机器生成文本检测模型 MHTD，用生成器-判别器对抗训练并生成文本做数据增强。</li>
+<li>判别器融合 BERT（全局语义）与 LSTM（时序关系），提升对文本深层语义与时序结构的理解。</li>
+<li>提出基于特征融合的溯源模型 MFFD，将词嵌入语义特征与预测概率/累积概率/信息熵统计特征融合为综合特征向量。</li>
+<li>构建并实现机器生成文本检测及溯源系统，支持用户对错误检测结果反馈并入库以指导模型迭代。</li>
+</ol>
+<h2>六、关键原文引用</h2>
+<blockquote>
+<p>为此，本文构建了相关的实验数据集，该数据集被划分为两个主要类别：人类编写文本和机器生成文本。</p>
+</blockquote>
+<p><strong>说明</strong>：说明检测实验数据集分为人类编写文本与机器生成文本两类。</p>
+<blockquote>
+<p>人类编写文本部分来源于广泛的人类作者群体，涵盖了文本摘要、新闻文章、用户评论以及特定主题的文本，以确保数据集的多样性，具体包括：xsum、WritingP、SQuAD 以及 Yelp 数据集。</p>
+</blockquote>
+<p><strong>说明</strong>：明确人类文本取自 xsum、WritingP、SQuAD、Yelp 四个公开数据集。</p>
+<blockquote>
+<p>在本研究中，利用了一系列的 LLM 来生成机器文本。这些模型包括 OpenAI 的 GPT 系列（如 GPT-2、GPT-3、ChatGPT 等）、谷歌的 PaLM 模型以及 FaceBook 的 Meta LLaMA 模型。</p>
+</blockquote>
+<p><strong>说明</strong>：列出检测数据集使用的生成模型。</p>
+<blockquote>
+<p>本研究使用三种类型的提示指导 LLM 的文本生成：（1）延续提示：要求 LLM 根据原始人类文本的前 20 个单词继续生成文本。（2）专题提示：使用论点、新闻标题、故事主题等提示指导 LLM 生成文本。（3）指定提示：向 LLM 提供的包含特定文本风格要求的信息，以引导模型产出符合预设特征的文本。</p>
+</blockquote>
+<p><strong>说明</strong>：说明三种提示词生成策略。</p>
+<blockquote>
+<p>本文将由人类编写的内容归类并标记为 "human"，而由大语言模型产生的文本则相应地被标记为 "machine"。数据集被划分为训练集、验证集和测试集占比分别为 80％、10％、10%。</p>
+</blockquote>
+<p><strong>说明</strong>：说明检测数据的标签方式与 80/10/10 划分。</p>
+<blockquote>
+<p>在本项研究中，通过多个 LLM 生成了机器文本，包括 GPT-2、GPT-3、GPT-J、GPT-Neo、ChatGPT、paLM 以及 LLaMA 模型。</p>
+</blockquote>
+<p><strong>说明</strong>：列出溯源数据集使用的生成模型（含 GPT-J、GPT-Neo）。</p>
+<blockquote>
+<p>本文将由人类编写的文本归类并标记为 "human"，对于机器生成的文本标记出其具体的来源，即该段机器生成文本由哪个 LLM 生成。</p>
+</blockquote>
+<p><strong>说明</strong>：说明溯源任务的细粒度多分类标注方式。</p></div>
+</section>
+<section class="paper" id="p26" data-self="否">
+  <div class="phead">
+    <div class="pnum">#26</div>
+    <div>
+      <h2>基于语义特征的ChatGPT生成文本识别研究</h2>
+      <div class="chips">
+        <span class="chip ">王志慧（导师：金勋副教授、孙先利高级工程师）</span><span class="chip ">2024</span><span class="chip ">硕博学位论文（硕士，电子信息硕士专业学位）</span><span class="chip ">延边大学（计算机技术专业，网络通信与信息安全方向）</span>
+        <span class="badge no">自建：否</span>
+        <span class="chip">提及数据集 3 个</span>
+        <span class="chip">创新点 4 条</span>
+      </div>
+    </div>
+  </div>
+  <div class="md"><h1>基于语义特征的ChatGPT生成文本识别研究</h1>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>作者</td>
+<td>王志慧（导师：金勋副教授、孙先利高级工程师）</td>
+</tr>
+<tr>
+<td>年份</td>
+<td>2024</td>
+</tr>
+<tr>
+<td>类型</td>
+<td>硕博学位论文（硕士，电子信息硕士专业学位）</td>
+</tr>
+<tr>
+<td>来源</td>
+<td>延边大学（计算机技术专业，网络通信与信息安全方向）</td>
+</tr>
+</tbody>
+</table>
+<h2>一、论文涉及的数据集</h2>
+<table>
+<thead>
+<tr>
+<th>数据集名称</th>
+<th>类别</th>
+<th>规模</th>
+<th>语言</th>
+<th>来源/构成</th>
+<th>是否公开</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HAGTC（Human and AI Generated Texts Classification）</td>
+<td>[使用公开数据集]</td>
+<td>实验子集：RT 300 条、GT 500 条、RP 828 条、GP 1863 条（文档数据；另有按段落划分的数据）</td>
+<td>英文</td>
+<td>来自教育环境、涵盖十个主题；人类文本来自维基百科，ChatGPT 文本分为生成/改写/以人类口吻生成/以人类口吻改写四类</td>
+<td>公开</td>
+</tr>
+<tr>
+<td>CHEAT / CHAET（CHatGPT-writtEn AbsTract dataset）</td>
+<td>[使用公开数据集]</td>
+<td>实验子集：RT 30790 条、MT 24875 条、MR 35304 条（按 8:1:1 划分的训练/验证/测试合计）</td>
+<td>英文</td>
+<td>ChatGPT 编写摘要数据集，文本均与计算机学科相关；含人类文本及 ChatGPT 的 Generation/Polish/Mix 类别</td>
+<td>公开</td>
+</tr>
+<tr>
+<td>HTTP（Human-ChatGPT Polished Paired abstracT）</td>
+<td>[使用公开数据集]</td>
+<td>实验子集：5312/592/1476（训练/验证/测试），共 7380 条</td>
+<td>英文</td>
+<td>人类-ChatGPT 润色配对摘要数据集，与计算机学科相关，按原文 6:3:1 划分</td>
+<td>公开</td>
+</tr>
+</tbody>
+</table>
+<p>（三个数据集文本平均长度分别为 274.4、163.9 与 139.9。）</p>
+<h2>二、是否自建数据集</h2>
+<p><strong>否</strong> —— 论文选取三个已公开的学术文本数据集（HAGTC、CHEAT、HTTP），重点检测经 ChatGPT 改写/润色的文本；作者的工作在于对数据集进行多种划分（文档/段落、按主题、按 ChatGPT 参与程度组合），而非自行采集或生成数据。</p>
+<h2>三、自建数据集结构</h2>
+<p>（无自建数据集，本节不适用。）</p>
+<h2>四、实用价值</h2>
+<ul>
+<li>面向学术诚信与文本抄袭检测场景：识别 ChatGPT 改写/润色的学术文本（摘要、教育环境文本），确保文本在受监督情况下使用，辅助检测文本抄袭、保障学术诚信和研究真实性。</li>
+<li>方法针对短文本（平均长度 139.9–274.4）设计，适用于信息量有限的实际检测场景。</li>
+</ul>
+<h2>五、创新点</h2>
+<ol>
+<li>提出 SLS（Structural-Lexical-Semantic）方法：将词汇、结构、语言多样性三个层面的 51 个写作风格统计特征作为辅助信号与 RoBERTa 语义理解结合，新在提升检测可解释性并改进对小数据集的迁移能力。</li>
+<li>提出 RoSemCNN（RoBERTa-Semantic-CNN）方法：通过卷积提取全部词向量的深度特征并与 CLS 向量结合，新在突破仅用分类向量做下游任务的局限、更好利用全局语义信息处理短文本。</li>
+<li>检测对象聚焦于"经 ChatGPT 改写润色"及"人机混合"文本，而非仅直接生成文本，新在覆盖了此前研究忽略的更贴近实际滥用场景的数据形态。</li>
+<li>对 HAGTC、CHEAT 数据集设计了多种划分方式（改写文本/生成文本/混合文本、文档/段落粒度、按主题划分），系统性验证方法在短文本与不同人机参与程度下的有效性。</li>
+</ol>
+<h2>六、关键原文引用</h2>
+<blockquote>
+<p>"识别 ChatGPT 生成文本有助于检测文本抄袭，确保学术诚信和研宄的真实性，具有广泛的应用价值。该文将 RoBERTa 作为基线模型，将文本写作风格特征作为辅助，同时利用全局语义信息，在 ChatGPT 改写的短文本上进行实验。"</p>
+</blockquote>
+<p><strong>说明</strong>：点明论文的应用定位（学术诚信/抄袭检测）与技术路线（RoBERTa + 风格特征 + 全局语义）。</p>
+<blockquote>
+<p>"本文结合数据集的文体、主题与公开情况，选取人类与 ChatGPT 生成文本分类数据集 (Human and AI Generated Texts Classification, HAGTC)、ChatGPT 编写摘要数据集 (CHatGPT-writtEn AbsTract dataset, CHAET) 和人类-ChatGPT 润色配对摘要数据集 (Human-ChatGPT Polished Paired abstractT, HTTP)。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明论文全部使用三个公开数据集，未自建数据。</p>
+<blockquote>
+<p>"在 HAGTC 数据集中，人类编写的文本来自维基百科，来源于 ChatGPT 的文本则分为四类：由 ChatGPT 生成的文本、由 ChatGPT 重新表述的文本、以人类的口吻由 ChatGPT 生成的文本以及以人类的口吻由 ChatGPT 重新表述的文本。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明 HAGTC 数据集的来源与构成（维基百科 + 四类 ChatGPT 文本）。</p>
+<blockquote>
+<p>"HAGTC 数据集来自教育环境，涵盖十个主题。 CHAET 数据集和 HTTP 数据集为摘要数据集，文本均与计算机学科相关。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明三个数据集的领域背景（教育环境/计算机学科摘要）。</p>
+<blockquote>
+<p>"数据集中文本的平均长度分别为 274.4、163.9 与 139.9，验证了分类方法在短文本上的有效性。"</p>
+</blockquote>
+<p><strong>说明</strong>：给出三个数据集的文本平均长度，体现短文本检测定位。</p>
+<blockquote>
+<p>"首先，当前的研究主要针对直接由 ChatGPT 生成的文本，而忽略了由 ChatGPT 进行改写或者与人类文本混合的情况。当分类模型仅在由 ChatGPT 生成的文本上进行训练时，会将经过改写的文本直接归类为人类书写的文本。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明论文选取改写/混合文本作为检测重点的动机。</p>
+<blockquote>
+<p>"在划分 HAGTC 数据集和 CHAET 数据集时，按照 8:1:1 的比例将数据集随机划分为训练集、测试集和验证集。 HPPT 数据集在原文献中按照 6:3:1 的比例划分为训练集、测试集和验证集，本文在实验时遵循原文中的设定。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明数据集的训练/验证/测试划分方式（其中"8:1:1"由 OCR 残缺"8：凵"按上下文还原，HTTP 数据集名称在原文中偶写作 HPPT，[OCR待核]）。</p>
+<blockquote>
+<p>"实验结果表明，相比于 RoBERTa 模型，该文提出的 SLS 方法在三个数据集的改写数据上，准确率分别提高了 4.67％、0.98％与 0.27％……通过卷积增强语义信息后，性能也获得大幅度提升。"</p>
+</blockquote>
+<p><strong>说明</strong>：说明方法在三个公开数据集改写文本上的有效性验证结果。</p></div>
+</section>
+<footer>共 26 篇 · 由 analysis/*.md 自动汇总生成</footer>
+</main></div>
+<script>
+const btns=document.querySelectorAll('.toolbar button[data-f]');
+const cards=document.querySelectorAll('.paper');
+const box=document.querySelector('#q');
+btns.forEach(b=>b.onclick=()=>{
+  btns.forEach(x=>x.classList.remove('active'));b.classList.add('active');
+  const f=b.dataset.f;
+  cards.forEach(c=>{c.style.display=(f==='all'||c.dataset.self.includes(f))?'':'none'});
+});
+box.oninput=()=>{const s=box.value.trim().toLowerCase();
+  cards.forEach(c=>{c.style.display=(!s||c.innerText.toLowerCase().includes(s))?'':'none'})};
+document.querySelectorAll('aside a').forEach(a=>a.onclick=e=>{
+  const t=document.querySelector(a.getAttribute('href'));
+  if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'})}
+});
+</script>
+</body></html>
