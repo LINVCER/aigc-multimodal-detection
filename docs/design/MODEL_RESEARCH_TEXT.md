@@ -449,3 +449,48 @@
 - [CCL25-Eval Task 5](https://arxiv.org/abs/2606.12392) · [qwen2.5-14b-humanizer-v3-lora](https://huggingface.co/arunsingh80475/qwen2.5-14b-humanizer-v3-lora) · [humanize-zh](https://github.com/XiangJinyu/humanize-zh)
 - [HC3-Chinese](https://huggingface.co/datasets/Hello-SimpleAI/HC3-Chinese) · [HC3 Plus](https://arxiv.org/html/2309.02731v2)
 - [Turnitin vs Copyleaks vs GPTZero 2026](https://www.browse-ai.tools/blog/turnitin-vs-copyleaks-vs-gptzero-2026-ai-detection-guide-for-educators) · [知网 vs 维普 vs 万方](https://blog.csdn.net/aigccleaner/article/details/158237711) · [2026 高校 AI 率新规](https://blog.csdn.net/aigccleaner/article/details/158815343)
+
+---
+
+# v3 增补 · 2026-10-17 外网最新调研（底座选型更新）
+
+> 知识截止 2026-06 + 本轮 WebSearch 核实；聚焦「底座选哪个 / 要不要自训」。
+
+## G. 当前最强检测系统（对标参照，非可自建料）
+
+| 系统 | 形态 | 关键数 | 对我们 |
+|---|---|---|---|
+| Pangram 4（2026） | **闭源付费 API**（$0.05/100 词） | AUROC 0.9916、FPR 0.0041% | 只能付费调接口做对拍基准，拿不到权重；Open Pangram 仅非商业许可，商用用不了 |
+| Binoculars | 开源零样本 | 双 FPR 档 | 零样本兜底参照实现 |
+
+结论：**Pangram 不是可自建底座**；自建可商用走开源底座自训这条路。
+
+## H. 2026 评测基准（验收别只用英文/自造集）
+
+- 中文：**C-ReD**（ACL 2026 Findings，真实 prompt，结论：DeepSeek-R1 类推理模型中文最难检，C-ReD 上微调泛化强）、**C-HAT-Bench**（24 万条中文人机**混写**，21 检测器）。
+- 英文：RAID（多域+11 攻击）、PADBen（改写攻击）。
+- 趋势：前沿已从「全 AI 检测」转向**混写/AI 辅助检测**，与我们段级+句级设计契合。
+
+## I. 底座最新结论
+
+| 底座 | 参数(backbone/总) | 许可 | 结论 |
+|---|---|---|---|
+| chinese-roberta-wwm-ext（现基线） | 100M | Apache | 2019 旧，待升 |
+| **mdeberta-v3-base** | 86M/278M | MIT | **中文首选**；解耦注意力对细粒度文风敏感，检测 F1 领先 RoBERTa |
+| deberta-v3-large | 304M/435M | MIT | 精度上限，需 GPU |
+| **ModernBERT-base** | 149M | Apache | 新效率帕累托点：平 deberta-v3-large 而 1/3 参数，RoPE 长上下文、省内存 → CPU/4C8G 友好；**但主为英文/代码训，中文需确认有无可用权重** |
+
+**DeBERTa-v3 要点**：encoder-only，v3 用 ELECTRA 式 RTD + GDES 预训练更省更强；解耦注意力（内容/位置分离）是它对「句式太匀」类信号敏感的根因。默认上下文 512（配逐段检测刚好），SentencePiece 分词（装 sentencepiece，fast tokenizer 历史有坑用慢版），微调 lr 比 RoBERTa 低半档。base 版 INT8 约 180MB 可塞 4C8G CPU。
+
+## J. 自训底座的结论
+
+**别从零预训练底座**（几十万~百万元、几百 GPU·月，对检测精度增益≈0）。区分力在微调，不在底座预训练。真要「自己训一点」就做**领域继续预训练 DAPT**：拿 mDeBERTa-v3-base，用论文语料跑一轮 MLM 再微调，花小钱涨 1~3 pp。护城河是**数据**（真实人类论文 + 各家新模型生成/改写样本，持续更新），不是底座。
+
+**务实路线**：mdeberta-v3-base（CPU 极致省内存备选 ModernBERT）→ 可选论文 DAPT → 标注集微调 + 校准 + 表层特征融合 → 持续补新生成器样本；训练云 GPU 按需，推理 INT8 落 4C8G。
+
+## K. v3 参考
+
+- Pangram 4 技术报告 arXiv:2607.27183；Pangram 定价（付费 API）
+- C-ReD（ACL 2026 Findings 2026.findings-acl.2119）；C-HAT-Bench arXiv:2609.32770
+- DeBERTaV3 arXiv:2111.09543；microsoft/{deberta-v3-base,large,mdeberta-v3-base}（HF，MIT）
+- ModernBERT arXiv:2412.13663；ModernBERT or DeBERTaV3 (IJCNLP 2025)
